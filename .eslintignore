@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+cdk.out/
+
+# Archive and legacy files
+archive/
+
+# CDK generated files
+*.d.ts
+*.js.map 
