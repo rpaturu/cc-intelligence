@@ -15,41 +15,41 @@ import './App.css'
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <AuthProvider>
+    <AuthProvider>
         <ProfileProvider>
-          <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background">
             <Navbar />
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignUpPage />} />
                 <Route path="/confirm" element={<ConfirmSignUpPage />} />
-              <Route 
-                path="/" 
-                element={
-                  <ProtectedRoute>
+          <Route 
+            path="/" 
+            element={
+              <ProtectedRoute>
                       <EnhancedIntelligenceExperience />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                } 
-              />
-              {/* Redirect any old routes to the main experience */}
-              <Route path="/intelligence" element={<Navigate to="/" replace />} />
-              <Route path="/chat/*" element={<Navigate to="/" replace />} />
-              <Route path="/analytics" element={<Navigate to="/" replace />} />
-              <Route path="/settings" element={<Navigate to="/profile" replace />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            <Toaster />
-          </div>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          {/* Redirect any old routes to the main experience */}
+          <Route path="/intelligence" element={<Navigate to="/" replace />} />
+          <Route path="/chat/*" element={<Navigate to="/" replace />} />
+          <Route path="/analytics" element={<Navigate to="/" replace />} />
+          <Route path="/settings" element={<Navigate to="/profile" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+        <Toaster />
+      </div>
         </ProfileProvider>
-      </AuthProvider>
+    </AuthProvider>
     </ThemeProvider>
   )
 }

@@ -163,7 +163,7 @@ export function ProfilePage() {
               <ArrowLeft className="w-4 h-4" />
               Back to Intelligence
             </Button>
-          </div>
+            </div>
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -217,12 +217,12 @@ export function ProfilePage() {
           <div className="flex items-center gap-2 mb-4">
             <User className="w-5 h-5 text-primary" />
             <h2 className="text-xl font-semibold text-foreground">Personal Information</h2>
-          </div>
+              </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
-              <Input
-                id="name"
+                  <Input
+                    id="name"
                 placeholder="e.g., Ramesh Paturu"
                 value={formData.name}
                 onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, name: e.target.value }))}
@@ -235,16 +235,16 @@ export function ProfilePage() {
                 placeholder="e.g., Sales Account Manager"
                 value={formData.role}
                 onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, role: e.target.value }))}
-              />
-            </div>
+                  />
+                </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email (Verified)</Label>
-              <Input
-                id="email"
+                  <Input
+                    id="email"
                 type="email"
                 placeholder="ramesh@company.com"
                 value={formData.email}
-                disabled
+                    disabled
                 className="bg-muted text-muted-foreground"
               />
             </div>
@@ -255,9 +255,9 @@ export function ProfilePage() {
                 placeholder="e.g., Enterprise Sales"
                 value={formData.department}
                 onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, department: e.target.value }))}
-              />
-            </div>
-          </div>
+                  />
+                </div>
+              </div>
         </Card>
 
         {/* Company Information */}
@@ -289,8 +289,8 @@ export function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company">Company Name *</Label>
-              <Input
-                id="company"
+                  <Input
+                    id="company"
                 placeholder="e.g., Atlassian"
                 value={formData.company}
                 onChange={(e) => handleCompanySelect(e.target.value)}
@@ -303,18 +303,18 @@ export function ProfilePage() {
                 placeholder="e.g., atlassian.com"
                 value={formData.companyDomain}
                 onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, companyDomain: e.target.value }))}
-              />
-            </div>
+                  />
+                </div>
             <div className="md:col-span-2 space-y-2">
               <Label htmlFor="industry">Industry</Label>
-              <Input
+                  <Input
                 id="industry"
                 placeholder="e.g., Software Development Tools"
                 value={formData.industry}
                 onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, industry: e.target.value }))}
-              />
-            </div>
-          </div>
+                  />
+                </div>
+              </div>
         </Card>
 
         {/* Products & Value Props */}
@@ -352,7 +352,7 @@ export function ProfilePage() {
                   </span>
                 ))}
               </div>
-            </div>
+                </div>
 
             <div className="space-y-2">
               <Label>Key Value Propositions</Label>
@@ -427,8 +427,8 @@ export function ProfilePage() {
           <div className="flex items-center gap-2 mb-4">
             <Users className="w-5 h-5 text-primary" />
             <h2 className="text-xl font-semibold text-foreground">Sales Context</h2>
-          </div>
-          
+                </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="space-y-2">
               <Label htmlFor="territory">Territory/Region</Label>
@@ -441,22 +441,22 @@ export function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="salesFocus">Sales Focus</Label>
-              <Select 
+                  <Select 
                 value={formData.salesFocus} 
                 onValueChange={(value) => setFormData((prev: UserProfile) => ({ ...prev, salesFocus: value as 'enterprise' | 'smb' | 'mid-market' | 'startup' }))}
-              >
-                <SelectTrigger>
+                  >
+                    <SelectTrigger>
                   <SelectValue placeholder="Select sales focus" />
-                </SelectTrigger>
-                <SelectContent>
+                    </SelectTrigger>
+                    <SelectContent>
                   <SelectItem value="enterprise">Enterprise</SelectItem>
                   <SelectItem value="mid-market">Mid-Market</SelectItem>
                   <SelectItem value="smb">Small Business</SelectItem>
                   <SelectItem value="startup">Startup</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
           <div className="space-y-2 mb-4">
             <Label>Target Industries</Label>
@@ -492,23 +492,23 @@ export function ProfilePage() {
             <Select 
               value={formData.defaultResearchContext} 
               onValueChange={(value) => setFormData((prev: UserProfile) => ({ ...prev, defaultResearchContext: value as 'discovery' | 'competitive' | 'partnership' | 'renewal' }))}
-            >
+                >
               <SelectTrigger>
                 <SelectValue placeholder="Select research context" />
-              </SelectTrigger>
-              <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                 <SelectItem value="discovery">Discovery Call</SelectItem>
                 <SelectItem value="competitive">Competitive Analysis</SelectItem>
                 <SelectItem value="partnership">Partnership Opportunity</SelectItem>
                 <SelectItem value="renewal">Renewal/Expansion</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </Card>
+                  </SelectContent>
+                </Select>
+              </div>
+          </Card>
 
         {/* Save Actions */}
         <div className="flex justify-center">
-          <Button 
+                <Button 
             onClick={handleSave}
             loading={loading}
             loadingText="Saving Profile..."
@@ -517,7 +517,7 @@ export function ProfilePage() {
           >
             <Save className="w-5 h-5 mr-2" />
             Save Profile & Start Researching
-          </Button>
+                </Button>
         </div>
       </div>
     </div>
