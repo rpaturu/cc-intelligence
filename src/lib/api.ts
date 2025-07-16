@@ -3,7 +3,8 @@ import type {
   SalesIntelligenceResponse, 
   HealthCheckResponse, 
   SearchResponse, 
-  ApiError 
+  ApiError,
+  UserProfile 
 } from '../types/api';
 import { API_CONFIG } from './config';
 
@@ -72,7 +73,65 @@ class SalesIntelligenceApiClient {
     }>;
     requestId: string;
   }> {
-    return this.makeRequest(`/company/${encodeURIComponent(domain)}/overview`);
+    // Step 1: Start the async overview request
+    const asyncResponse = await this.makeRequest<{
+      requestId: string;
+      status: string;
+      message: string;
+      statusCheckEndpoint: string;
+    }>(`/company/${encodeURIComponent(domain)}/overview`);
+
+    // Step 2: Poll for results
+    return this.pollForAsyncResult<{
+      name: string;
+      industry: string;
+      size: string;
+      revenue: string;
+      domain: string;
+      sources: Array<{
+        id: number;
+        url: string;
+        title: string;
+        domain: string;
+        sourceType: string;
+        snippet: string;
+        credibilityScore: number;
+        lastUpdated: string;
+      }>;
+      requestId: string;
+    }>(asyncResponse.requestId, 180000); // 3 minute timeout
+  }
+
+  private async pollForAsyncResult<T = unknown>(requestId: string, timeoutMs: number): Promise<T> {
+    const startTime = Date.now();
+    const pollInterval = 2000; // 2 seconds
+
+    while (Date.now() - startTime < timeoutMs) {
+      try {
+        const result = await this.makeRequest<{
+          requestId: string;
+          status: string;
+          result?: T;
+          error?: string;
+        }>(`/requests/${requestId}`);
+
+        if (result.status === 'completed' && result.result) {
+          return result.result;
+        }
+
+        if (result.status === 'failed') {
+          throw new Error(result.error || 'Request failed');
+        }
+
+        // Still processing, wait before next poll
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+      } catch (error) {
+        console.error('Error polling for async result:', error);
+        throw error;
+      }
+    }
+
+    throw new Error('Request timeout - processing took longer than 3 minutes. The orchestrator may still be working on this request.');
   }
 
   async getCompanySearch(domain: string): Promise<{
@@ -96,13 +155,22 @@ class SalesIntelligenceApiClient {
   }
 
   async getCompanyAnalysis(domain: string, context: string, searchResults: unknown): Promise<SalesIntelligenceResponse> {
-    return this.makeRequest(`/company/${encodeURIComponent(domain)}/analysis`, {
+    // Step 1: Start the async analysis request
+    const asyncResponse = await this.makeRequest<{
+      requestId: string;
+      status: string;
+      message: string;
+      statusCheckEndpoint: string;
+    }>(`/company/${encodeURIComponent(domain)}/analysis`, {
       method: 'POST',
       body: JSON.stringify({
         context,
         searchResults
       }),
     });
+
+    // Step 2: Poll for results
+    return this.pollForAsyncResult<SalesIntelligenceResponse>(asyncResponse.requestId, 180000); // 3 minute timeout
   }
 
   async getDiscoveryInsights(domain: string): Promise<{
@@ -122,7 +190,32 @@ class SalesIntelligenceApiClient {
     }>;
     requestId: string;
   }> {
-    return this.makeRequest(`/company/${encodeURIComponent(domain)}/discovery`);
+    // Step 1: Start the async discovery request
+    const asyncResponse = await this.makeRequest<{
+      requestId: string;
+      status: string;
+      message: string;
+      statusCheckEndpoint: string;
+    }>(`/company/${encodeURIComponent(domain)}/discovery`);
+
+    // Step 2: Poll for results
+    return this.pollForAsyncResult<{
+      painPoints: string[];
+      opportunities: string[];
+      keyContacts: string[];
+      technologyStack: string[];
+      sources: Array<{
+        id: number;
+        url: string;
+        title: string;
+        domain: string;
+        sourceType: string;
+        snippet: string;
+        credibilityScore: number;
+        lastUpdated: string;
+      }>;
+      requestId: string;
+    }>(asyncResponse.requestId, 180000); // 3 minute timeout
   }
 
   async healthCheck(): Promise<HealthCheckResponse> {
@@ -134,6 +227,56 @@ class SalesIntelligenceApiClient {
       method: 'POST',
       body: JSON.stringify({ query, maxResults }),
     });
+  }
+
+  // Profile management methods
+  async getProfile(userId: string): Promise<UserProfile | null> {
+    try {
+      const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`);
+      return response.profile;
+    } catch (error: unknown) {
+      if (error instanceof Error && (error.message.includes('404') || error.message.includes('Profile not found'))) {
+        return null; // Profile not found
+      }
+      throw error;
+    }
+  }
+
+  async saveProfile(profile: UserProfile): Promise<UserProfile> {
+    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(profile.userId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(profile),
+    });
+    return response.profile;
+  }
+
+  async deleteProfile(userId: string): Promise<void> {
+    await this.makeRequest<{ message: string }>(`/profile/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Helper function to create empty profile for new users
+  async createEmptyProfile(userId: string): Promise<UserProfile> {
+    const emptyProfile: UserProfile = {
+      userId,
+      name: 'New User', // Placeholder to pass validation
+      role: 'User', // Placeholder to pass validation  
+      company: 'Company', // Placeholder to pass validation
+      primaryProducts: ['Product'], // Placeholder to pass validation
+      keyValueProps: [],
+      mainCompetitors: [],
+      targetIndustries: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(emptyProfile),
+    });
+
+    return response.profile;
   }
 }
 
@@ -154,10 +297,17 @@ export const getDiscoveryInsights = apiClient.getDiscoveryInsights.bind(apiClien
 export const healthCheck = apiClient.healthCheck.bind(apiClient);
 export const search = apiClient.search.bind(apiClient);
 
+// Profile management methods
+export const getProfile = apiClient.getProfile.bind(apiClient);
+export const saveProfile = apiClient.saveProfile.bind(apiClient);
+export const deleteProfile = apiClient.deleteProfile.bind(apiClient);
+export const createEmptyProfile = apiClient.createEmptyProfile.bind(apiClient);
+
 // Export types for convenience
 export type { 
   SalesIntelligenceRequest, 
   SalesIntelligenceResponse, 
   HealthCheckResponse,
-  SearchResponse 
+  SearchResponse,
+  UserProfile 
 } from '../types/api'; 

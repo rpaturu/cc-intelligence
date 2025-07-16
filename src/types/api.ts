@@ -7,6 +7,40 @@ export type SalesContext =
   | 'negotiation' 
   | 'closing';
 
+// User Profile Interface
+export interface UserProfile {
+  // Personal Information
+  name: string;
+  role: string;
+  email?: string;
+  department?: string;
+  
+  // Company Information
+  company: string;
+  companyDomain?: string;
+  industry?: string;
+  
+  // Product Information
+  primaryProducts: string[];
+  keyValueProps: string[];
+  
+  // Competitive Intelligence
+  mainCompetitors: string[];
+  
+  // Sales Context
+  territory?: string;
+  targetIndustries: string[];
+  salesFocus?: 'enterprise' | 'smb' | 'mid-market' | 'startup';
+  
+  // Preferences
+  defaultResearchContext?: 'discovery' | 'competitive' | 'partnership' | 'renewal';
+  
+  // Metadata
+  userId: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface SalesIntelligenceRequest {
   companyDomain: string;
   salesContext: SalesContext;

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { signIn, /* signUp, */ signOut, getCurrentUser, /* confirmSignUp, */ fetchAuthSession, /* resendSignUpCode */ } from 'aws-amplify/auth'
+import React, { createContext, useEffect, useState } from 'react'
+import { signIn, signUp, signOut, getCurrentUser, confirmSignUp, fetchAuthSession, resendSignUpCode, fetchUserAttributes } from 'aws-amplify/auth'
+import { createEmptyProfile, getProfile } from '../lib/api'
 
 interface User {
   userId: string
@@ -23,15 +24,9 @@ interface AuthContextType {
   getIdToken: () => Promise<string | null>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
-}
+
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -51,20 +46,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const currentUser = await getCurrentUser()
         console.log('Current user data:', currentUser)
         
+        // Fetch user attributes to get the actual email address
+        const userAttributes = await fetchUserAttributes()
+        console.log('User attributes:', userAttributes)
+        
+        const actualEmail = userAttributes.email || currentUser.signInDetails?.loginId || ''
+        
         const newUser = {
           userId: currentUser.userId,
           username: currentUser.username,
-          email: currentUser.signInDetails?.loginId || '',
-          attributes: currentUser.signInDetails?.loginId ? {
-            email: currentUser.signInDetails.loginId,
-            email_verified: true,
+          email: actualEmail,
+          attributes: {
+            email: actualEmail,
+            email_verified: userAttributes.email_verified === 'true',
             sub: currentUser.userId
-          } : undefined
+          }
         }
         
         console.log('Setting user state to:', newUser)
         setUser(newUser)
         console.log('User state set successfully')
+
+        // Check if user has a profile, create empty one if not
+        try {
+          const existingProfile = await getProfile(currentUser.userId)
+          if (!existingProfile) {
+            console.log('No profile found for user, creating empty profile:', currentUser.userId)
+            await createEmptyProfile(currentUser.userId)
+            console.log('Empty profile created successfully')
+          } else {
+            console.log('User profile already exists')
+          }
+        } catch (profileError) {
+          console.error('Error checking/creating profile:', profileError)
+          // Don't fail auth if profile creation fails
+        }
+        
       } else {
         console.log('No valid session found, setting user to null')
         setUser(null)
@@ -91,9 +108,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const handleSignUp = async (): Promise<never> => {
-    // Signup temporarily disabled
-    throw new Error('Registration is currently disabled. Please contact your administrator.')
+  const handleSignUp = async (username: string, password: string, email: string) => {
+    try {
+      console.log('Signing up user:', username, email)
+      await signUp({
+        username,
+        password,
+        options: {
+          userAttributes: {
+            email: email,
+          },
+        },
+      })
+      console.log('Signup successful')
+    } catch (error) {
+      console.error('Signup error:', error)
+      throw error
+    }
   }
 
   const handleSignOut = async () => {
@@ -101,14 +132,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null)
   }
 
-  const handleConfirmSignUp = async (): Promise<never> => {
-    // Signup confirmation temporarily disabled
-    throw new Error('Registration confirmation is currently disabled.')
+  const handleConfirmSignUp = async (username: string, code: string) => {
+    try {
+      console.log('Confirming signup for user:', username)
+      await confirmSignUp({
+        username,
+        confirmationCode: code,
+      })
+      console.log('Signup confirmation successful')
+    } catch (error) {
+      console.error('Signup confirmation error:', error)
+      throw error
+    }
   }
 
-  const handleResendConfirmationCode = async (): Promise<never> => {
-    // Resend confirmation temporarily disabled
-    throw new Error('Resend confirmation is currently disabled.')
+  const handleResendConfirmationCode = async (username: string) => {
+    try {
+      console.log('Resending confirmation code for user:', username)
+      await resendSignUpCode({
+        username,
+      })
+      console.log('Confirmation code resent successfully')
+    } catch (error) {
+      console.error('Resend confirmation code error:', error)
+      throw error
+    }
   }
 
   const getIdToken = async (): Promise<string | null> => {
