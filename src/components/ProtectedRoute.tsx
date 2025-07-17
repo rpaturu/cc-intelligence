@@ -1,32 +1,54 @@
-import React from 'react'
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth'
+import { ReactNode } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { useProfile } from '../hooks/useProfile';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode
+  children: ReactNode;
+  requireProfileComplete?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth()
+export function ProtectedRoute({ children, requireProfileComplete = true }: ProtectedRouteProps) {
+  const { user, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
+  const location = useLocation();
 
-  console.log('ProtectedRoute - loading:', loading, 'user:', user)
-
-  if (loading) {
-    console.log('ProtectedRoute - showing loading spinner')
+  // Show loading while checking authentication
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
       </div>
-    )
+    );
   }
 
+  // Redirect to login if not authenticated
   if (!user) {
-    console.log('ProtectedRoute - no user, redirecting to login')
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  console.log('ProtectedRoute - user authenticated, rendering children')
-  return <>{children}</>
-}
+  // Check if profile is complete (if required)
+  if (requireProfileComplete && user) {
+    const isProfileComplete = profile && 
+      profile.name && 
+      profile.role && 
+      profile.company && 
+      profile.primaryProducts.length > 0 && 
+      profile.mainCompetitors.length > 0;
 
-export default ProtectedRoute 
+    // Don't redirect if already on onboarding page
+    if (!isProfileComplete && location.pathname !== '/onboarding') {
+      return <Navigate to="/onboarding" replace />;
+    }
+
+    // Redirect to main app if profile is complete and user is on onboarding page
+    if (isProfileComplete && location.pathname === '/onboarding') {
+      return <Navigate to="/" replace />;
+    }
+  }
+
+  return <>{children}</>;
+} 

@@ -4,12 +4,13 @@ import { ProfileProvider } from './contexts/ProfileContext'
 import { ThemeProvider } from './components/theme-provider'
 import { Navbar } from './components/Navbar'
 import { Toaster } from './components/ui/sonner'
-import ProtectedRoute from './components/ProtectedRoute'
+import { ProtectedRoute } from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import ConfirmSignUpPage from './pages/ConfirmSignUpPage'
 import { EnhancedIntelligenceExperience } from './pages/EnhancedIntelligenceExperience'
 import { ProfilePage } from './pages/ProfilePage'
+import { OnboardingFlow } from './pages/OnboardingFlow'
 import './App.css'
 
 function App() {
@@ -21,16 +22,30 @@ function App() {
             <Navbar />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-                <Route path="/signup" element={<SignUpPage />} />
-                <Route path="/confirm" element={<ConfirmSignUpPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path="/confirm" element={<ConfirmSignUpPage />} />
+          
+          {/* Onboarding flow - requires authentication but not profile completion */}
+          <Route 
+            path="/onboarding" 
+            element={
+              <ProtectedRoute requireProfileComplete={false}>
+                <OnboardingFlow />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* Main application - requires both authentication and complete profile */}
           <Route 
             path="/" 
             element={
               <ProtectedRoute>
-                      <EnhancedIntelligenceExperience />
+                <EnhancedIntelligenceExperience />
               </ProtectedRoute>
             } 
           />
+          
+          {/* Profile page - requires authentication and complete profile */}
           <Route 
             path="/profile" 
             element={
@@ -39,6 +54,7 @@ function App() {
               </ProtectedRoute>
             } 
           />
+          
           {/* Redirect any old routes to the main experience */}
           <Route path="/intelligence" element={<Navigate to="/" replace />} />
           <Route path="/chat/*" element={<Navigate to="/" replace />} />
