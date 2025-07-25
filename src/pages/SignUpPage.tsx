@@ -6,9 +6,12 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
+import { Target } from 'lucide-react'
 
 const signUpSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -60,82 +63,105 @@ const SignUpPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Create your account</CardTitle>
-          <CardDescription className="text-center">
-            Enter your details to create your account
+    <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        {/* Brand Header */}
+        <div className="flex items-center gap-2 self-center">
+          <Avatar>
+            <AvatarFallback>
+              <Target className="w-4 h-4" />
+            </AvatarFallback>
+          </Avatar>
+          <span>Sales Intelligence</span>
+        </div>
+
+        {/* SignUp Form Card */}
+        <Card className="w-full max-w-sm">
+                  <CardHeader>
+          <CardTitle>Create your account</CardTitle>
+          <CardDescription>
+            Start your sales intelligence journey
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="space-y-2">
+            <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="flex flex-col gap-6">
+              <div className="grid gap-2">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="Enter your username"
                 {...register('username')}
-                className={errors.username ? 'border-red-500' : ''}
+
               />
-              {errors.username && (
-                <p className="text-sm text-red-500">{errors.username.message}</p>
-              )}
+                              {errors.username && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{errors.username.message}</AlertDescription>
+                  </Alert>
+                )}
             </div>
-            <div className="space-y-2">
+              <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email"
                 {...register('email')}
-                className={errors.email ? 'border-red-500' : ''}
+
               />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
+                              {errors.email && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{errors.email.message}</AlertDescription>
+                  </Alert>
+                )}
             </div>
-            <div className="space-y-2">
+              <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
                 placeholder="Enter your password"
                 {...register('password')}
-                className={errors.password ? 'border-red-500' : ''}
+
               />
-              {errors.password && (
-                <p className="text-sm text-red-500">{errors.password.message}</p>
-              )}
+                              {errors.password && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{errors.password.message}</AlertDescription>
+                  </Alert>
+                )}
             </div>
-            <div className="space-y-2">
+              <div className="grid gap-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
                 placeholder="Confirm your password"
                 {...register('confirmPassword')}
-                className={errors.confirmPassword ? 'border-red-500' : ''}
+
               />
-              {errors.confirmPassword && (
-                <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
-              )}
+                              {errors.confirmPassword && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{errors.confirmPassword.message}</AlertDescription>
+                  </Alert>
+                )}
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Creating account...' : 'Create account'}
             </Button>
+            </div>
           </form>
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
+          </CardContent>
+          <CardFooter>
+            <p>
               Already have an account?{' '}
-              <Link to="/login" className="text-primary hover:underline">
+              <Link to="/login">
                 Sign in
               </Link>
             </p>
+          </CardFooter>
+        </Card>
           </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

@@ -26,20 +26,33 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
 
   const refreshProfile = useCallback(async () => {
-    if (!user?.userId) return;
+    if (!user?.userId) {
+      console.log('ProfileContext: No user ID available for profile loading');
+      return;
+    }
 
+    console.log('ProfileContext: Starting profile load for user:', user.userId);
     try {
       setLoading(true);
       setError(null);
       const userProfile = await getProfile(user.userId);
+      console.log('ProfileContext: Profile loaded successfully:', {
+        hasProfile: !!userProfile,
+        profileData: userProfile ? {
+          name: userProfile.name,
+          role: userProfile.role,
+          company: userProfile.company
+        } : null
+      });
       setProfile(userProfile);
       setProfileLoaded(true);
     } catch (error) {
-      console.error('Error loading profile from API:', error);
+      console.error('ProfileContext: Error loading profile from API:', error);
       setError(error instanceof Error ? error.message : 'Failed to load profile');
       setProfileLoaded(true); // Mark as loaded even on error to prevent retries
     } finally {
       setLoading(false);
+      console.log('ProfileContext: Profile loading completed');
     }
   }, [user?.userId]);
 
@@ -52,7 +65,17 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   // Load profile from API when user is authenticated (only once per user)
   useEffect(() => {
-    if (user && !authLoading && !profileLoaded && !loading) {
+    console.log('ProfileContext: useEffect triggered', {
+      hasUser: !!user,
+      authLoading,
+      profileLoaded,
+      loading,
+      shouldLoadProfile: user && !profileLoaded && !loading
+    });
+    
+    // Load profile as soon as user is available, don't wait for authLoading to complete
+    if (user && !profileLoaded && !loading) {
+      console.log('ProfileContext: Conditions met, calling refreshProfile');
       refreshProfile();
     }
   }, [user, authLoading, profileLoaded, loading, refreshProfile]);
@@ -108,8 +131,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     return !!(
       profile.name &&
       profile.role &&
-      profile.company &&
-      profile.primaryProducts.length > 0
+      profile.company
     );
   };
 

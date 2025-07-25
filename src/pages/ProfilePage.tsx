@@ -1,31 +1,65 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert';
+import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select';
 import { useProfile } from '../hooks/useProfile';
 import { useAuth } from '../hooks/useAuth';
-import { UserProfile, companyPresets } from '../contexts/ProfileContextTypes';
+import { UserProfile } from '../types/api';
 import { 
   User, 
   Building, 
-  Target, 
   Users, 
-  Award,
   ArrowLeft, 
   Save,
   Trash2,
-  Sparkles
+  Target,
+  CheckCircle
 } from 'lucide-react';
-// Removed CSS import - using inline Tailwind classes for better reliability
+
+// Persona mapping utilities (same as OnboardingFlow)
+const getPersonaType = (role: string): string => {
+  const aeRoles = ['Account Executive', 'Senior Account Executive', 'Enterprise Account Executive', 'Strategic Account Executive', 'Sales Development Representative', 'Business Development Representative'];
+  const csmRoles = ['Customer Success Manager', 'Senior Customer Success Manager', 'Enterprise Customer Success Manager', 'Customer Success Director', 'Account Manager'];
+  const seRoles = ['Solutions Engineer', 'Senior Solutions Engineer', 'Principal Solutions Engineer', 'Solutions Architect', 'Technical Sales Engineer', 'Sales Engineer'];
+
+  if (aeRoles.some(aeRole => role.includes(aeRole.split(' ')[0]) && role.includes(aeRole.split(' ')[1] || ''))) {
+    return 'Revenue-Focused (AE)';
+  } else if (csmRoles.some(() => role.includes('Success') || role.includes('Account Manager'))) {
+    return 'Health-Focused (CSM)';
+  } else if (seRoles.some(() => role.includes('Engineer') || role.includes('Architect') || role.includes('Technical'))) {
+    return 'Technical-Focused (SE)';
+  } else {
+    return 'Leadership/Management';
+  }
+};
+
+const getPersonaDescription = (role: string): string => {
+  const personaType = getPersonaType(role);
+  switch (personaType) {
+    case 'Revenue-Focused (AE)':
+      return 'AI will focus on buying signals, competitive intel, and revenue opportunities';
+    case 'Health-Focused (CSM)':
+      return 'AI will emphasize customer health, renewal risk, and expansion opportunities';
+    case 'Technical-Focused (SE)':
+      return 'AI will prioritize tech stack, integration complexity, and technical validation';
+    default:
+      return 'AI will provide balanced insights across business, technical, and relationship aspects';
+  }
+};
 
 export function ProfilePage() {
   const navigate = useNavigate();
   const { profile, updateProfile, clearProfile, loading, error } = useProfile();
   const { user } = useAuth();
 
+  const [originalCompany, setOriginalCompany] = useState<string>('');
+  const [hasCompanyChanged, setHasCompanyChanged] = useState<boolean>(false);
   const [formData, setFormData] = useState<UserProfile>({
     userId: '',
     name: '',
@@ -46,11 +80,6 @@ export function ProfilePage() {
     updatedAt: ''
   });
 
-  const [newProduct, setNewProduct] = useState('');
-  const [newValueProp, setNewValueProp] = useState('');
-  const [newCompetitor, setNewCompetitor] = useState('');
-  const [newIndustry, setNewIndustry] = useState('');
-
   useEffect(() => {
     if (profile) {
       setFormData({
@@ -58,6 +87,10 @@ export function ProfilePage() {
         // Auto-populate email from user registration if not already set
         email: profile.email || user?.email || user?.attributes?.email || ''
       });
+
+      // Track original company for change detection
+      setOriginalCompany(profile.company || '');
+      setHasCompanyChanged(false);
     } else if (user) {
       // If no profile but user exists, pre-populate email
       setFormData(prev => ({
@@ -67,50 +100,14 @@ export function ProfilePage() {
     }
   }, [profile, user]);
 
-  const handleCompanySelect = (company: string) => {
-    if (companyPresets[company]) {
-      setFormData((prev: UserProfile) => ({
-        ...prev,
-        ...companyPresets[company],
-        // Keep personal info
-        name: prev.name,
-        role: prev.role,
-        email: prev.email,
-        department: prev.department,
-        territory: prev.territory,
-        salesFocus: prev.salesFocus,
-        defaultResearchContext: prev.defaultResearchContext
-      }));
+  // Track company changes
+  useEffect(() => {
+    if (originalCompany && formData.company !== originalCompany) {
+      setHasCompanyChanged(true);
     } else {
-      setFormData((prev: UserProfile) => ({
-        ...prev,
-        company,
-        companyDomain: '',
-        industry: '',
-        primaryProducts: [],
-        keyValueProps: [],
-        mainCompetitors: [],
-        targetIndustries: []
-      }));
-      }
-  };
-
-  const addToArray = (field: keyof UserProfile, value: string, setValue: (val: string) => void) => {
-    if (!value.trim()) return;
-    
-    setFormData((prev: UserProfile) => ({
-      ...prev,
-      [field]: [...(prev[field] as string[]), value.trim()]
-    }));
-    setValue('');
-  };
-
-  const removeFromArray = (field: keyof UserProfile, index: number) => {
-    setFormData((prev: UserProfile) => ({
-      ...prev,
-      [field]: (prev[field] as string[]).filter((_, i) => i !== index)
-    }));
-  };
+      setHasCompanyChanged(false);
+    }
+  }, [formData.company, originalCompany]);
 
   const handleSave = async () => {
     try {
@@ -125,8 +122,9 @@ export function ProfilePage() {
     }
   };
 
-  const handleClear = () => {
-    clearProfile();
+  const handleClear = async () => {
+    try {
+      await clearProfile();
     setFormData({
       userId: '',
       name: '',
@@ -146,78 +144,49 @@ export function ProfilePage() {
       createdAt: '',
       updatedAt: ''
     });
+    } catch (error) {
+      console.error('Failed to clear profile:', error);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Action buttons */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="border-b">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/')}
-              className="flex items-center gap-2"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Intelligence
+              <ArrowLeft />
+              Back to App
             </Button>
-            </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClear}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear Profile
-            </Button>
-            <Button
-              onClick={handleSave}
-              loading={loading}
-              loadingText="Saving..."
-              className="flex items-center gap-2"
-            >
-              <Save className="w-4 h-4" />
-              Save Profile
-            </Button>
+            <h1>Profile Settings</h1>
           </div>
         </div>
       </div>
 
-      {/* Error Message */}
+      {/* Content */}
+      <div className="p-6 space-y-6">
       {error && (
-        <div className="max-w-4xl mx-auto px-6 pt-6">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            <p className="text-sm font-medium">Error: {error}</p>
-          </div>
-        </div>
+          <Alert variant="destructive">
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
       )}
 
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
-        {/* Page Header */}
-        <div className="text-center space-y-2">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="p-3 bg-blue-600 rounded-full">
-              <User className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-foreground">Sales Profile Setup</h1>
-          </div>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Configure your profile to get personalized, context-aware research insights. 
-            The AI assistant will tailor its analysis based on your company, products, and sales focus.
-          </p>
-        </div>
-
         {/* Personal Information */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <User className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Personal Information</h2>
+        <Card className="w-full max-w-2xl">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <User />
+              <CardTitle>Personal Information</CardTitle>
               </div>
+          </CardHeader>
+          <CardContent>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
@@ -225,225 +194,244 @@ export function ProfilePage() {
                     id="name"
                 placeholder="e.g., Ramesh Paturu"
                 value={formData.name}
-                onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="role">Role/Title *</Label>
-              <Input
-                id="role"
-                placeholder="e.g., Sales Account Manager"
-                value={formData.role}
-                onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, role: e.target.value }))}
-                  />
-                </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email (Verified)</Label>
+                <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                 type="email"
-                placeholder="ramesh@company.com"
+                  placeholder="your.email@company.com"
                 value={formData.email}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                     disabled
-                className="bg-muted text-muted-foreground"
+                  className="bg-muted"
               />
             </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role/Title *</Label>
+                <div className="relative">
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) => setFormData((prev) => ({ ...prev, role: value }))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="🎯 Select your role to personalize AI insights" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Account Executive Personas */}
+                      <SelectItem value="Account Executive">Account Executive</SelectItem>
+                      <SelectItem value="Senior Account Executive">Senior Account Executive</SelectItem>
+                      <SelectItem value="Enterprise Account Executive">Enterprise Account Executive</SelectItem>
+                      <SelectItem value="Strategic Account Executive">Strategic Account Executive</SelectItem>
+                      <SelectItem value="Sales Development Representative">Sales Development Representative (SDR)</SelectItem>
+                      <SelectItem value="Business Development Representative">Business Development Representative (BDR)</SelectItem>
+
+                      {/* Customer Success Personas */}
+                      <SelectItem value="Customer Success Manager">Customer Success Manager</SelectItem>
+                      <SelectItem value="Senior Customer Success Manager">Senior Customer Success Manager</SelectItem>
+                      <SelectItem value="Enterprise Customer Success Manager">Enterprise Customer Success Manager</SelectItem>
+                      <SelectItem value="Customer Success Director">Customer Success Director</SelectItem>
+                      <SelectItem value="Account Manager">Account Manager</SelectItem>
+
+                      {/* Solutions Engineer Personas */}
+                      <SelectItem value="Solutions Engineer">Solutions Engineer</SelectItem>
+                      <SelectItem value="Senior Solutions Engineer">Senior Solutions Engineer</SelectItem>
+                      <SelectItem value="Principal Solutions Engineer">Principal Solutions Engineer</SelectItem>
+                      <SelectItem value="Solutions Architect">Solutions Architect</SelectItem>
+                      <SelectItem value="Technical Sales Engineer">Technical Sales Engineer</SelectItem>
+                      <SelectItem value="Sales Engineer">Sales Engineer</SelectItem>
+
+                      {/* Sales Leadership */}
+                      <SelectItem value="VP of Sales">VP of Sales</SelectItem>
+                      <SelectItem value="Sales Director">Sales Director</SelectItem>
+                      <SelectItem value="Regional Sales Manager">Regional Sales Manager</SelectItem>
+                      <SelectItem value="Sales Manager">Sales Manager</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             <div className="space-y-2">
               <Label htmlFor="department">Department</Label>
               <Input
                 id="department"
                 placeholder="e.g., Enterprise Sales"
                 value={formData.department}
-                onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, department: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, department: e.target.value }))}
                   />
                 </div>
               </div>
+
+            {/* Persona Detection Helper - Full Width */}
+            {formData.role && (
+              <Card className="mt-6">
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <Target />
+                    <Badge variant="secondary">
+                      {getPersonaType(formData.role)}
+                    </Badge>
+                  </div>
+                  <CardDescription className="mt-2">
+                    {getPersonaDescription(formData.role)}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            )}
+          </CardContent>
         </Card>
 
         {/* Company Information */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Building className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Company Information</h2>
-          </div>
-          
-          <div className="mb-4">
-            <Label htmlFor="company-preset">Quick Setup (Optional)</Label>
-            <div className="flex gap-2 mt-2">
-              {Object.keys(companyPresets).map(company => (
-                <Button
-                  key={company}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleCompanySelect(company)}
-                  disabled={loading}
-                  className="flex items-center gap-2"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  {company}
-                </Button>
-              ))}
+        <Card className="w-full max-w-2xl">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Building />
+              <CardTitle>Company Information</CardTitle>
             </div>
-          </div>
+          </CardHeader>
+          <CardContent>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
             <div className="space-y-2">
               <Label htmlFor="company">Company Name *</Label>
-                  <Input
-                    id="company"
-                placeholder="e.g., Atlassian"
+                <Select
                 value={formData.company}
-                onChange={(e) => handleCompanySelect(e.target.value)}
-              />
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, company: value }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {formData.company && (
+                      <SelectItem value={formData.company}>
+                        <span className="truncate">
+                          {formData.company}
+                        </span>
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="companyDomain">Company Domain</Label>
               <Input
                 id="companyDomain"
-                placeholder="e.g., atlassian.com"
+                  placeholder="e.g., tesla.com"
                 value={formData.companyDomain}
-                onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, companyDomain: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, companyDomain: e.target.value }))}
                   />
-                </div>
-            <div className="md:col-span-2 space-y-2">
-              <Label htmlFor="industry">Industry</Label>
-                  <Input
-                id="industry"
-                placeholder="e.g., Software Development Tools"
-                value={formData.industry}
-                onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, industry: e.target.value }))}
-                  />
-                </div>
-              </div>
-        </Card>
 
-        {/* Products & Value Props */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Award className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Products & Value Propositions</h2>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Primary Products *</Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  placeholder="Add a product (e.g., Jira)"
-                  value={newProduct}
-                  onChange={(e) => setNewProduct(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addToArray('primaryProducts', newProduct, setNewProduct)}
-                />
-                <Button
-                  onClick={() => addToArray('primaryProducts', newProduct, setNewProduct)}
-                  size="sm"
-                >
-                  Add
-                </Button>
               </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.primaryProducts.map((product, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm flex items-center gap-1 cursor-pointer hover:bg-primary/20 transition-colors"
-                    onClick={() => removeFromArray('primaryProducts', index)}
+            </div>
+
+            {/* Company Intelligence Status */}
+            {formData.company && formData.role && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle />
+                    <CardTitle>
+                      {getPersonaType(formData.role)} Intelligence Ready
+                    </CardTitle>
+                  </div>
+                  <CardDescription>
+                    AI configured for {formData.company} research from your {formData.role} perspective:
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2">
+                    {getPersonaType(formData.role) === 'Revenue-Focused (AE)' && (
+                      <>
+                        <Badge variant="secondary">Buying Signals</Badge>
+                        <Badge variant="secondary">Competitive Intel</Badge>
+                        <Badge variant="secondary">Revenue Opportunities</Badge>
+                        <Badge variant="secondary">Decision Makers</Badge>
+                      </>
+                    )}
+                    {getPersonaType(formData.role) === 'Health-Focused (CSM)' && (
+                      <>
+                        <Badge variant="secondary">Health Metrics</Badge>
+                        <Badge variant="secondary">Renewal Risk</Badge>
+                        <Badge variant="secondary">Expansion Opportunities</Badge>
+                        <Badge variant="secondary">Stakeholder Insights</Badge>
+                      </>
+                    )}
+                    {getPersonaType(formData.role) === 'Technical-Focused (SE)' && (
+                      <>
+                        <Badge variant="secondary">Tech Stack Analysis</Badge>
+                        <Badge variant="secondary">Integration Complexity</Badge>
+                        <Badge variant="secondary">POC Requirements</Badge>
+                        <Badge variant="secondary">Architecture Planning</Badge>
+                      </>
+                    )}
+                    {getPersonaType(formData.role) === 'Leadership/Management' && (
+                      <>
+                        <Badge variant="secondary">Team Performance</Badge>
+                        <Badge variant="secondary">Strategic Planning</Badge>
+                        <Badge variant="secondary">Market Analysis</Badge>
+                        <Badge variant="secondary">Revenue Forecasting</Badge>
+                      </>
+                    )}
+                  </div>
+                  <CardDescription className="mt-4">
+                    AI will prioritize {getPersonaType(formData.role).toLowerCase()} insights when researching prospects.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Company Change Recommendation */}
+            {hasCompanyChanged && (
+              <Alert variant="destructive">
+                <AlertTitle>Company Changed: Consider Profile Refresh</AlertTitle>
+                <AlertDescription>
+                  <p>
+                    You've changed from "{originalCompany}" to "{formData.company}".
+                    Your current profile data is optimized for {originalCompany}.
+                  </p>
+                  <p>
+                    💡 <strong>Recommendation:</strong> Clear your profile to get fresh company intelligence
+                    and auto-populated fields for {formData.company} during next onboarding.
+                  </p>
+                  <Button
+                    onClick={handleClear}
+                    variant="destructive"
+                    size="sm"
                   >
-                    {product} ×
-                  </span>
-                ))}
-              </div>
-                </div>
-
-            <div className="space-y-2">
-              <Label>Key Value Propositions</Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  placeholder="Add a value prop (e.g., Team collaboration)"
-                  value={newValueProp}
-                  onChange={(e) => setNewValueProp(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addToArray('keyValueProps', newValueProp, setNewValueProp)}
-                />
-                <Button
-                  onClick={() => addToArray('keyValueProps', newValueProp, setNewValueProp)}
-                  size="sm"
-                >
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.keyValueProps.map((prop, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-chart-2/10 text-chart-2 rounded-full text-sm flex items-center gap-1 cursor-pointer hover:bg-chart-2/20 transition-colors"
-                    onClick={() => removeFromArray('keyValueProps', index)}
-                  >
-                    {prop} ×
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Competitive Intelligence */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Target className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Competitive Intelligence</h2>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Main Competitors</Label>
-            <div className="flex gap-2 mt-2">
-              <Input
-                placeholder="Add a competitor (e.g., Linear, Asana)"
-                value={newCompetitor}
-                onChange={(e) => setNewCompetitor(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addToArray('mainCompetitors', newCompetitor, setNewCompetitor)}
-              />
-              <Button
-                onClick={() => addToArray('mainCompetitors', newCompetitor, setNewCompetitor)}
-                size="sm"
-              >
-                Add
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {formData.mainCompetitors.map((competitor, index) => (
-                <span
-                  key={index}
-                                     className="px-3 py-1 bg-destructive/10 text-destructive rounded-full text-sm flex items-center gap-1 cursor-pointer hover:bg-destructive/20 transition-colors"
-                  onClick={() => removeFromArray('mainCompetitors', index)}
-                >
-                  {competitor} ×
-                </span>
-              ))}
-            </div>
-          </div>
+                    Clear Profile & Start Fresh
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
         </Card>
 
         {/* Sales Context */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Sales Context</h2>
+        <Card className="w-full max-w-2xl">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Users />
+              <CardTitle>Sales Context</CardTitle>
                 </div>
+          </CardHeader>
+          <CardContent>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="territory">Territory/Region</Label>
               <Input
                 id="territory"
                 placeholder="e.g., North America, EMEA"
-                value={formData.territory || ''}
-                onChange={(e) => setFormData((prev: UserProfile) => ({ ...prev, territory: e.target.value }))}
+                  value={formData.territory}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, territory: e.target.value }))}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="salesFocus">Sales Focus</Label>
                   <Select 
                 value={formData.salesFocus} 
-                onValueChange={(value) => setFormData((prev: UserProfile) => ({ ...prev, salesFocus: value as 'enterprise' | 'smb' | 'mid-market' | 'startup' }))}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, salesFocus: value as 'enterprise' | 'smb' | 'mid-market' | 'startup' }))}
                   >
                     <SelectTrigger>
                   <SelectValue placeholder="Select sales focus" />
@@ -456,42 +444,11 @@ export function ProfilePage() {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-          <div className="space-y-2 mb-4">
-            <Label>Target Industries</Label>
-            <div className="flex gap-2 mt-2">
-              <Input
-                placeholder="Add an industry (e.g., Software Development)"
-                value={newIndustry}
-                onChange={(e) => setNewIndustry(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addToArray('targetIndustries', newIndustry, setNewIndustry)}
-              />
-              <Button
-                onClick={() => addToArray('targetIndustries', newIndustry, setNewIndustry)}
-                size="sm"
-              >
-                Add
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {formData.targetIndustries.map((industry, index) => (
-                <span
-                  key={index}
-                                     className="px-3 py-1 bg-chart-4/10 text-chart-4 rounded-full text-sm flex items-center gap-1 cursor-pointer hover:bg-chart-4/20 transition-colors"
-                  onClick={() => removeFromArray('targetIndustries', index)}
-                >
-                  {industry} ×
-                </span>
-              ))}
-            </div>
-          </div>
- 
-          <div className="space-y-2">
+              <div className="md:col-span-2 space-y-2">
             <Label htmlFor="defaultContext">Default Research Context</Label>
             <Select 
               value={formData.defaultResearchContext} 
-              onValueChange={(value) => setFormData((prev: UserProfile) => ({ ...prev, defaultResearchContext: value as 'discovery' | 'competitive' | 'partnership' | 'renewal' }))}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, defaultResearchContext: value as 'discovery' | 'competitive' | 'partnership' | 'renewal' }))}
                 >
               <SelectTrigger>
                 <SelectValue placeholder="Select research context" />
@@ -504,19 +461,30 @@ export function ProfilePage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </CardContent>
           </Card>
 
         {/* Save Actions */}
-        <div className="flex justify-center">
+        <div className="w-full max-w-2xl flex justify-between items-center">
+          <div>
+            <Button
+              onClick={handleClear}
+              variant="destructive"
+              disabled={loading}
+            >
+              <Trash2 />
+              Clear Profile
+            </Button>
+          </div>
+
                 <Button 
             onClick={handleSave}
-            loading={loading}
-            loadingText="Saving Profile..."
+            disabled={loading}
             size="lg"
-            className="px-8"
           >
-            <Save className="w-5 h-5 mr-2" />
-            Save Profile & Start Researching
+            <Save />
+            {loading ? 'Saving...' : 'Save Profile'}
                 </Button>
         </div>
       </div>

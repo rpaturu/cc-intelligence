@@ -229,6 +229,27 @@ class SalesIntelligenceApiClient {
     });
   }
 
+  // Company Lookup APIs - Dynamic data for onboarding
+  async lookupCompanies(query: string, limit: number = 5): Promise<{
+    companies: Array<{
+      name: string;
+      domain?: string;        // ENHANCED: Now includes domain from trusted sources
+      description?: string;
+      industry?: string;
+      sources?: string[];     // ENHANCED: Source credibility tracking
+    }>;
+    total: number;
+    query: string;
+    cached: boolean;
+  }> {
+    const params = new URLSearchParams({ query, limit: limit.toString() });
+    return this.makeRequest(`/companies/lookup?${params}`);
+  }
+
+  // REMOVED: enrichCompany, suggestDomain, suggestProducts, findCompetitors
+  // These endpoints were removed in the ultra-clean backend
+  // Use vendorContext() and customerIntelligence() for context-aware intelligence instead
+
   // Profile management methods
   async getProfile(userId: string): Promise<UserProfile | null> {
     try {
@@ -260,13 +281,16 @@ class SalesIntelligenceApiClient {
   async createEmptyProfile(userId: string): Promise<UserProfile> {
     const emptyProfile: UserProfile = {
       userId,
-      name: 'New User', // Placeholder to pass validation
-      role: 'User', // Placeholder to pass validation  
-      company: 'Company', // Placeholder to pass validation
-      primaryProducts: ['Product'], // Placeholder to pass validation
-      keyValueProps: [],
-      mainCompetitors: [],
-      targetIndustries: [],
+      name: '', // Empty - user will fill during onboarding
+      role: '', // Empty - user will fill during onboarding  
+      company: '', // Empty - user will fill during onboarding
+      industry: '', // Empty initially
+      primaryProducts: [], // Empty initially - will be populated dynamically
+      keyValueProps: [], // Empty initially
+      mainCompetitors: [], // Empty initially - will be populated dynamically
+      targetIndustries: [], // Empty initially
+      salesFocus: 'enterprise', // Default value
+      defaultResearchContext: 'discovery', // Default value
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -277,6 +301,79 @@ class SalesIntelligenceApiClient {
     });
 
     return response.profile;
+  }
+
+  // Context-Aware Intelligence APIs - Ultra-Clean Backend
+  async vendorContext(companyName: string, context?: any): Promise<{
+    success: boolean;
+    companyName: string;
+    vendorContext: {
+      companyName: string;
+      industry?: string;
+      products?: string[];
+      targetMarkets?: string[];
+      competitors?: string[];
+      valuePropositions?: string[];
+      positioningStrategy?: string;
+      pricingModel?: string;
+      lastUpdated: string;
+    };
+    metadata: {
+      requestId: string;
+      timestamp: string;
+      fromCache: boolean;
+      processingTimeMs: number;
+      datasetsCollected: number;
+      totalCost: number;
+    };
+  }> {
+    return this.makeRequest('/vendor/context', {
+      method: 'POST',
+      body: JSON.stringify({ companyName, context })
+    });
+  }
+
+  async customerIntelligence(prospectCompany: string, vendorCompany?: string): Promise<{
+    success: boolean;
+    prospectCompany: string;
+    vendorCompany?: string;
+    customerIntelligence: {
+      companyOverview: {
+        name: string;
+        industry?: string;
+        size?: string;
+        description?: string;
+      };
+      contextualInsights: {
+        relevantDecisionMakers?: string[];
+        techStackRelevance?: string[];
+        businessChallenges?: string[];
+        buyingSignals?: string[];
+        competitiveUsage?: string[];
+        growthIndicators?: string[];
+      };
+      positioningGuidance: {
+        recommendedApproach?: string;
+        keyValueProps?: string[];
+        potentialPainPoints?: string[];
+        bestContactStrategy?: string;
+      };
+    };
+    metadata: {
+      requestId: string;
+      timestamp: string;
+      fromCache: boolean;
+      processingTimeMs: number;
+    };
+  }> {
+    const payload: any = { prospectCompany };
+    if (vendorCompany) {
+      payload.vendorCompany = vendorCompany;
+    }
+    return this.makeRequest('/customer/intelligence', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   }
 }
 
@@ -296,6 +393,17 @@ export const getCompanyAnalysis = apiClient.getCompanyAnalysis.bind(apiClient);
 export const getDiscoveryInsights = apiClient.getDiscoveryInsights.bind(apiClient);
 export const healthCheck = apiClient.healthCheck.bind(apiClient);
 export const search = apiClient.search.bind(apiClient);
+
+// Company Lookup methods - Ultra-Clean API  
+export const lookupCompanies = apiClient.lookupCompanies.bind(apiClient);
+
+// Context-Aware Intelligence - Ultra-Clean API
+export const vendorContext = apiClient.vendorContext.bind(apiClient);
+export const customerIntelligence = apiClient.customerIntelligence.bind(apiClient);
+
+// Legacy aliases for backward compatibility
+export const enrichVendor = apiClient.vendorContext.bind(apiClient);
+export const getCustomerIntelligence = apiClient.customerIntelligence.bind(apiClient);
 
 // Profile management methods
 export const getProfile = apiClient.getProfile.bind(apiClient);

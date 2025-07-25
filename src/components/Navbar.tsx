@@ -1,43 +1,35 @@
-import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from './ui/button';
-import { ModeToggle } from './mode-toggle';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from './ui/navigation-menu';
 import { 
-  Brain,
+  Target,
   User,
   Settings,
   LogOut,
-  ChevronDown
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useProfile } from '../hooks/useProfile';
+import { useTheme } from './ThemeProvider';
 
 export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-
-  // Close user menu when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  const { setTheme } = useTheme();
 
   const handleLogout = async () => {
     try {
       await signOut();
-      setShowUserMenu(false);
       navigate('/login');
     } catch (error) {
       console.error('Failed to log out:', error);
@@ -50,77 +42,154 @@ export function Navbar() {
   }
 
   return (
-    <nav className="bg-background border-b border-border px-6 py-4">
-      <div className="flex items-center justify-between">
-        {/* Logo/Brand */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary rounded-lg">
-            <Brain className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">AI Intelligence Assistant</h1>
-            <p className="text-sm text-muted-foreground">Guided company research with contextual insights</p>
-          </div>
+    <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+      {/* Logo/Brand */}
+      <a href="/" className="flex items-center gap-2 hover:opacity-80">
+        <div className="p-2 bg-primary rounded-lg">
+          <Target className="w-5 h-5 text-primary-foreground" />
         </div>
+        <span className="text-lg font-semibold text-foreground">Sales Intelligence</span>
+      </a>
 
-        {/* Right side - Actions and User Menu */}
-        <div className="flex items-center gap-3">
-          {/* Dark Mode Toggle */}
-          <ModeToggle />
+      <NavigationMenu viewport={false}>
+        <NavigationMenuList>
           
-          {/* User Menu */}
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+              <a href="/">Dashboard</a>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Research</NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
+                <li>
+                  <NavigationMenuLink asChild>
+                    <a href="/research/companies">
+                      <div className="text-sm font-medium leading-none">Company Research</div>
+                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                        Deep dive into company insights
+                      </p>
+                    </a>
+                  </NavigationMenuLink>
+                </li>
+                <li>
+                  <NavigationMenuLink asChild>
+                    <a href="/research/markets">
+                      <div className="text-sm font-medium leading-none">Market Analysis</div>
+                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                        Industry trends and competition
+                      </p>
+                    </a>
+                  </NavigationMenuLink>
+                </li>
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+              <a href="/analytics">Analytics</a>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+
+          {/* User Menu as part of the main navigation */}
           {user && (
-            <div className="relative" ref={userMenuRef}>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2"
-              >
+            <NavigationMenuItem>
+              <NavigationMenuTrigger>
                 <User className="w-4 h-4" />
                 <span className="hidden sm:inline">
                   {user?.username || profile?.name || 'User'}
                 </span>
-                <ChevronDown className="w-3 h-3" />
-              </Button>
+              </NavigationMenuTrigger>
               
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-popover rounded-lg shadow-lg border border-border z-50">
-                  <div className="p-3 border-b border-border">
-                    <p className="text-sm font-medium text-popover-foreground">
+              <NavigationMenuContent>
+                <ul className="grid w-[240px] gap-3 p-4">
+                  {/* User Info Header */}
+                  <li className="pb-2 border-b">
+                    <div className="text-sm font-medium">
                       {user?.username || 'User'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
+                    </div>
+                    <div className="text-xs text-muted-foreground">
                       {user?.email || profile?.email || 'No email'}
-                    </p>
-                  </div>
+                    </div>
+                  </li>
                   
-                  <div className="py-1">
-                    <button
-                      onClick={() => {
-                        navigate('/profile');
-                        setShowUserMenu(false);
-                      }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <Settings className="w-4 h-4" />
-                      {profile ? 'Edit Profile' : 'Setup Profile'}
-                    </button>
-                    
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+                  {/* Menu Items */}
+                  <li>
+                    <NavigationMenuLink asChild>
+                      <button
+                        onClick={() => navigate('/profile')}
+                        className="flex items-center gap-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        {profile ? 'Edit Profile' : 'Setup Profile'}
+                      </button>
+                    </NavigationMenuLink>
+                  </li>
+                  
+                  <li>
+                    <NavigationMenuLink asChild>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Logout
+                      </button>
+                    </NavigationMenuLink>
+                  </li>
+                </ul>
+              </NavigationMenuContent>
+            </NavigationMenuItem>
           )}
-        </div>
-      </div>
-    </nav>
+
+          {/* Theme Toggle */}
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>
+              <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
+              <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
+              <span className="sr-only">Toggle theme</span>
+            </NavigationMenuTrigger>
+            
+            <NavigationMenuContent>
+              <ul className="grid w-[120px] gap-2 p-2">
+                <li>
+                  <NavigationMenuLink asChild>
+                    <button
+                      onClick={() => setTheme("light")}
+                      className="flex items-center gap-2 w-full"
+                    >
+                      Light
+                    </button>
+                  </NavigationMenuLink>
+                </li>
+                <li>
+                  <NavigationMenuLink asChild>
+                    <button
+                      onClick={() => setTheme("dark")}
+                      className="flex items-center gap-2 w-full"
+                    >
+                      Dark
+                    </button>
+                  </NavigationMenuLink>
+                </li>
+                <li>
+                  <NavigationMenuLink asChild>
+                    <button
+                      onClick={() => setTheme("system")}
+                      className="flex items-center gap-2 w-full"
+                    >
+                      System
+                    </button>
+                  </NavigationMenuLink>
+                </li>
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+    </div>
   );
 } 
