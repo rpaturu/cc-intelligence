@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { getProfile, saveProfile, deleteProfile } from '../lib/api';
+import { getProfile, saveProfile, deleteProfile, createEmptyProfile } from '../lib/api';
 import type { UserProfile } from '../lib/api';
 
 // Re-export UserProfile for convenience
@@ -8,12 +8,14 @@ export type { UserProfile };
 
 interface ProfileContextType {
   profile: UserProfile | null;
+  hasProfile: boolean;
   loading: boolean;
   error: string | null;
   updateProfile: (profile: Omit<UserProfile, 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   clearProfile: () => Promise<void>;
   isProfileComplete: () => boolean;
   refreshProfile: () => Promise<void>;
+  ensureProfileExists: () => Promise<void>;
 }
 
 export const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
@@ -49,10 +51,46 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('ProfileContext: Error loading profile from API:', error);
       setError(error instanceof Error ? error.message : 'Failed to load profile');
+      setProfile(null);
       setProfileLoaded(true); // Mark as loaded even on error to prevent retries
     } finally {
       setLoading(false);
       console.log('ProfileContext: Profile loading completed');
+    }
+  }, [user?.userId]);
+
+  const ensureProfileExists = useCallback(async () => {
+    if (!user?.userId) {
+      console.log('ProfileContext: No user ID available for profile creation');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // First try to load existing profile
+      const existingProfile = await getProfile(user.userId);
+      if (existingProfile) {
+        console.log('ProfileContext: Profile already exists for user');
+        setProfile(existingProfile);
+        setProfileLoaded(true);
+        return;
+      }
+
+      // No profile exists, create empty one
+      console.log('ProfileContext: No profile found, creating empty profile for user:', user.userId);
+      const emptyProfile = await createEmptyProfile(user.userId);
+      console.log('ProfileContext: Empty profile created successfully:', emptyProfile);
+      setProfile(emptyProfile);
+      setProfileLoaded(true);
+    } catch (error) {
+      console.error('ProfileContext: Error ensuring profile exists:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create profile');
+      setProfile(null);
+      setProfileLoaded(true);
+    } finally {
+      setLoading(false);
     }
   }, [user?.userId]);
 
@@ -70,15 +108,15 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       authLoading,
       profileLoaded,
       loading,
-      shouldLoadProfile: user && !profileLoaded && !loading
+      shouldLoadProfile: user && !authLoading && !profileLoaded && !loading
     });
     
-    // Load profile as soon as user is available, don't wait for authLoading to complete
-    if (user && !profileLoaded && !loading) {
-      console.log('ProfileContext: Conditions met, calling refreshProfile');
-      refreshProfile();
+    // Wait for auth to complete, then ensure profile exists
+    if (user && !authLoading && !profileLoaded && !loading) {
+      console.log('ProfileContext: Conditions met, ensuring profile exists');
+      ensureProfileExists();
     }
-  }, [user, authLoading, profileLoaded, loading, refreshProfile]);
+  }, [user, authLoading, profileLoaded, loading, ensureProfileExists]);
 
   const updateProfile = async (profileData: Omit<UserProfile, 'userId' | 'createdAt' | 'updatedAt'>) => {
     if (!user?.userId) {
@@ -96,11 +134,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         updatedAt: profile?.updatedAt,
       };
 
+      console.log('ProfileContext: Saving profile:', fullProfile);
       const savedProfile = await saveProfile(fullProfile);
+      console.log('ProfileContext: Profile saved successfully:', savedProfile);
       setProfile(savedProfile);
       setProfileLoaded(true);
     } catch (error) {
-      console.error('Error saving profile:', error);
+      console.error('ProfileContext: Error saving profile:', error);
       setError(error instanceof Error ? error.message : 'Failed to save profile');
       throw error;
     } finally {
@@ -118,7 +158,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       setProfileLoaded(true); // Profile successfully deleted, so we know the state
     } catch (error) {
-      console.error('Error deleting profile:', error);
+      console.error('ProfileContext: Error deleting profile:', error);
       setError(error instanceof Error ? error.message : 'Failed to delete profile');
       throw error;
     } finally {
@@ -135,15 +175,19 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const hasProfile = !!profile;
+
   return (
     <ProfileContext.Provider value={{
       profile,
+      hasProfile,
       loading,
       error,
       updateProfile,
       clearProfile,
       isProfileComplete,
-      refreshProfile
+      refreshProfile,
+      ensureProfileExists
     }}>
       {children}
     </ProfileContext.Provider>

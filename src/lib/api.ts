@@ -231,16 +231,21 @@ class SalesIntelligenceApiClient {
 
   // Company Lookup APIs - Dynamic data for onboarding
   async lookupCompanies(query: string, limit: number = 5): Promise<{
+    message: string;
+    data: {
     companies: Array<{
       name: string;
       domain?: string;        // ENHANCED: Now includes domain from trusted sources
       description?: string;
-      industry?: string;
+        industry?: string;      // ENHANCED: Industry data from Google Knowledge Graph
       sources?: string[];     // ENHANCED: Source credibility tracking
     }>;
     total: number;
     query: string;
     cached: boolean;
+      generatedAt: string;
+    };
+    requestId: string;
   }> {
     const params = new URLSearchParams({ query, limit: limit.toString() });
     return this.makeRequest(`/companies/lookup?${params}`);
@@ -327,10 +332,81 @@ class SalesIntelligenceApiClient {
       totalCost: number;
     };
   }> {
-    return this.makeRequest('/vendor/context', {
+    const response = await this.makeRequest<{
+      status: string;
+      data?: any;
+      analysis?: any;
+      cached?: boolean;
+      generatedAt?: string;
+      requestId: string;
+      statusEndpoint?: string;
+      workflow?: any;
+      metrics?: any;
+    }>('/vendor/context', {
       method: 'POST',
       body: JSON.stringify({ companyName, context })
     });
+
+    // Handle immediate cache hit response (200)
+    if (response.status === 'completed' && response.data) {
+      const analysis = response.data.analysis || response.analysis || {};
+      
+      return {
+        success: true,
+        companyName,
+        vendorContext: {
+          companyName,
+          industry: analysis.industry_focus || analysis.industry || analysis.companyIndustry,
+          products: analysis.product_portfolio || analysis.products || analysis.primaryProducts || [],
+          targetMarkets: analysis.target_markets || analysis.targetMarkets || analysis.targetIndustries || [],
+          competitors: analysis.competitive_landscape || analysis.competitors || analysis.mainCompetitors || [],
+          valuePropositions: analysis.value_propositions || analysis.valuePropositions || analysis.keyValueProps || [],
+          positioningStrategy: analysis.positioning_strategy || analysis.positioningStrategy || '',
+          pricingModel: analysis.pricing_model || analysis.pricingModel || '',
+          lastUpdated: analysis.last_updated || response.generatedAt || new Date().toISOString()
+        },
+        metadata: {
+          requestId: response.requestId,
+          timestamp: response.generatedAt || new Date().toISOString(),
+          fromCache: response.cached || false,
+          processingTimeMs: response.metrics?.processingTimeMs || 0,
+          datasetsCollected: response.metrics?.datasetsCollected || 0,
+          totalCost: response.metrics?.totalCost || 0
+        }
+      };
+    }
+
+    // Handle async processing response (202)
+    if (response.statusEndpoint && response.workflow) {
+      // For now, return empty vendor context for async cases
+      // TODO: Implement polling for async workflow results
+      return {
+        success: true,
+        companyName,
+        vendorContext: {
+          companyName,
+          industry: '',
+          products: [],
+          targetMarkets: [],
+          competitors: [],
+          valuePropositions: [],
+          positioningStrategy: '',
+          pricingModel: '',
+          lastUpdated: new Date().toISOString()
+        },
+        metadata: {
+          requestId: response.requestId,
+          timestamp: new Date().toISOString(),
+          fromCache: false,
+          processingTimeMs: 0,
+          datasetsCollected: 0,
+          totalCost: 0
+        }
+      };
+    }
+
+    // Fallback for unexpected response format
+    throw new Error(`Unexpected vendor context response format: ${JSON.stringify(response)}`);
   }
 
   async customerIntelligence(prospectCompany: string, vendorCompany?: string): Promise<{

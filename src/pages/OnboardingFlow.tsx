@@ -170,7 +170,7 @@ export function OnboardingFlow() {
 
     try {
       const response = await lookupCompanies(companySearchQuery, 5);
-      setCompanySearchResults(response.companies);
+      setCompanySearchResults(response.data.companies);
     } catch (error) {
       console.error('Company search failed:', error);
       setCompanySearchResults([]);

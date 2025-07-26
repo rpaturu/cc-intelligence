@@ -1,6 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react'
 import { signIn, signUp, signOut, getCurrentUser, confirmSignUp, fetchAuthSession, resendSignUpCode, fetchUserAttributes } from 'aws-amplify/auth'
-import { createEmptyProfile, getProfile } from '../lib/api'
 
 interface User {
   userId: string
@@ -25,8 +24,6 @@ interface AuthContextType {
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -66,22 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Setting user state to:', newUser)
         setUser(newUser)
         console.log('User state set successfully')
-
-        // Check if user has a profile, create empty one if not
-        try {
-          const existingProfile = await getProfile(currentUser.userId)
-          if (!existingProfile) {
-            console.log('No profile found for user, creating empty profile:', currentUser.userId)
-            await createEmptyProfile(currentUser.userId)
-            console.log('Empty profile created successfully')
-          } else {
-            console.log('User profile already exists')
-          }
-        } catch (profileError) {
-          console.error('Error checking/creating profile:', profileError)
-          // Don't fail auth if profile creation fails
-        }
-        
       } else {
         console.log('No valid session found, setting user to null')
         setUser(null)
@@ -116,43 +97,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
         options: {
           userAttributes: {
-            email: email,
+            email,
           },
         },
       })
-      console.log('Signup successful')
+      console.log('Sign up successful')
     } catch (error) {
-      console.error('Signup error:', error)
+      console.error('Sign up error:', error)
       throw error
     }
   }
 
   const handleSignOut = async () => {
+    try {
       await signOut()
       setUser(null)
+      console.log('Sign out successful')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      throw error
+    }
   }
 
   const handleConfirmSignUp = async (username: string, code: string) => {
     try {
-      console.log('Confirming signup for user:', username)
-      await confirmSignUp({
-        username,
-        confirmationCode: code,
-      })
-      console.log('Signup confirmation successful')
+      await confirmSignUp({ username, confirmationCode: code })
+      console.log('Confirmation successful')
     } catch (error) {
-      console.error('Signup confirmation error:', error)
+      console.error('Confirmation error:', error)
       throw error
     }
   }
 
   const handleResendConfirmationCode = async (username: string) => {
     try {
-      console.log('Resending confirmation code for user:', username)
-      await resendSignUpCode({
-        username,
-      })
-      console.log('Confirmation code resent successfully')
+      await resendSignUpCode({ username })
+      console.log('Confirmation code resent')
     } catch (error) {
       console.error('Resend confirmation code error:', error)
       throw error
@@ -169,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
     signIn: handleSignIn,
@@ -180,9 +160,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getIdToken,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 } 
