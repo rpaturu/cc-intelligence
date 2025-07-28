@@ -680,7 +680,7 @@ export function HybridIntelligenceExperience() {
       )}
 
       {/* Main Chat Area */}
-      <div className={`flex-1 pt-16 ${isHistoryOpen ? 'ml-80' : ''} ${isDashboardOpen ? 'mr-96' : ''} transition-all duration-300 bg-gray-50 h-screen overflow-hidden`}>
+      <div className={`flex-1 pt-16 ${isHistoryOpen ? 'ml-80' : ''} ${isDashboardOpen ? 'mr-96' : ''} transition-all duration-300 bg-gray-50 h-screen overflow-x-hidden`}>
         {/* Chat Widget Container - natural conversation flow */}
         <div className="h-full p-6">
           <div className="max-w-4xl mx-auto h-full bg-white rounded-xl border border-gray-200 shadow-lg">

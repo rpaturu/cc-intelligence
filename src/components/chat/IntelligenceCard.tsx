@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CredibilityIndicator, SourceTag, SourceVerification } from './SourceCredibility';
-import { Tabs, Tab } from '../ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import type { SalesIntelligenceResponse, SourcedClaim } from '@/types/api';
 
 // New type for optimized overview response
@@ -286,7 +286,16 @@ export function IntelligenceCard({ data, className }: IntelligenceCardProps) {
 
       {/* Tabbed Content */}
       <Tabs defaultValue="intelligence" className="w-full">
-        <Tab value="intelligence" label="Intelligence" badge={totalClaims > 0 ? `${totalClaims} verified` : undefined}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="intelligence">
+            Intelligence {totalClaims > 0 ? `(${totalClaims} verified)` : ''}
+          </TabsTrigger>
+          <TabsTrigger value="sources">
+            Sources {sourcesBadge ? `(${sourcesBadge})` : ''}
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="intelligence">
           <div className="p-4 space-y-6 text-left">
             {/* Sourced Claims Section */}
             {insights.sourcedClaims && insights.sourcedClaims.length > 0 && (
@@ -502,9 +511,9 @@ export function IntelligenceCard({ data, className }: IntelligenceCardProps) {
               </div>
             )}
           </div>
-        </Tab>
+        </TabsContent>
 
-        <Tab value="sources" label="Sources" badge={sourcesBadge}>
+        <TabsContent value="sources">
           <div className="p-4 space-y-4">
             {/* Source Quality Overview */}
             <SourceOverview data={data} />
@@ -567,7 +576,7 @@ export function IntelligenceCard({ data, className }: IntelligenceCardProps) {
               )
             )}
           </div>
-        </Tab>
+        </TabsContent>
       </Tabs>
     </div>
   );

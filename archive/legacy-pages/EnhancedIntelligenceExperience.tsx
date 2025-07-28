@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { Alert, AlertDescription } from '../components/ui/alert';
 import { 
   Building, 
   TrendingUp, 
@@ -392,24 +393,9 @@ export function EnhancedIntelligenceExperience() {
   const generateProfileAwareInsights = (data: CompanyOverview, userProfile: any) => {
     const insights = [];
     
-    // Profile-aware competitive intelligence
-    if (userProfile?.mainCompetitors) {
-      const competingWithUs = data.marketData?.majorCompetitors?.some(competitor => 
-        userProfile.mainCompetitors.some((ourCompetitor: string) => 
-          competitor.toLowerCase().includes(ourCompetitor.toLowerCase())
-        )
-      );
-      
-      if (competingWithUs) {
-        insights.push({
-          type: 'opportunity',
-          title: 'Competitive Displacement Opportunity',
-          description: `They're using competitive solutions - highlight ${userProfile.primaryProducts?.[0]} advantages`,
-          confidence: 0.8,
-          impact: 'high'
-        });
-      }
-    }
+    // Profile-aware insights based on lean profile data
+    // Note: Company intelligence (products, competitors) is now fetched dynamically
+    // rather than stored in user profiles
     
     // Size-based insights
     if (data.employeeCount) {
@@ -1254,22 +1240,21 @@ export function EnhancedIntelligenceExperience() {
             </div>
             
             {!isProfileComplete() && (
-              <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg max-w-md mx-auto">
-                <div className="flex items-center gap-2 text-yellow-800 mb-2">
-                  <Settings className="w-4 h-4" />
-                  <span className="font-medium">Complete Your Profile</span>
-                </div>
-                <p className="text-sm text-yellow-700 mb-3">
-                  Set up your sales profile to get personalized, context-aware research insights.
-                </p>
-                <Button
-                  onClick={() => navigate('/profile')}
-                  size="sm"
-                  className="bg-yellow-600 hover:bg-yellow-700"
-                >
-                  Setup Profile
-                </Button>
-              </div>
+              <Alert className="mb-6 max-w-md mx-auto">
+                <Settings className="w-4 h-4" />
+                <AlertDescription>
+                  <div className="font-medium mb-2">Complete Your Profile</div>
+                  <p className="text-sm mb-3">
+                    Set up your sales profile to get personalized, context-aware research insights.
+                  </p>
+                  <Button
+                    onClick={() => navigate('/profile')}
+                    size="sm"
+                  >
+                    Setup Profile
+                  </Button>
+                </AlertDescription>
+              </Alert>
             )}
             
             <div className="flex flex-wrap gap-2 justify-center">

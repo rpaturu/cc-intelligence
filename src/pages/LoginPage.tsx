@@ -1,17 +1,19 @@
 import React, { useState } from 'react'
-import { /* Link, */ useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '@/hooks/use-toast'
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  email: z.string().email('Please enter a valid email'),
   password: z.string().min(1, 'Password is required'),
 })
 
@@ -34,16 +36,22 @@ const LoginPage: React.FC = () => {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true)
     try {
-      await signIn(data.username, data.password)
+      await signIn(data.email, data.password)
       toast({
         title: 'Success',
         description: 'Signed in successfully',
       })
       navigate('/')
-    } catch (error) {
+    } catch (error: any) {
+      // Provide helpful error message for potential unconfirmed users
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in'
+      const isIncorrectCredentials = errorMessage.includes('Incorrect username or password')
+      
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to sign in',
+        description: isIncorrectCredentials 
+          ? 'Incorrect email or password. If you just registered, please check your email and confirm your account first.'
+          : errorMessage,
         variant: 'destructive',
       })
     } finally {
@@ -51,57 +59,92 @@ const LoginPage: React.FC = () => {
     }
   }
 
+  const switchToSignUp = () => {
+    navigate('/signup')
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Sign in to your account</CardTitle>
+          <CardTitle className="text-center">Welcome back</CardTitle>
           <CardDescription className="text-center">
-            Enter your username and password to sign in
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+            Enter your email and password to access your account
+            </CardDescription>
+          </CardHeader>
+        <CardContent className="space-y-4">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="Enter your username"
-                {...register('username')}
-                className={errors.username ? 'border-red-500' : ''}
-              />
-              {errors.username && (
-                <p className="text-sm text-red-500">{errors.username.message}</p>
-              )}
-            </div>
+              <Label htmlFor="email">Email</Label>
+                  <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                {...register('email')}
+                                disabled={isLoading}
+                  />
+              {errors.email && (
+                    <Alert variant="destructive">
+                  <AlertDescription>{errors.email.message}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                {...register('password')}
-                className={errors.password ? 'border-red-500' : ''}
-              />
-              {errors.password && (
-                <p className="text-sm text-red-500">{errors.password.message}</p>
-              )}
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign in'}
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    {...register('password')}
+                disabled={isLoading}
+                  />
+                  {errors.password && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{errors.password.message}</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+            
+                <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
-          {/* <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/signup" className="text-primary hover:underline">
-                Sign up
-              </Link>
-            </p>
-          </div> */}
-        </CardContent>
-      </Card>
+          
+          <div className="text-center space-y-2">
+            <button 
+              type="button"
+              className="text-muted-foreground hover:text-foreground transition-colors block w-full"
+              disabled={isLoading}
+            >
+              Forgot your password?
+            </button>
+            <button 
+              type="button"
+              onClick={() => navigate('/confirm')}
+              className="text-muted-foreground hover:text-foreground transition-colors text-sm block w-full"
+              disabled={isLoading}
+            >
+              Need to confirm your account?
+            </button>
+          </div>
+          
+          <Separator />
+          
+          <div className="text-center space-y-2">
+            <p className="text-muted-foreground">Don't have an account?</p>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={switchToSignUp}
+              type="button"
+              disabled={isLoading}
+            >
+              Create Account
+                </Button>
+              </div>
+          </CardContent>
+        </Card>
     </div>
   )
 }

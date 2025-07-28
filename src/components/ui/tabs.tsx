@@ -1,65 +1,64 @@
-import React, { useState } from 'react';
-import { cn } from '@/lib/utils';
+import * as React from "react"
+import * as TabsPrimitive from "@radix-ui/react-tabs"
 
-interface TabProps {
-  value: string;
-  label: string;
-  children: React.ReactNode;
-  badge?: string | number;
-}
+import { cn } from "@/lib/utils"
 
-interface TabsProps {
-  defaultValue: string;
-  children: React.ReactElement<TabProps>[];
-  className?: string;
-}
-
-export function Tab({ children }: TabProps) {
-  return <>{children}</>;
-}
-
-export function Tabs({ defaultValue, children, className }: TabsProps) {
-  const [activeTab, setActiveTab] = useState(defaultValue);
-
-  const tabs = React.Children.toArray(children) as React.ReactElement<TabProps>[];
-  const activeContent = tabs.find(tab => tab.props.value === activeTab)?.props.children;
-
+function Tabs({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Root>) {
   return (
-    <div className={cn("w-full", className)}>
-      {/* Tab Headers */}
-      <div className="flex border-b border-gray-200">
-        {tabs.map((tab) => (
-          <button
-            key={tab.props.value}
-            onClick={() => setActiveTab(tab.props.value)}
-            className={cn(
-              "px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-200",
-              activeTab === tab.props.value
-                ? "border-blue-500 text-blue-600 bg-blue-50"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-            )}
-          >
-            <span className="flex items-center gap-2">
-              {tab.props.label}
-              {tab.props.badge && (
-                <span className={cn(
-                  "px-2 py-0.5 text-xs rounded-full",
-                  activeTab === tab.props.value
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-600"
-                )}>
-                  {tab.props.badge}
-                </span>
-              )}
-            </span>
-          </button>
-        ))}
-      </div>
+    <TabsPrimitive.Root
+      data-slot="tabs"
+      className={cn("flex flex-col gap-2", className)}
+      {...props}
+    />
+  )
+}
 
-      {/* Tab Content */}
-      <div className="mt-3">
-        {activeContent}
-      </div>
-    </div>
-  );
-} 
+function TabsList({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.List>) {
+  return (
+    <TabsPrimitive.List
+      data-slot="tabs-list"
+      className={cn(
+        "bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-xl p-[3px] flex",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TabsTrigger({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  return (
+    <TabsPrimitive.Trigger
+      data-slot="tabs-trigger"
+      className={cn(
+        "data-[state=active]:bg-card dark:data-[state=active]:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-foreground dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-xl border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:shadow-sm [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function TabsContent({
+  className,
+  ...props
+}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  return (
+    <TabsPrimitive.Content
+      data-slot="tabs-content"
+      className={cn("flex-1 outline-none", className)}
+      {...props}
+    />
+  )
+}
+
+export { Tabs, TabsList, TabsTrigger, TabsContent }

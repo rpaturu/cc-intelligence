@@ -4,21 +4,33 @@ A modern React-based user interface for the Sales Intelligence AI platform. This
 
 ## 🚀 Features
 
+### M3 Release (Latest)
+- **📋 Guided Onboarding**: Step-by-step onboarding flow for new users
+- **🏢 Company Intelligence Widgets**: Comprehensive company insights with real-time data
+- **👤 Role-Based Intelligence**: AI configuration tailored to specific sales roles (AE, SE, BDR, etc.)
+- **🌓 Dark Mode Support**: Complete dark/light theme switching with clean typography
+- **🔐 Enhanced Authentication**: Improved sign-up, email confirmation, and login flows
+- **📱 Responsive Design**: Optimized for all device sizes with consistent UI components
+- **🎨 Modern UI Components**: Built with shadcn/ui for consistent design system
+
+### Core Features
 - **AI-Powered Intelligence**: Generate comprehensive company insights with advanced AI analysis
 - **Context-Aware Analysis**: Tailored insights based on specific sales contexts (discovery, competitive, renewal, etc.)
 - **Real-time Intelligence**: Always-fresh data through real-time search and analysis
 - **Comprehensive Reporting**: Company overview, pain points, competitive analysis, and more
-- **Modern UI**: Built with React, TypeScript, and Tailwind CSS
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Profile Management**: User profiles with role-based AI configuration
+- **Company Search**: Intelligent company lookup with domain-based intelligence
 
 ## 📦 Tech Stack
 
 - **Frontend**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS, shadcn/ui components
 - **Routing**: React Router DOM
+- **Authentication**: AWS Cognito with Amplify
 - **Icons**: Lucide React
 - **Forms**: React Hook Form with Zod validation
 - **Build Tool**: Vite
+- **Theme**: Custom CSS variables with dark/light mode support
 
 ## 🛠️ Installation
 
@@ -37,6 +49,8 @@ Edit `.env.local` with your cc-orchestrator1 API details:
 ```env
 VITE_API_ENDPOINT=https://your-api-gateway-url.com
 VITE_API_KEY=your-api-key-here
+VITE_USER_POOL_ID=your-cognito-user-pool-id
+VITE_USER_POOL_CLIENT_ID=your-cognito-client-id
 ```
 
 4. **Start the development server:**
@@ -56,81 +70,118 @@ npm run dev
 
 ### Authentication Configuration
 
-The application uses **AWS Cognito** for user authentication with proper loginId management:
+The application uses **AWS Cognito** for user authentication:
 
 - **User Pool**: Manages user accounts and authentication
-- **Sign-up**: Email verification required
-- **Sign-in**: Email or username with password
-- **Login ID**: Uses the user's email as the loginId for proper authentication context
+- **Email-based Auth**: Primary authentication using email addresses
+- **Sign-up Flow**: Email verification with OTP confirmation
+- **Profile Integration**: Automatic profile creation with signup data
+- **Session Management**: Secure session handling with proper auth state
 
 ### API Configuration
 
-The application expects the cc-orchestrator1 backend to be deployed and accessible. Make sure your backend is running and the API endpoints are configured correctly.
+The application expects the cc-orchestrator1 backend to be deployed and accessible. The frontend integrates with:
+
+- **Company Intelligence API**: Real-time company data and insights
+- **User Profile API**: User management and preferences
+- **Search API**: Company lookup and discovery
 
 ## 🎯 Usage
 
+### Getting Started
+
+1. **Sign Up**: Create an account with email verification
+2. **Onboarding**: Complete the guided 3-step onboarding:
+   - **Personal Information**: Name, role, department
+   - **Company Information**: Search and select your company
+   - **Sales Context**: Territory and focus preferences
+3. **Profile Setup**: AI configuration based on your role
+
 ### Generating Intelligence Reports
 
-1. **Navigate to Intelligence**: Click on "Intelligence" in the sidebar or use the quick action on the home page
-2. **Enter Company Domain**: Input the target company's domain (e.g., "shopify.com")
-3. **Select Sales Context**: Choose from:
-   - **Discovery**: Initial research and pain point identification
-   - **Competitive**: Competitor analysis and positioning
-   - **Renewal**: Contract renewal and satisfaction analysis
-   - **Demo**: Technical requirements and use cases
-   - **Negotiation**: Procurement and budget approval
-   - **Closing**: Final decision and implementation planning
-4. **Add Context** (Optional): Provide additional context about the meeting or opportunity
-5. **Generate Report**: Click "Generate Intelligence" to create the report
+1. **Navigate to Research**: Use the main navigation or profile quick actions
+2. **Company Selection**: Search for target companies by name or domain
+3. **Context Selection**: Choose your sales context and research type
+4. **AI Configuration**: Leverage role-specific AI insights
+5. **Real-time Intelligence**: Get comprehensive company insights
 
-### Understanding Reports
+### Company Intelligence Features
 
-The generated reports include:
+The **Company Intelligence Widget** provides:
 
-- **Company Overview**: Industry, size, revenue, recent news
-- **Pain Points**: Key challenges and areas of concern
-- **Key Contacts**: Important stakeholders and approach strategies
-- **Competitive Landscape**: Market position and differentiators
-- **Talking Points**: Relevant conversation topics
-- **Deal Probability**: AI-calculated likelihood of success
-- **Sources**: References and data sources used
+- **📊 Company Overview**: Size, market presence, business challenges
+- **🏭 Industry Analysis**: Sector-specific insights and positioning
+- **💼 Products & Services**: Product portfolio and service offerings
+- **🎯 Target Markets**: Customer segments and market focus
+- **💰 Value Propositions**: Key value drivers and differentiators
+- **🏆 Competitive Landscape**: Market position and competitors
+- **⚡ Technology Stack**: Technical infrastructure and tools
+- **👥 Key Executives**: Leadership team and stakeholders
+- **📰 Recent News**: Latest company updates and announcements
+- **🤝 Key Partnerships**: Strategic alliances and integrations
+- **📈 Growth Indicators**: Business momentum and expansion signals
+- **🎯 AI Configuration**: Role-specific intelligence focus
 
-### Navigation
+### Role-Based Intelligence
 
-- **Home**: Overview and quick actions
-- **Intelligence**: Generate and view reports
-- **Analytics**: Performance metrics (coming soon)
-- **Settings**: Configure API and preferences
+The platform adapts to different sales roles:
+
+- **Account Executive (AE)**: Revenue-focused insights, deal velocity, buying signals
+- **Solutions Engineer (SE)**: Technical requirements, integration complexity, use cases
+- **Sales Development (SDR/BDR)**: Prospecting insights, contact strategies, qualification
+- **Customer Success (CSM)**: Expansion opportunities, health scores, retention factors
+- **Sales Manager**: Team performance, pipeline analysis, coaching insights
+
+## 🎨 Design System
+
+### Theme Support
+- **Light/Dark Modes**: Complete theme switching with consistent colors
+- **Typography**: Clean, readable fonts with proper contrast ratios
+- **Color Palette**: Neutral color scheme with semantic color usage
+- **Component Library**: shadcn/ui components with custom styling
+
+### UI Components
+- **Navigation**: Responsive navbar with role-based navigation
+- **Forms**: Validated forms with error handling and loading states
+- **Cards**: Information cards with consistent spacing and hierarchy
+- **Badges**: Status indicators with theme-aware colors
+- **Progress Indicators**: Step-by-step progress tracking
 
 ## 🔗 Backend Integration
 
-This UI is designed to work with the cc-orchestrator1 backend. The backend provides three main endpoints:
+This UI is designed to work with the cc-orchestrator1 backend. Key integrations:
 
-1. **Intelligence Generation**: `POST /intelligence`
-2. **Health Check**: `GET /health`  
-3. **Search**: `POST /search`
-
-### API Response Format
-
-The backend returns structured data including:
-
+### Company Intelligence API
 ```typescript
-interface SalesIntelligenceResponse {
-  insights: {
-    companyOverview: CompanyInsights;
-    painPoints: string[];
-    keyContacts: Contact[];
-    competitiveLandscape: CompetitiveIntel;
-    talkingPoints: string[];
-    dealProbability: number;
-    // ... more fields
-  };
-  sources: string[];
-  confidenceScore: number;
-  generatedAt: Date;
-  requestId: string;
+// Company data with comprehensive insights
+interface CompanyIntelligenceData {
+  companyName: string;
+  industry: string;
+  products: string[];
+  targetMarkets: string[];
+  competitors: string[];
+  valuePropositions: string[];
+  // ... extensive company data
 }
 ```
+
+### Profile Management API
+```typescript
+// User profile with role-based configuration
+interface UserProfile {
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  company: string;
+  // ... additional profile fields
+}
+```
+
+### Real-time Features
+- **Polling Support**: Async result polling for long-running operations
+- **Cache Management**: Intelligent caching with freshness indicators
+- **Error Handling**: Comprehensive error states and retry mechanisms
 
 ## 🚀 Deployment
 
@@ -146,69 +197,108 @@ npm run build
 npm run preview
 ```
 
-### Deployment Options
+### Infrastructure
 
-- **Vercel**: Connect your GitHub repository for automatic deployments
-- **Netlify**: Drag and drop the `dist` folder or connect via Git
-- **AWS S3 + CloudFront**: Upload the built files to S3 and serve via CloudFront
-- **Any static hosting service**: The built files are static and can be served anywhere
+The application includes AWS CDK infrastructure:
+
+```bash
+cd infrastructure
+npm install
+cdk deploy
+```
+
+This deploys:
+- **S3 Bucket**: Static website hosting
+- **CloudFront**: Global CDN distribution
+- **IAM Roles**: Secure access policies
 
 ## 🔒 Security
 
-- API keys are stored in environment variables
-- All API calls use HTTPS
-- CORS is configured on the backend
-- Input validation is performed on all forms
-
-## 🎨 Customization
-
-### Styling
-
-The application uses Tailwind CSS for styling. You can customize the design by:
-
-1. **Modifying colors**: Edit `tailwind.config.js`
-2. **Adding components**: Create new components in `src/components/`
-3. **Updating themes**: Modify CSS variables in `src/index.css`
-
-### Adding Features
-
-The architecture supports easy extension:
-
-1. **New pages**: Add to `src/pages/` and update routes in `App.tsx`
-2. **New components**: Create in `src/components/`
-3. **New API endpoints**: Extend the API client in `src/lib/api.ts`
+- **Authentication**: AWS Cognito with secure session management
+- **API Security**: CORS configuration and API key validation
+- **Input Validation**: Comprehensive form validation with Zod schemas
+- **Environment Variables**: Secure configuration management
+- **HTTPS Only**: All API communication over secure connections
 
 ## 📱 Mobile Support
 
-The interface is fully responsive and works on:
-- Desktop computers
-- Tablets
-- Mobile phones
+Fully responsive design supporting:
+- **Desktop**: Full-featured experience with optimized layouts
+- **Tablet**: Touch-friendly interface with responsive grids
+- **Mobile**: Compact layouts with accessible navigation
+
+## 🧪 Testing
+
+### Development Testing
+```bash
+npm run lint          # TypeScript and ESLint checks
+npm run type-check    # TypeScript compilation
+npm run dev          # Development server with hot reload
+```
+
+### Build Testing
+```bash
+npm run build        # Production build
+npm run preview      # Preview production build
+```
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **API Connection Errors**:
-   - Check that your backend is running
-   - Verify the API endpoint URL
-   - Ensure the API key is correct
+1. **Authentication Errors**:
+   - Verify Cognito User Pool configuration
+   - Check email confirmation status
+   - Ensure proper redirect URLs
 
-2. **Build Errors**:
-   - Clear node_modules and reinstall: `rm -rf node_modules && npm install`
-   - Check for TypeScript errors: `npm run lint`
+2. **API Connection Errors**:
+   - Verify backend service is running
+   - Check API endpoint configuration
+   - Validate CORS settings
 
-3. **Environment Variables**:
-   - Make sure `.env.local` exists and contains the correct values
-   - Restart the development server after changing environment variables
+3. **Build Issues**:
+   - Clear cache: `rm -rf node_modules .vite && npm install`
+   - Check TypeScript errors: `npm run type-check`
+   - Verify environment variables
+
+4. **Theme Issues**:
+   - Check CSS variable definitions
+   - Verify component class usage
+   - Ensure proper dark mode detection
+
+## 🔄 Release History
+
+### M3-frontend (Current)
+- ✅ Guided onboarding flow
+- ✅ Company intelligence widgets
+- ✅ Role-based AI configuration
+- ✅ Dark mode support
+- ✅ Enhanced authentication
+- ✅ Improved UI/UX consistency
+
+### M2-frontend
+- ✅ Core intelligence features
+- ✅ User authentication
+- ✅ Basic company search
+
+### M1-frontend
+- ✅ Initial UI foundation
+- ✅ Basic routing and layout
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes with proper TypeScript typing
+4. Test thoroughly across themes and devices
+5. Submit a pull request with clear description
+
+### Development Guidelines
+- Follow TypeScript best practices
+- Use semantic component naming
+- Maintain theme consistency
+- Test in both light and dark modes
+- Ensure mobile responsiveness
 
 ## 📄 License
 

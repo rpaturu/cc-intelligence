@@ -1,6 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react'
 import { signIn, signUp, signOut, getCurrentUser, confirmSignUp, fetchAuthSession, resendSignUpCode, fetchUserAttributes } from 'aws-amplify/auth'
-import { createEmptyProfile, getProfile } from '../lib/api'
 
 interface User {
   userId: string
@@ -17,7 +16,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: (username: string, password: string) => Promise<void>
-  signUp: (username: string, password: string, email: string) => Promise<void>
+  signUp: (password: string, email: string) => Promise<string>
   signOut: () => Promise<void>
   confirmSignUp: (username: string, code: string) => Promise<void>
   resendConfirmationCode: (username: string) => Promise<void>
@@ -25,8 +24,6 @@ interface AuthContextType {
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
@@ -53,35 +50,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const actualEmail = userAttributes.email || currentUser.signInDetails?.loginId || ''
         
         const newUser = {
-          userId: currentUser.userId,
+          userId: actualEmail, // Use email as the primary identifier instead of UUID
           username: currentUser.username,
           email: actualEmail,
           attributes: {
             email: actualEmail,
             email_verified: userAttributes.email_verified === 'true',
-            sub: currentUser.userId
+            sub: currentUser.userId // Keep the original Cognito UUID as 'sub' for reference
           }
         }
         
         console.log('Setting user state to:', newUser)
         setUser(newUser)
         console.log('User state set successfully')
-
-        // Check if user has a profile, create empty one if not
-        try {
-          const existingProfile = await getProfile(currentUser.userId)
-          if (!existingProfile) {
-            console.log('No profile found for user, creating empty profile:', currentUser.userId)
-            await createEmptyProfile(currentUser.userId)
-            console.log('Empty profile created successfully')
-          } else {
-            console.log('User profile already exists')
-          }
-        } catch (profileError) {
-          console.error('Error checking/creating profile:', profileError)
-          // Don't fail auth if profile creation fails
-        }
-        
       } else {
         console.log('No valid session found, setting user to null')
         setUser(null)
@@ -97,62 +78,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignIn = async (username: string, password: string) => {
     try {
       console.log('Signing in with:', username)
+      // Since user pool is configured for email aliases, users can sign in with email
       await signIn({ username, password })
       console.log('Sign in successful, checking auth state...')
       
       // Check auth state immediately without delay
       await checkAuthState()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error)
       throw error
     }
   }
 
-  const handleSignUp = async (username: string, password: string, email: string) => {
+  const handleSignUp = async (password: string, email: string): Promise<string> => {
     try {
-      console.log('Signing up user:', username, email)
+      console.log('Signing up user:', email)
+      // Generate a unique username since the user pool is configured for email aliases
+      const uniqueUsername = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+      
       await signUp({
-        username,
+        username: uniqueUsername,
         password,
         options: {
           userAttributes: {
-            email: email,
+            email,
           },
         },
       })
-      console.log('Signup successful')
+      console.log('Sign up successful')
+      return uniqueUsername
     } catch (error) {
-      console.error('Signup error:', error)
+      console.error('Sign up error:', error)
       throw error
     }
   }
 
   const handleSignOut = async () => {
+    try {
       await signOut()
       setUser(null)
+      console.log('Sign out successful')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      throw error
+    }
   }
 
   const handleConfirmSignUp = async (username: string, code: string) => {
     try {
-      console.log('Confirming signup for user:', username)
-      await confirmSignUp({
-        username,
-        confirmationCode: code,
-      })
-      console.log('Signup confirmation successful')
+      await confirmSignUp({ username, confirmationCode: code })
+      console.log('Confirmation successful')
     } catch (error) {
-      console.error('Signup confirmation error:', error)
+      console.error('Confirmation error:', error)
       throw error
     }
   }
 
   const handleResendConfirmationCode = async (username: string) => {
     try {
-      console.log('Resending confirmation code for user:', username)
-      await resendSignUpCode({
-        username,
-      })
-      console.log('Confirmation code resent successfully')
+      await resendSignUpCode({ username })
+      console.log('Confirmation code resent')
     } catch (error) {
       console.error('Resend confirmation code error:', error)
       throw error
@@ -169,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
-  const value = {
+  const value: AuthContextType = {
     user,
     loading,
     signIn: handleSignIn,
@@ -180,9 +165,5 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getIdToken,
   }
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 } 

@@ -1,126 +1,190 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Button } from './ui/button';
-import { ModeToggle } from './mode-toggle';
-import { 
-  Brain,
-  User,
-  Settings,
-  LogOut,
-  ChevronDown
-} from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import { useProfile } from '../hooks/useProfile';
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Search, User, Sun, Moon } from "lucide-react";
+import { useTheme } from "./ThemeProvider";
+import { useAuth } from "../hooks/useAuth";
 
-export function Navbar() {
+export default function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
-  const { profile } = useProfile();
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close user menu when clicking outside
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const scrollThreshold = 100;
+      setScrolled(scrollPosition > scrollThreshold);
     };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      setShowUserMenu(false);
-      navigate('/login');
-    } catch (error) {
-      console.error('Failed to log out:', error);
-    }
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  // Don't show navbar on auth pages
+  const currentPage = location.pathname === '/profile' ? 'profile' : 'research';
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+
+  const handleResearchClick = () => {
+    navigate('/research');
+  };
+
+  const handleOnboardingClick = () => {
+    navigate('/onboarding/personal');
+  };
+
+  // Extract user name from user object or email
+  const getUserName = () => {
+    if (user?.email) {
+      // Parse name from profile if available, otherwise use email
+      const emailName = user.email.split('@')[0];
+      const firstName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+      return { firstName, lastName: '' };
+    }
+    return { firstName: 'User', lastName: '' };
+  };
+
+  const userName = getUserName();
+
+  // Don't show navbar on auth pages only (temporarily allowing onboarding for testing)
   if (['/login', '/signup', '/confirm'].includes(location.pathname)) {
     return null;
   }
 
   return (
-    <nav className="bg-background border-b border-border px-6 py-4">
-      <div className="flex items-center justify-between">
-        {/* Logo/Brand */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary rounded-lg">
-            <Brain className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">AI Intelligence Assistant</h1>
-            <p className="text-sm text-muted-foreground">Guided company research with contextual insights</p>
-          </div>
+    <nav className="fixed top-0 left-0 right-0 z-50 navbar-safe transition-all duration-300 ease-in-out">
+      <div 
+        className={`
+          transition-all duration-300 ease-in-out mx-auto px-4 sm:px-6 lg:px-8
+          ${scrolled 
+            ? 'max-w-3xl mt-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-full shadow-lg' 
+            : 'max-w-7xl bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b'
+          }
+        `}
+      >
+        <div className={`grid items-center transition-all duration-300 ease-in-out ${scrolled ? 'grid-cols-5 h-12' : 'grid-cols-4 h-16'}`}>
+          {/* Logo - Left */}
+          <div className="flex justify-start">
+            <div className="flex items-center">
+              <div className={`bg-primary rounded-lg flex items-center justify-center transition-all duration-300 ease-in-out ${scrolled ? 'w-6 h-6' : 'w-8 h-8'}`}>
+                <span className={`text-primary-foreground font-bold transition-all duration-300 ease-in-out ${scrolled ? 'text-xs' : 'text-sm'}`}>AI</span>
         </div>
-
-        {/* Right side - Actions and User Menu */}
-        <div className="flex items-center gap-3">
-          {/* Dark Mode Toggle */}
-          <ModeToggle />
-          
-          {/* User Menu */}
-          {user && (
-            <div className="relative" ref={userMenuRef}>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2"
-              >
-                <User className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {user?.username || profile?.name || 'User'}
+              <span className={`ml-2 font-semibold text-foreground transition-all duration-300 ease-in-out ${scrolled ? 'text-sm' : 'text-base'}`}>
+                Intelligence
                 </span>
-                <ChevronDown className="w-3 h-3" />
-              </Button>
-              
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-popover rounded-lg shadow-lg border border-border z-50">
-                  <div className="p-3 border-b border-border">
-                    <p className="text-sm font-medium text-popover-foreground">
-                      {user?.username || 'User'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {user?.email || profile?.email || 'No email'}
-                    </p>
-                  </div>
+                    </div>
+                    </div>
                   
-                  <div className="py-1">
-                    <button
-                      onClick={() => {
-                        navigate('/profile');
-                        setShowUserMenu(false);
-                      }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <Settings className="w-4 h-4" />
-                      {profile ? 'Edit Profile' : 'Setup Profile'}
-                    </button>
-                    
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              )}
+          {/* Research Button - Center-Left */}
+          <div className="flex justify-center">
+            <Button
+              variant={currentPage === "research" ? "default" : "ghost"}
+              onClick={handleResearchClick}
+              size={scrolled ? "sm" : "default"}
+              className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+                      >
+              <Search className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              {!scrolled && "Research"}
+            </Button>
+          </div>
+
+          {/* Onboarding Button - Center */}
+          <div className="flex justify-center">
+            <Button
+              variant={location.pathname.startsWith('/onboarding') ? "default" : "ghost"}
+              onClick={handleOnboardingClick}
+              size={scrolled ? "sm" : "default"}
+              className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            >
+              <User className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              {!scrolled && "Onboarding"}
+            </Button>
+          </div>
+
+          {/* Dark Mode Toggle - Center/Right-Center (only visible when scrolled) */}
+          {scrolled && (
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                onClick={toggleTheme}
+                size="sm"
+                className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+                      >
+                {theme === "light" ? (
+                  <Moon className="w-3 h-3" />
+                ) : (
+                  <Sun className="w-3 h-3" />
+                )}
+              </Button>
             </div>
           )}
+
+          {/* Profile Button - Right */}
+          <div className="flex justify-end">
+            <div className="flex items-center gap-2">
+              {/* Dark Mode Toggle - Full size (only visible when not scrolled) */}
+              {!scrolled && (
+                <Button
+                  variant="ghost"
+                  onClick={toggleTheme}
+                  size="default"
+                  className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+                >
+                  {theme === "light" ? (
+                    <>
+                      <Moon className="w-4 h-4" />
+                      Dark
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="w-4 h-4" />
+                      Light
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              {/* Profile Button */}
+              <Button
+                variant={currentPage === "profile" ? "secondary" : "ghost"}
+                onClick={handleProfileClick}
+                size={scrolled ? "sm" : "default"}
+                className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+              >
+                {user ? (
+                  <>
+                    <Avatar className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-5 h-5' : 'w-6 h-6'}`}>
+                      <AvatarImage src="" alt={`${userName.firstName} ${userName.lastName}`} />
+                      <AvatarFallback className="text-xs">
+                        {getInitials(userName.firstName, userName.lastName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {!scrolled && "Profile"}
+                  </>
+                ) : (
+                  <>
+                    <User className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                    {!scrolled && "Profile"}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
+    </div>
     </nav>
   );
 } 

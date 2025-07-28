@@ -229,6 +229,32 @@ class SalesIntelligenceApiClient {
     });
   }
 
+  // Company Lookup APIs - Dynamic data for onboarding
+  async lookupCompanies(query: string, limit: number = 5): Promise<{
+    message: string;
+    data: {
+    companies: Array<{
+      name: string;
+      domain?: string;        // ENHANCED: Now includes domain from trusted sources
+      description?: string;
+        industry?: string;      // ENHANCED: Industry data from Google Knowledge Graph
+      sources?: string[];     // ENHANCED: Source credibility tracking
+    }>;
+    total: number;
+    query: string;
+    cached: boolean;
+      generatedAt: string;
+    };
+    requestId: string;
+  }> {
+    const params = new URLSearchParams({ query, limit: limit.toString() });
+    return this.makeRequest(`/companies/lookup?${params}`);
+  }
+
+  // REMOVED: enrichCompany, suggestDomain, suggestProducts, findCompetitors
+  // These endpoints were removed in the ultra-clean backend
+  // Use vendorContext() and customerIntelligence() for context-aware intelligence instead
+
   // Profile management methods
   async getProfile(userId: string): Promise<UserProfile | null> {
     try {
@@ -260,13 +286,16 @@ class SalesIntelligenceApiClient {
   async createEmptyProfile(userId: string): Promise<UserProfile> {
     const emptyProfile: UserProfile = {
       userId,
-      name: 'New User', // Placeholder to pass validation
-      role: 'User', // Placeholder to pass validation  
-      company: 'Company', // Placeholder to pass validation
-      primaryProducts: ['Product'], // Placeholder to pass validation
-      keyValueProps: [],
-      mainCompetitors: [],
-      targetIndustries: [],
+      name: '', // Empty - user will fill during onboarding
+      role: '', // Empty - user will fill during onboarding  
+      company: '', // Empty - user will fill during onboarding
+      industry: '', // Empty initially
+      primaryProducts: [], // Empty initially - will be populated dynamically
+      keyValueProps: [], // Empty initially
+      mainCompetitors: [], // Empty initially - will be populated dynamically
+      targetIndustries: [], // Empty initially
+      salesFocus: 'enterprise', // Default value
+      defaultResearchContext: 'discovery', // Default value
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -277,6 +306,243 @@ class SalesIntelligenceApiClient {
     });
 
     return response.profile;
+  }
+
+  // Helper function to create profile with signup data
+  async createProfileWithSignupData(userId: string, firstName: string, lastName: string, email: string): Promise<UserProfile> {
+    const profileWithSignupData: UserProfile = {
+      userId,
+      name: `${firstName} ${lastName}`, // Pre-filled from signup
+      email, // Pre-filled from signup
+      role: '', // Still empty - user will fill during onboarding  
+      company: '', // Still empty - user will fill during onboarding
+      industry: '', // Empty initially
+      primaryProducts: [], // Empty initially - will be populated dynamically
+      keyValueProps: [], // Empty initially
+      mainCompetitors: [], // Empty initially - will be populated dynamically
+      targetIndustries: [], // Empty initially
+      salesFocus: 'enterprise', // Default value
+      defaultResearchContext: 'discovery', // Default value
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(profileWithSignupData),
+    });
+
+    return response.profile;
+  }
+
+  // Helper function to update existing profile with signup data
+  async updateProfileWithSignupData(userId: string, firstName: string, lastName: string, email: string): Promise<UserProfile> {
+    // First get the existing profile
+    const existingProfile = await this.getProfile(userId)
+    if (!existingProfile) {
+      throw new Error('Profile not found')
+    }
+
+    const updatedProfile: UserProfile = {
+      ...existingProfile,
+      name: `${firstName} ${lastName}`, // Update with signup data
+      email, // Update with signup data
+    }
+
+    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(updatedProfile),
+    })
+
+    return response.profile
+  }
+
+  // Context-Aware Intelligence APIs - Ultra-Clean Backend
+  async vendorContext(companyName: string, context?: any): Promise<{
+    success: boolean;
+    companyName: string;
+    vendorContext: {
+      companyName: string;
+      industry?: string;
+      products?: string[];
+      targetMarkets?: string[];
+      competitors?: string[];
+      valuePropositions?: string[];
+      positioningStrategy?: string;
+      pricingModel?: string;
+      companySize?: string;
+      marketPresence?: string;
+      recentNews?: string[];
+      keyExecutives?: string[];
+      businessChallenges?: string[];
+      growthIndicators?: string[];
+      techStack?: string[];
+      partnerships?: string[];
+      lastUpdated: string;
+      dataQuality?: {
+        completeness: number;
+        freshness: number;
+        reliability: number;
+        overall: number;
+      };
+    };
+    metadata: {
+      requestId: string;
+      timestamp: string;
+      fromCache: boolean;
+      processingTimeMs: number;
+      datasetsCollected: number;
+      totalCost: number;
+    };
+  }> {
+    const response = await this.makeRequest<{
+      status: string;
+      data?: any;
+      analysis?: any;
+      cached?: boolean;
+      generatedAt?: string;
+      requestId: string;
+      statusEndpoint?: string;
+      workflow?: any;
+      metrics?: any;
+    }>('/vendor/context', {
+      method: 'POST',
+      body: JSON.stringify({ companyName, context })
+    });
+
+    // Handle immediate cache hit response (200)
+    if (response.status === 'completed' && response.data) {
+      const analysis = response.data.analysis || response.analysis || {};
+      
+      return {
+        success: true,
+        companyName,
+        vendorContext: {
+          companyName,
+          industry: analysis.industry_focus || analysis.industry || analysis.companyIndustry,
+          products: analysis.product_portfolio || analysis.products || analysis.primaryProducts || [],
+          targetMarkets: analysis.target_markets || analysis.targetMarkets || analysis.targetIndustries || [],
+          competitors: analysis.competitive_landscape || analysis.competitors || analysis.mainCompetitors || [],
+          valuePropositions: analysis.value_propositions || analysis.valuePropositions || analysis.keyValueProps || [],
+          positioningStrategy: analysis.positioning_strategy || analysis.positioningStrategy || '',
+          pricingModel: analysis.pricing_model || analysis.pricingModel || '',
+          companySize: analysis.companySize || '',
+          marketPresence: analysis.marketPresence || '',
+          recentNews: analysis.recentNews || [],
+          keyExecutives: analysis.keyExecutives || [],
+          businessChallenges: analysis.businessChallenges || [],
+          growthIndicators: analysis.growthIndicators || [],
+          techStack: analysis.techStack || [],
+          partnerships: analysis.partnerships || [],
+          lastUpdated: analysis.last_updated || response.generatedAt || new Date().toISOString(),
+          dataQuality: analysis.data_quality || null
+        },
+        metadata: {
+          requestId: response.requestId,
+          timestamp: response.generatedAt || new Date().toISOString(),
+          fromCache: response.cached || false,
+          processingTimeMs: response.metrics?.processingTimeMs || 0,
+          datasetsCollected: response.metrics?.datasetsCollected || 0,
+          totalCost: response.metrics?.totalCost || 0
+        }
+      };
+    }
+
+    // Handle async processing response (202)
+    if (response.statusEndpoint && response.workflow) {
+      // Use existing polling infrastructure for async workflow results
+      const polledResult = await this.pollForAsyncResult<{
+        status: string;
+        data?: any;
+        analysis?: any;
+        cached?: boolean;
+        generatedAt?: string;
+        requestId: string;
+        metrics?: any;
+      }>(response.requestId, 180000); // 3 minute timeout
+
+      // Process the polled result same as immediate response
+      const analysis = polledResult.data?.analysis || polledResult.analysis || {};
+      
+      return {
+        success: true,
+        companyName,
+        vendorContext: {
+          companyName,
+          industry: analysis.industry_focus || analysis.industry || analysis.companyIndustry || '',
+          products: analysis.product_portfolio || analysis.products || analysis.primaryProducts || [],
+          targetMarkets: analysis.target_markets || analysis.targetMarkets || analysis.targetIndustries || [],
+          competitors: analysis.competitive_landscape || analysis.competitors || analysis.mainCompetitors || [],
+          valuePropositions: analysis.value_propositions || analysis.valuePropositions || analysis.keyValueProps || [],
+          positioningStrategy: analysis.positioning_strategy || analysis.positioningStrategy || '',
+          pricingModel: analysis.pricing_model || analysis.pricingModel || '',
+          companySize: analysis.companySize || '',
+          marketPresence: analysis.marketPresence || '',
+          recentNews: analysis.recentNews || [],
+          keyExecutives: analysis.keyExecutives || [],
+          businessChallenges: analysis.businessChallenges || [],
+          growthIndicators: analysis.growthIndicators || [],
+          techStack: analysis.techStack || [],
+          partnerships: analysis.partnerships || [],
+          lastUpdated: analysis.last_updated || polledResult.generatedAt || new Date().toISOString(),
+          dataQuality: analysis.data_quality || null
+        },
+        metadata: {
+          requestId: response.requestId,
+          timestamp: polledResult.generatedAt || new Date().toISOString(),
+          fromCache: polledResult.cached || false,
+          processingTimeMs: polledResult.metrics?.processingTimeMs || 0,
+          datasetsCollected: polledResult.metrics?.datasetsCollected || 0,
+          totalCost: polledResult.metrics?.totalCost || 0
+        }
+      };
+    }
+
+    // Fallback for unexpected response format
+    throw new Error(`Unexpected vendor context response format: ${JSON.stringify(response)}`);
+  }
+
+  async customerIntelligence(prospectCompany: string, vendorCompany?: string): Promise<{
+    success: boolean;
+    prospectCompany: string;
+    vendorCompany?: string;
+    customerIntelligence: {
+      companyOverview: {
+        name: string;
+        industry?: string;
+        size?: string;
+        description?: string;
+      };
+      contextualInsights: {
+        relevantDecisionMakers?: string[];
+        techStackRelevance?: string[];
+        businessChallenges?: string[];
+        buyingSignals?: string[];
+        competitiveUsage?: string[];
+        growthIndicators?: string[];
+      };
+      positioningGuidance: {
+        recommendedApproach?: string;
+        keyValueProps?: string[];
+        potentialPainPoints?: string[];
+        bestContactStrategy?: string;
+      };
+    };
+    metadata: {
+      requestId: string;
+      timestamp: string;
+      fromCache: boolean;
+      processingTimeMs: number;
+    };
+  }> {
+    const payload: any = { prospectCompany };
+    if (vendorCompany) {
+      payload.vendorCompany = vendorCompany;
+    }
+    return this.makeRequest('/customer/intelligence', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   }
 }
 
@@ -297,11 +563,24 @@ export const getDiscoveryInsights = apiClient.getDiscoveryInsights.bind(apiClien
 export const healthCheck = apiClient.healthCheck.bind(apiClient);
 export const search = apiClient.search.bind(apiClient);
 
+// Company Lookup methods - Ultra-Clean API  
+export const lookupCompanies = apiClient.lookupCompanies.bind(apiClient);
+
+// Context-Aware Intelligence - Ultra-Clean API
+export const vendorContext = apiClient.vendorContext.bind(apiClient);
+export const customerIntelligence = apiClient.customerIntelligence.bind(apiClient);
+
+// Legacy aliases for backward compatibility
+export const enrichVendor = apiClient.vendorContext.bind(apiClient);
+export const getCustomerIntelligence = apiClient.customerIntelligence.bind(apiClient);
+
 // Profile management methods
 export const getProfile = apiClient.getProfile.bind(apiClient);
 export const saveProfile = apiClient.saveProfile.bind(apiClient);
 export const deleteProfile = apiClient.deleteProfile.bind(apiClient);
 export const createEmptyProfile = apiClient.createEmptyProfile.bind(apiClient);
+export const createProfileWithSignupData = apiClient.createProfileWithSignupData.bind(apiClient);
+export const updateProfileWithSignupData = apiClient.updateProfileWithSignupData.bind(apiClient);
 
 // Export types for convenience
 export type { 
