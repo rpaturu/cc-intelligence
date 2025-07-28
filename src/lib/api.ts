@@ -308,6 +308,55 @@ class SalesIntelligenceApiClient {
     return response.profile;
   }
 
+  // Helper function to create profile with signup data
+  async createProfileWithSignupData(userId: string, firstName: string, lastName: string, email: string): Promise<UserProfile> {
+    const profileWithSignupData: UserProfile = {
+      userId,
+      name: `${firstName} ${lastName}`, // Pre-filled from signup
+      email, // Pre-filled from signup
+      role: '', // Still empty - user will fill during onboarding  
+      company: '', // Still empty - user will fill during onboarding
+      industry: '', // Empty initially
+      primaryProducts: [], // Empty initially - will be populated dynamically
+      keyValueProps: [], // Empty initially
+      mainCompetitors: [], // Empty initially - will be populated dynamically
+      targetIndustries: [], // Empty initially
+      salesFocus: 'enterprise', // Default value
+      defaultResearchContext: 'discovery', // Default value
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(profileWithSignupData),
+    });
+
+    return response.profile;
+  }
+
+  // Helper function to update existing profile with signup data
+  async updateProfileWithSignupData(userId: string, firstName: string, lastName: string, email: string): Promise<UserProfile> {
+    // First get the existing profile
+    const existingProfile = await this.getProfile(userId)
+    if (!existingProfile) {
+      throw new Error('Profile not found')
+    }
+
+    const updatedProfile: UserProfile = {
+      ...existingProfile,
+      name: `${firstName} ${lastName}`, // Update with signup data
+      email, // Update with signup data
+    }
+
+    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(updatedProfile),
+    })
+
+    return response.profile
+  }
+
   // Context-Aware Intelligence APIs - Ultra-Clean Backend
   async vendorContext(companyName: string, context?: any): Promise<{
     success: boolean;
@@ -321,7 +370,21 @@ class SalesIntelligenceApiClient {
       valuePropositions?: string[];
       positioningStrategy?: string;
       pricingModel?: string;
+      companySize?: string;
+      marketPresence?: string;
+      recentNews?: string[];
+      keyExecutives?: string[];
+      businessChallenges?: string[];
+      growthIndicators?: string[];
+      techStack?: string[];
+      partnerships?: string[];
       lastUpdated: string;
+      dataQuality?: {
+        completeness: number;
+        freshness: number;
+        reliability: number;
+        overall: number;
+      };
     };
     metadata: {
       requestId: string;
@@ -363,7 +426,16 @@ class SalesIntelligenceApiClient {
           valuePropositions: analysis.value_propositions || analysis.valuePropositions || analysis.keyValueProps || [],
           positioningStrategy: analysis.positioning_strategy || analysis.positioningStrategy || '',
           pricingModel: analysis.pricing_model || analysis.pricingModel || '',
-          lastUpdated: analysis.last_updated || response.generatedAt || new Date().toISOString()
+          companySize: analysis.companySize || '',
+          marketPresence: analysis.marketPresence || '',
+          recentNews: analysis.recentNews || [],
+          keyExecutives: analysis.keyExecutives || [],
+          businessChallenges: analysis.businessChallenges || [],
+          growthIndicators: analysis.growthIndicators || [],
+          techStack: analysis.techStack || [],
+          partnerships: analysis.partnerships || [],
+          lastUpdated: analysis.last_updated || response.generatedAt || new Date().toISOString(),
+          dataQuality: analysis.data_quality || null
         },
         metadata: {
           requestId: response.requestId,
@@ -378,29 +450,50 @@ class SalesIntelligenceApiClient {
 
     // Handle async processing response (202)
     if (response.statusEndpoint && response.workflow) {
-      // For now, return empty vendor context for async cases
-      // TODO: Implement polling for async workflow results
+      // Use existing polling infrastructure for async workflow results
+      const polledResult = await this.pollForAsyncResult<{
+        status: string;
+        data?: any;
+        analysis?: any;
+        cached?: boolean;
+        generatedAt?: string;
+        requestId: string;
+        metrics?: any;
+      }>(response.requestId, 180000); // 3 minute timeout
+
+      // Process the polled result same as immediate response
+      const analysis = polledResult.data?.analysis || polledResult.analysis || {};
+      
       return {
         success: true,
         companyName,
         vendorContext: {
           companyName,
-          industry: '',
-          products: [],
-          targetMarkets: [],
-          competitors: [],
-          valuePropositions: [],
-          positioningStrategy: '',
-          pricingModel: '',
-          lastUpdated: new Date().toISOString()
+          industry: analysis.industry_focus || analysis.industry || analysis.companyIndustry || '',
+          products: analysis.product_portfolio || analysis.products || analysis.primaryProducts || [],
+          targetMarkets: analysis.target_markets || analysis.targetMarkets || analysis.targetIndustries || [],
+          competitors: analysis.competitive_landscape || analysis.competitors || analysis.mainCompetitors || [],
+          valuePropositions: analysis.value_propositions || analysis.valuePropositions || analysis.keyValueProps || [],
+          positioningStrategy: analysis.positioning_strategy || analysis.positioningStrategy || '',
+          pricingModel: analysis.pricing_model || analysis.pricingModel || '',
+          companySize: analysis.companySize || '',
+          marketPresence: analysis.marketPresence || '',
+          recentNews: analysis.recentNews || [],
+          keyExecutives: analysis.keyExecutives || [],
+          businessChallenges: analysis.businessChallenges || [],
+          growthIndicators: analysis.growthIndicators || [],
+          techStack: analysis.techStack || [],
+          partnerships: analysis.partnerships || [],
+          lastUpdated: analysis.last_updated || polledResult.generatedAt || new Date().toISOString(),
+          dataQuality: analysis.data_quality || null
         },
         metadata: {
           requestId: response.requestId,
-          timestamp: new Date().toISOString(),
-          fromCache: false,
-          processingTimeMs: 0,
-          datasetsCollected: 0,
-          totalCost: 0
+          timestamp: polledResult.generatedAt || new Date().toISOString(),
+          fromCache: polledResult.cached || false,
+          processingTimeMs: polledResult.metrics?.processingTimeMs || 0,
+          datasetsCollected: polledResult.metrics?.datasetsCollected || 0,
+          totalCost: polledResult.metrics?.totalCost || 0
         }
       };
     }
@@ -486,6 +579,8 @@ export const getProfile = apiClient.getProfile.bind(apiClient);
 export const saveProfile = apiClient.saveProfile.bind(apiClient);
 export const deleteProfile = apiClient.deleteProfile.bind(apiClient);
 export const createEmptyProfile = apiClient.createEmptyProfile.bind(apiClient);
+export const createProfileWithSignupData = apiClient.createProfileWithSignupData.bind(apiClient);
+export const updateProfileWithSignupData = apiClient.updateProfileWithSignupData.bind(apiClient);
 
 // Export types for convenience
 export type { 

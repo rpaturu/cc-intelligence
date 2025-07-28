@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   signIn: (username: string, password: string) => Promise<void>
-  signUp: (username: string, password: string, email: string) => Promise<void>
+  signUp: (password: string, email: string) => Promise<string>
   signOut: () => Promise<void>
   confirmSignUp: (username: string, code: string) => Promise<void>
   resendConfirmationCode: (username: string) => Promise<void>
@@ -50,13 +50,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const actualEmail = userAttributes.email || currentUser.signInDetails?.loginId || ''
         
         const newUser = {
-          userId: currentUser.userId,
+          userId: actualEmail, // Use email as the primary identifier instead of UUID
           username: currentUser.username,
           email: actualEmail,
           attributes: {
             email: actualEmail,
             email_verified: userAttributes.email_verified === 'true',
-            sub: currentUser.userId
+            sub: currentUser.userId // Keep the original Cognito UUID as 'sub' for reference
           }
         }
         
@@ -78,22 +78,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignIn = async (username: string, password: string) => {
     try {
       console.log('Signing in with:', username)
+      // Since user pool is configured for email aliases, users can sign in with email
       await signIn({ username, password })
       console.log('Sign in successful, checking auth state...')
       
       // Check auth state immediately without delay
       await checkAuthState()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error)
       throw error
     }
   }
 
-  const handleSignUp = async (username: string, password: string, email: string) => {
+  const handleSignUp = async (password: string, email: string): Promise<string> => {
     try {
-      console.log('Signing up user:', username, email)
+      console.log('Signing up user:', email)
+      // Generate a unique username since the user pool is configured for email aliases
+      const uniqueUsername = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+      
       await signUp({
-        username,
+        username: uniqueUsername,
         password,
         options: {
           userAttributes: {
@@ -102,6 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       })
       console.log('Sign up successful')
+      return uniqueUsername
     } catch (error) {
       console.error('Sign up error:', error)
       throw error

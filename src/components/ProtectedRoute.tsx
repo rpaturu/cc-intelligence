@@ -23,13 +23,14 @@ export function ProtectedRoute({ children, requireProfileComplete = true }: Prot
       }, 500); // 500ms delay to allow profile to load
 
       return () => clearTimeout(timer);
-    } else {
-      setProfileCheckDelay(true);
+    } else if (!authLoading) {
+      // Clear delay immediately if no user (allow redirect to login)
+      setProfileCheckDelay(false);
     }
   }, [user, authLoading]);
 
-  // Show loading while checking authentication or during profile check delay
-  if (authLoading || profileLoading || profileCheckDelay) {
+  // Show loading while checking authentication or during profile check delay (only for authenticated users)
+  if (authLoading || (user && (profileLoading || profileCheckDelay))) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

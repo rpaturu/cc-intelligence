@@ -1,195 +1,190 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from './ui/navigation-menu';
-import { 
-  Target,
-  User,
-  Settings,
-  LogOut,
-  Sun,
-  Moon
-} from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import { useProfile } from '../hooks/useProfile';
-import { useTheme } from './ThemeProvider';
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Button } from "./ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import { Search, User, Sun, Moon } from "lucide-react";
+import { useTheme } from "./ThemeProvider";
+import { useAuth } from "../hooks/useAuth";
 
-export function Navbar() {
+export default function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
-  const { profile } = useProfile();
-  const { setTheme } = useTheme();
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      navigate('/login');
-    } catch (error) {
-      console.error('Failed to log out:', error);
-    }
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const scrollThreshold = 100;
+      setScrolled(scrollPosition > scrollThreshold);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
-  // Don't show navbar on auth pages
+  const currentPage = location.pathname === '/profile' ? 'profile' : 'research';
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+
+  const handleResearchClick = () => {
+    navigate('/research');
+  };
+
+  const handleOnboardingClick = () => {
+    navigate('/onboarding/personal');
+  };
+
+  // Extract user name from user object or email
+  const getUserName = () => {
+    if (user?.email) {
+      // Parse name from profile if available, otherwise use email
+      const emailName = user.email.split('@')[0];
+      const firstName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+      return { firstName, lastName: '' };
+    }
+    return { firstName: 'User', lastName: '' };
+  };
+
+  const userName = getUserName();
+
+  // Don't show navbar on auth pages only (temporarily allowing onboarding for testing)
   if (['/login', '/signup', '/confirm'].includes(location.pathname)) {
     return null;
   }
 
   return (
-    <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-      {/* Logo/Brand */}
-      <a href="/" className="flex items-center gap-2 hover:opacity-80">
-        <div className="p-2 bg-primary rounded-lg">
-          <Target className="w-5 h-5 text-primary-foreground" />
+    <nav className="fixed top-0 left-0 right-0 z-50 navbar-safe transition-all duration-300 ease-in-out">
+      <div 
+        className={`
+          transition-all duration-300 ease-in-out mx-auto px-4 sm:px-6 lg:px-8
+          ${scrolled 
+            ? 'max-w-3xl mt-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-full shadow-lg' 
+            : 'max-w-7xl bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b'
+          }
+        `}
+      >
+        <div className={`grid items-center transition-all duration-300 ease-in-out ${scrolled ? 'grid-cols-5 h-12' : 'grid-cols-4 h-16'}`}>
+          {/* Logo - Left */}
+          <div className="flex justify-start">
+            <div className="flex items-center">
+              <div className={`bg-primary rounded-lg flex items-center justify-center transition-all duration-300 ease-in-out ${scrolled ? 'w-6 h-6' : 'w-8 h-8'}`}>
+                <span className={`text-primary-foreground font-bold transition-all duration-300 ease-in-out ${scrolled ? 'text-xs' : 'text-sm'}`}>AI</span>
         </div>
-        <span className="text-lg font-semibold text-foreground">Sales Intelligence</span>
-      </a>
-
-      <NavigationMenu viewport={false}>
-        <NavigationMenuList>
-          
-          <NavigationMenuItem>
-            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-              <a href="/">Dashboard</a>
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-          
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>Research</NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2">
-                <li>
-                  <NavigationMenuLink asChild>
-                    <a href="/research/companies">
-                      <div className="text-sm font-medium leading-none">Company Research</div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Deep dive into company insights
-                      </p>
-                    </a>
-                  </NavigationMenuLink>
-                </li>
-                <li>
-                  <NavigationMenuLink asChild>
-                    <a href="/research/markets">
-                      <div className="text-sm font-medium leading-none">Market Analysis</div>
-                      <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                        Industry trends and competition
-                      </p>
-                    </a>
-                  </NavigationMenuLink>
-                </li>
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-
-          <NavigationMenuItem>
-            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-              <a href="/analytics">Analytics</a>
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-
-          {/* User Menu as part of the main navigation */}
-          {user && (
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>
-                <User className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {user?.username || profile?.name || 'User'}
+              <span className={`ml-2 font-semibold text-foreground transition-all duration-300 ease-in-out ${scrolled ? 'text-sm' : 'text-base'}`}>
+                Intelligence
                 </span>
-              </NavigationMenuTrigger>
-              
-              <NavigationMenuContent>
-                <ul className="grid w-[240px] gap-3 p-4">
-                  {/* User Info Header */}
-                  <li className="pb-2 border-b">
-                    <div className="text-sm font-medium">
-                      {user?.username || 'User'}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {user?.email || profile?.email || 'No email'}
                     </div>
-                  </li>
                   
-                  {/* Menu Items */}
-                  <li>
-                    <NavigationMenuLink asChild>
-                      <button
-                        onClick={() => navigate('/profile')}
-                        className="flex items-center gap-2"
+          {/* Research Button - Center-Left */}
+          <div className="flex justify-center">
+            <Button
+              variant={currentPage === "research" ? "default" : "ghost"}
+              onClick={handleResearchClick}
+              size={scrolled ? "sm" : "default"}
+              className="flex items-center gap-2 transition-all duration-300 ease-in-out"
                       >
-                        <Settings className="w-4 h-4" />
-                        {profile ? 'Edit Profile' : 'Setup Profile'}
-                      </button>
-                    </NavigationMenuLink>
-                  </li>
-                  
-                  <li>
-                    <NavigationMenuLink asChild>
-                      <button
-                        onClick={handleLogout}
-                        className="flex items-center gap-2"
+              <Search className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              {!scrolled && "Research"}
+            </Button>
+          </div>
+
+          {/* Onboarding Button - Center */}
+          <div className="flex justify-center">
+            <Button
+              variant={location.pathname.startsWith('/onboarding') ? "default" : "ghost"}
+              onClick={handleOnboardingClick}
+              size={scrolled ? "sm" : "default"}
+              className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            >
+              <User className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+              {!scrolled && "Onboarding"}
+            </Button>
+          </div>
+
+          {/* Dark Mode Toggle - Center/Right-Center (only visible when scrolled) */}
+          {scrolled && (
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                onClick={toggleTheme}
+                size="sm"
+                className="flex items-center gap-2 transition-all duration-300 ease-in-out"
                       >
-                        <LogOut className="w-4 h-4" />
-                        Logout
-                      </button>
-                    </NavigationMenuLink>
-                  </li>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+                {theme === "light" ? (
+                  <Moon className="w-3 h-3" />
+                ) : (
+                  <Sun className="w-3 h-3" />
+                )}
+              </Button>
+            </div>
           )}
 
-          {/* Theme Toggle */}
-          <NavigationMenuItem>
-            <NavigationMenuTrigger>
-              <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
-              <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
-              <span className="sr-only">Toggle theme</span>
-            </NavigationMenuTrigger>
-            
-            <NavigationMenuContent>
-              <ul className="grid w-[120px] gap-2 p-2">
-                <li>
-                  <NavigationMenuLink asChild>
-                    <button
-                      onClick={() => setTheme("light")}
-                      className="flex items-center gap-2 w-full"
-                    >
-                      Light
-                    </button>
-                  </NavigationMenuLink>
-                </li>
-                <li>
-                  <NavigationMenuLink asChild>
-                    <button
-                      onClick={() => setTheme("dark")}
-                      className="flex items-center gap-2 w-full"
-                    >
+          {/* Profile Button - Right */}
+          <div className="flex justify-end">
+            <div className="flex items-center gap-2">
+              {/* Dark Mode Toggle - Full size (only visible when not scrolled) */}
+              {!scrolled && (
+                <Button
+                  variant="ghost"
+                  onClick={toggleTheme}
+                  size="default"
+                  className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+                >
+                  {theme === "light" ? (
+                    <>
+                      <Moon className="w-4 h-4" />
                       Dark
-                    </button>
-                  </NavigationMenuLink>
-                </li>
-                <li>
-                  <NavigationMenuLink asChild>
-                    <button
-                      onClick={() => setTheme("system")}
-                      className="flex items-center gap-2 w-full"
-                    >
-                      System
-                    </button>
-                  </NavigationMenuLink>
-                </li>
-              </ul>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
+                    </>
+                  ) : (
+                    <>
+                      <Sun className="w-4 h-4" />
+                      Light
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              {/* Profile Button */}
+              <Button
+                variant={currentPage === "profile" ? "secondary" : "ghost"}
+                onClick={handleProfileClick}
+                size={scrolled ? "sm" : "default"}
+                className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+              >
+                {user ? (
+                  <>
+                    <Avatar className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-5 h-5' : 'w-6 h-6'}`}>
+                      <AvatarImage src="" alt={`${userName.firstName} ${userName.lastName}`} />
+                      <AvatarFallback className="text-xs">
+                        {getInitials(userName.firstName, userName.lastName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {!scrolled && "Profile"}
+                  </>
+                ) : (
+                  <>
+                    <User className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                    {!scrolled && "Profile"}
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
     </div>
+    </nav>
   );
 } 
