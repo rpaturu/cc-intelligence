@@ -9,6 +9,7 @@ import { VendorProfileCard } from './VendorProfileCard';
 import { CompanySummaryCard } from './CompanySummaryCard';
 import { ResearchProgressTracker } from './ResearchProgressTracker';
 import { ResearchFindingsCard } from './ResearchFindingsCard';
+import PersonalizedWelcomeMessage from './PersonalizedWelcomeMessage';
 import { getResearchAreas } from '../../data';
 
 interface MessageBubbleProps {
@@ -16,6 +17,7 @@ interface MessageBubbleProps {
   userFirstName: string;
   userLastName: string;
   userRole?: string;
+  profile?: any;
   completedResearchIds?: string[];
   onResearchAreaClick: (areaId: string, areaTitle: string) => void;
   onFollowUpClick: (optionId: string, optionText: string) => void;
@@ -30,6 +32,7 @@ export function MessageBubble({
   userFirstName, 
   userLastName,
   userRole = 'account-executive',
+  profile,
   onResearchAreaClick,
   onFollowUpClick,
   onCitationClick,
@@ -91,8 +94,21 @@ export function MessageBubble({
             />
           )}
 
+          {/* Personalized Welcome Message */}
+          {message.isPersonalizedWelcome && message.content && (
+            <PersonalizedWelcomeMessage
+              content={message.content}
+              profile={profile}
+              messageId={message.id}
+              activeTab={activeTabsState[message.id] || "overview"}
+              onTabChange={(value) => onTabChange?.(message.id, value)}
+              onCitationClick={onCitationClick || (() => {})}
+              highlightedSource={highlightedSource || null}
+            />
+          )}
+
           {/* Regular Message Content */}
-          {message.content && (
+          {message.content && !message.isPersonalizedWelcome && (
             <Card className={message.type === "user" ? "bg-primary text-primary-foreground" : ""}>
               <CardContent className={message.type === "user" ? "p-0 [&:last-child]:pb-0 h-10 sm:h-12 flex items-center justify-center px-2 sm:px-3" : "p-2.5 sm:p-3"}>
                 {message.type === "user" ? (

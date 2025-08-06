@@ -13,6 +13,7 @@ import { getResearchAreas, CORE_RESEARCH_AREAS } from "../data";
 import { createVendorProfile } from "../utils";
 import { getResearchFindings, getMockSources } from "../utils/researchFindings";
 import { MessageBubble, ExportResearchSheet } from "../components/widgets";
+import { generatePersonalizedWelcome, getWelcomeSources } from "../utils/personalizedWelcome";
 
 export function GuidedResearchPage() {
   const { user } = useAuth();
@@ -198,9 +199,8 @@ Content: ${slides.join('\n')}`;
     scrollToBottom();
   }, [messages]);
 
-  // Initialize with vendor profile and welcome message
+  // Initialize with vendor profile and personalized welcome message
   useEffect(() => {
-    const userName = profile?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
     const userCompany = profile?.company || 'your company';
     const userRole = profile?.role || 'account-executive';
     
@@ -212,11 +212,16 @@ Content: ${slides.join('\n')}`;
       vendorProfile: createVendorProfile(userCompany, userRole),
     };
 
+    const personalizedWelcomeContent = generatePersonalizedWelcome(profile, user);
+    const welcomeSources = getWelcomeSources(userCompany);
+
     const welcomeMessage: Message = {
       id: "welcome",
       type: "assistant",
-      content: `Hello ${userName}! I'm your AI research assistant, ready to help you discover actionable intelligence about your prospects. What company would you like me to research today?`,
+      content: personalizedWelcomeContent,
       timestamp: new Date(),
+      sources: welcomeSources,
+      isPersonalizedWelcome: true,
     };
     
     setMessages([vendorProfileMessage, welcomeMessage]);
@@ -604,6 +609,7 @@ Content: ${slides.join('\n')}`;
               userFirstName={userData.firstName}
               userLastName={userData.lastName}
               userRole={profile?.role || 'account-executive'}
+              profile={profile}
               completedResearchIds={completedResearchIds}
               onResearchAreaClick={handleResearchAreaClick}
               onFollowUpClick={handleResearchAreaClick}

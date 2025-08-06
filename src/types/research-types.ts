@@ -119,4 +119,5 @@ export interface Message {
   isStreaming?: boolean;
   streamingSteps?: StreamingStep[];
   researchProgress?: ResearchProgress;
+  isPersonalizedWelcome?: boolean;
 } 
