@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Target, Wrench, Phone, Handshake, BarChart3, Users, Zap, Globe, CheckCircle } from 'lucide-react';
@@ -27,48 +28,48 @@ const getRoleDescription = (role: string): RoleInfo | null => {
       title: "Revenue-Focused (AE)",
       description: "AI configured for deal velocity, competitive intel, and revenue opportunities. Focus on buying signals, decision maker identification, and closing strategies.",
       icon: <Target className="w-4 h-4" />,
-      color: "text-slate-600 dark:text-slate-400",
-      bgColor: "bg-slate-50 dark:bg-slate-950",
+      color: "text-muted-foreground",
+      bgColor: "bg-muted/50",
       keyAreas: ["Buying signals detection", "Decision maker mapping", "Competitive intelligence", "Revenue opportunities"]
     },
     "solutions-engineer": {
       title: "Technical-Focused (SE)",
       description: "AI tailored for technical requirements, solution fit analysis, and implementation insights. Focus on tech stack compatibility, integration needs, and technical stakeholders.",
       icon: <Wrench className="w-4 h-4" />,
-      color: "text-slate-600 dark:text-slate-400",
-      bgColor: "bg-slate-50 dark:bg-slate-950",
+      color: "text-muted-foreground",
+      bgColor: "bg-muted/50",
       keyAreas: ["Technical requirements", "Solution architecture", "Integration planning", "Implementation timeline"]
     },
     "sales-development": {
       title: "Prospecting-Focused (SDR)",
       description: "AI designed for lead qualification, outreach personalization, and pipeline generation. Focus on contact discovery, engagement strategies, and qualification criteria.",
       icon: <Phone className="w-4 h-4" />,
-      color: "text-slate-600 dark:text-slate-400",
-      bgColor: "bg-slate-50 dark:bg-slate-950",
+      color: "text-muted-foreground",
+      bgColor: "bg-muted/50",
       keyAreas: ["Lead scoring", "Outreach personalization", "Qualification criteria", "Pipeline optimization"]
     },
     "business-development": {
       title: "Partnership-Focused (BDR)",
       description: "AI configured for strategic partnerships, market expansion, and business opportunities. Focus on partner ecosystem, market analysis, and strategic initiatives.",
       icon: <Handshake className="w-4 h-4" />,
-      color: "text-slate-600 dark:text-slate-400",
-      bgColor: "bg-slate-50 dark:bg-slate-950",
+      color: "text-muted-foreground",
+      bgColor: "bg-muted/50",
       keyAreas: ["Partnership mapping", "Market analysis", "Strategic opportunities", "Competitive landscape"]
     },
     "sales-manager": {
       title: "Team-Focused (SM)",
       description: "AI optimized for team performance, forecast accuracy, and strategic insights. Focus on team metrics, market trends, and coaching opportunities.",
       icon: <BarChart3 className="w-4 h-4" />,
-      color: "text-slate-600 dark:text-slate-400",
-      bgColor: "bg-slate-50 dark:bg-slate-950",
+      color: "text-muted-foreground",
+      bgColor: "bg-muted/50",
       keyAreas: ["Team performance", "Forecast accuracy", "Market trends", "Coaching insights"]
     },
     "customer-success": {
       title: "Retention-Focused (CSM)",
       description: "AI tailored for customer health, expansion opportunities, and renewal strategies. Focus on usage analytics, satisfaction signals, and growth potential.",
       icon: <Users className="w-4 h-4" />,
-      color: "text-slate-600 dark:text-slate-400",
-      bgColor: "bg-slate-50 dark:bg-slate-950",
+      color: "text-muted-foreground",
+      bgColor: "bg-muted/50",
       keyAreas: ["Customer health monitoring", "Expansion opportunities", "Renewal strategies", "Satisfaction analysis"]
     }
   };
@@ -123,25 +124,50 @@ export function RoleIntelligenceWidget({
   }
 
   if (!showFullDetails) {
-    // Simple version for PersonalInfoPage
+    // Enhanced version for PersonalInfoPage with animations
     return (
-      <Card className={`${roleInfo.bgColor} border-slate-200 dark:border-slate-800 ${className}`}>
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className={`${roleInfo.color} bg-white dark:bg-gray-800 rounded-lg p-2 border flex-shrink-0`}>
-              {roleInfo.icon}
-            </div>
-            <div className="flex-1">
-              <h4 className={`font-medium ${roleInfo.color} mb-1`}>
-                {roleInfo.title}
-              </h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {roleInfo.description}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={role}
+          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 0.98 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          <Card className={`${roleInfo.bgColor} border-0 transition-all duration-300 ease-in-out ${className}`}>
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <motion.div 
+                  className="text-muted-foreground mt-0.5"
+                  initial={{ scale: 0, rotate: -90 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ delay: 0.1, duration: 0.3, type: "spring", stiffness: 200 }}
+                >
+                  {roleInfo.icon}
+                </motion.div>
+                <div className="flex-1">
+                  <motion.h4 
+                    className="font-medium text-foreground mb-1"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2, duration: 0.3 }}
+                  >
+                    {roleInfo.title}
+                  </motion.h4>
+                  <motion.p 
+                    className="text-sm text-muted-foreground leading-relaxed"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                  >
+                    {roleInfo.description}
+                  </motion.p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
