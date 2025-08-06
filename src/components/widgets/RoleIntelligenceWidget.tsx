@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, CardContent } from './ui/card';
-import { Badge } from './ui/badge';
+import { Card, CardContent } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { Target, Wrench, Phone, Handshake, BarChart3, Users, Zap, Globe, CheckCircle } from 'lucide-react';
 
 interface RoleInfo {

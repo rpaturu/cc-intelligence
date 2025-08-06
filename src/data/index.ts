@@ -1,0 +1,1 @@
+export { CORE_RESEARCH_AREAS, getResearchAreas } from './research-areas'; 

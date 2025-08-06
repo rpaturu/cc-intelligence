@@ -7,8 +7,9 @@ import { Building, Mail, User, LogOut, Search, MapPin, Target, BarChart3 } from 
 import Navbar from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
-import { CompanyIntelligenceWidget } from "../components/CompanyIntelligenceWidget";
-import { RoleIntelligenceWidget } from "../components/RoleIntelligenceWidget";
+import { getInitials } from "../utils";
+import { CompanyIntelligenceWidget } from "../components/widgets/VendorIntelligenceWidget";
+import { RoleIntelligenceWidget } from "../components/widgets/RoleIntelligenceWidget";
 
 // Mapping functions to convert keys to human-readable values
 const getRoleDisplayName = (role: string): string => {
@@ -88,10 +89,6 @@ export function ProfilePage() {
     navigate('/research');
   };
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
-
   // Extract user data from profile or user
   const userData = {
     firstName: profile?.name?.split(' ')[0] || 'User',
@@ -169,8 +166,8 @@ export function ProfilePage() {
             </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
 
           {/* Role Intelligence Widget */}
           {userData.role && (
@@ -189,14 +186,14 @@ export function ProfilePage() {
               companyName={userData.companyName}
               companyDomain={userData.companyDomain}
               userRole={userData.role || "account-executive"}
-            />
+                  />
           )}
 
           {/* Quick Actions */}
           <Card>
-            <CardHeader>
+                <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
+                </CardHeader>
             <CardContent className="space-y-3">
               <Button 
                 onClick={handleResearchClick}
