@@ -2,7 +2,9 @@ import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
-import { CheckCircle, Clock, ArrowRight } from 'lucide-react';
+import OptionsPanel from '../../features/guided/components/OptionsPanel';
+import { CheckCircle, Clock, ArrowRight, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Message } from '../../types/research-types';
 import { getInitials } from '../../utils';
 import { VendorProfileCard } from './VendorProfileCard';
@@ -43,20 +45,46 @@ export function MessageBubble({
   return (
     <div className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}>
       <div className={`flex gap-2 sm:gap-3 max-w-3xl ${message.type === "user" ? "flex-row-reverse" : "flex-row"}`}>
-        <Avatar className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0">
-          {message.type === "user" ? (
-            <>
-              <AvatarImage src="" alt={`${userFirstName} ${userLastName}`} />
-              <AvatarFallback className="text-xs">
-                {getInitials(userFirstName, userLastName)}
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ 
+            delay: 0.2, 
+            type: "spring", 
+            stiffness: 200,
+            damping: 15
+          }}
+          whileHover={{ 
+            scale: 1.1,
+            transition: { duration: 0.2 }
+          }}
+          style={{ transformOrigin: "center center" }}
+          className="avatar-container"
+        >
+          <Avatar className="w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 ring-2 ring-background shadow-lg">
+            {message.type === "user" ? (
+              <>
+                <AvatarImage src="" alt={`${userFirstName} ${userLastName}`} />
+                <AvatarFallback className="text-xs">
+                  {getInitials(userFirstName, userLastName)}
+                </AvatarFallback>
+              </>
+            ) : (
+              <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs">
+                <div className="icon-container">
+                  <motion.div
+                    animate={{ rotate: [0, 360] }}
+                    transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    style={{ transformOrigin: "center center" }}
+                    className="icon-rotation"
+                  >
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </motion.div>
+                </div>
               </AvatarFallback>
-            </>
-          ) : (
-            <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-              AI
-            </AvatarFallback>
-          )}
-        </Avatar>
+            )}
+          </Avatar>
+        </motion.div>
         
         <div className={`space-y-2 ${message.type === "user" ? "text-right" : "text-left"}`}>
           {/* Vendor Profile Card */}
@@ -95,9 +123,9 @@ export function MessageBubble({
           )}
 
           {/* Personalized Welcome Message */}
-          {message.isPersonalizedWelcome && message.content && (
+          {message.isPersonalizedWelcome && (
             <PersonalizedWelcomeMessage
-              content={message.content}
+              content={message.content || ''}
               profile={profile}
               messageId={message.id}
               activeTab={activeTabsState[message.id] || "overview"}
@@ -122,11 +150,24 @@ export function MessageBubble({
                   <div className="mt-3 space-y-2">
                     {message.streamingSteps.map((step, index) => (
                       <div key={index} className="flex items-center gap-2 text-sm">
+                        {/* Status Icon (Left) */}
                         {step.completed ? (
                           <CheckCircle className="w-4 h-4 text-green-500" />
                         ) : (
                           <Clock className="w-4 h-4 text-muted-foreground animate-pulse" />
                         )}
+                        
+                        {/* Activity Type Icon (Right) */}
+                        {step.icon ? (
+                          <div className={step.completed ? "text-green-500" : "text-muted-foreground"}>
+                            {step.icon}
+                          </div>
+                        ) : (
+                          <div className={step.completed ? "text-green-500" : "text-muted-foreground"}>
+                            <CheckCircle className="w-4 h-4" />
+                          </div>
+                        )}
+                        
                         <span className={step.completed ? "text-foreground" : "text-muted-foreground"}>
                           {step.text}
                         </span>
@@ -137,20 +178,10 @@ export function MessageBubble({
 
                 {/* Research Areas Selection */}
                 {message.options && !message.isStreaming && (
-                  <div className="mt-3 grid grid-cols-1 gap-2">
-                    {message.options.map((option) => (
-                      <Button
-                        key={option.id}
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start text-left"
-                        onClick={() => onResearchAreaClick(option.id, option.text)}
-                      >
-                        {option.icon && <span className="mr-2">{option.icon}</span>}
-                        {option.text}
-                      </Button>
-                    ))}
-                  </div>
+                  <OptionsPanel
+                    options={message.options}
+                    onSelect={onResearchAreaClick}
+                  />
                 )}
               </CardContent>
             </Card>

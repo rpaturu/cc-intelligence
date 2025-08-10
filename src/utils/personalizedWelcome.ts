@@ -26,7 +26,7 @@ interface WelcomeSource {
   description?: string;
   snippet?: string;
   relevance: "high" | "medium" | "low";
-  type: "article" | "press_release" | "report" | "social" | "company_page";
+  type: "article" | "press_release" | "report" | "social" | "company_page" | "news_article" | "research_report";
   publishedDate?: string;
 }
 
@@ -197,6 +197,8 @@ export const getWelcomeSources = (companyName: string): WelcomeSource[] => {
         title: "Okta Product Portfolio - Identity and Access Management Solutions",
         url: "https://okta.com/products/",
         domain: "okta.com",
+        description: "Comprehensive overview of Okta's Workforce Identity Cloud, Privileged Access Management, and Identity Governance & Administration solutions for zero-trust security.",
+        snippet: "Comprehensive overview of Okta's Workforce Identity Cloud, Privileged Access Management, and Identity Governance & Administration solutions for zero-trust security.",
         relevance: "high",
         type: "company_page"
       },
@@ -205,6 +207,8 @@ export const getWelcomeSources = (companyName: string): WelcomeSource[] => {
         title: "Competitive Landscape Analysis: Okta vs Microsoft vs CyberArk",
         url: "https://gartner.com/market-analysis/identity-access-management-2025",
         domain: "gartner.com",
+        description: "Industry analysis comparing leading identity and access management vendors, highlighting competitive positioning and market dynamics.",
+        snippet: "Industry analysis comparing leading identity and access management vendors, highlighting competitive positioning and market dynamics.",
         relevance: "high",
         type: "report"
       },
@@ -213,8 +217,10 @@ export const getWelcomeSources = (companyName: string): WelcomeSource[] => {
         title: "Okta Launches AI-Powered Identity Threat Detection",
         url: "https://techcrunch.com/2025/07/15/okta-ai-threat-detection",
         domain: "techcrunch.com",
+        description: "TechCrunch coverage of Okta's latest AI-powered security features for enterprise identity threat detection and response.",
+        snippet: "TechCrunch coverage of Okta's latest AI-powered security features for enterprise identity threat detection and response.",
         relevance: "high",
-        type: "article",
+        type: "news_article",
         publishedDate: "Jul 15, 2024"
       },
       {
@@ -222,8 +228,10 @@ export const getWelcomeSources = (companyName: string): WelcomeSource[] => {
         title: "Gartner Magic Quadrant for Access Management 2025",
         url: "https://gartner.com/magic-quadrant/access-management-2025",
         domain: "gartner.com",
+        description: "Gartner's annual Magic Quadrant analysis positioning Okta as a Leader in the Access Management market for 2025.",
+        snippet: "Gartner's annual Magic Quadrant analysis positioning Okta as a Leader in the Access Management market for 2025.",
         relevance: "high",
-        type: "report"
+        type: "research_report"
       }
     ];
   } else if (companyName.toLowerCase() === 'salesforce') {
@@ -233,6 +241,8 @@ export const getWelcomeSources = (companyName: string): WelcomeSource[] => {
         title: "Salesforce CRM Platform - Sales, Service, and Marketing Cloud",
         url: "https://salesforce.com/products/",
         domain: "salesforce.com",
+        description: "Complete overview of Salesforce's integrated CRM ecosystem including Sales Cloud, Service Cloud, Marketing Cloud, and Platform for customer engagement.",
+        snippet: "Complete overview of Salesforce's integrated CRM ecosystem including Sales Cloud, Service Cloud, Marketing Cloud, and Platform for customer engagement.",
         relevance: "high",
         type: "company_page"
       },
@@ -241,16 +251,20 @@ export const getWelcomeSources = (companyName: string): WelcomeSource[] => {
         title: "Salesforce vs Microsoft Dynamics vs HubSpot - CRM Comparison",
         url: "https://gartner.com/crm-vendor-comparison-2025",
         domain: "gartner.com",
+        description: "Comprehensive analysis comparing leading CRM platforms, highlighting strengths, weaknesses, and competitive positioning in enterprise markets.",
+        snippet: "Comprehensive analysis comparing leading CRM platforms, highlighting strengths, weaknesses, and competitive positioning in enterprise markets.",
         relevance: "high",
-        type: "report"
+        type: "research_report"
       },
       {
         id: 3,
         title: "Salesforce Announces Einstein GPT for Sales Teams",
         url: "https://techcrunch.com/2025/01/10/salesforce-einstein-gpt",
         domain: "techcrunch.com",
+        description: "Latest coverage of Salesforce's AI-powered Einstein GPT integration for automated sales processes and customer engagement.",
+        snippet: "Latest coverage of Salesforce's AI-powered Einstein GPT integration for automated sales processes and customer engagement.",
         relevance: "high",
-        type: "article",
+        type: "news_article",
         publishedDate: "Jan 10, 2025"
       },
       {
@@ -258,8 +272,10 @@ export const getWelcomeSources = (companyName: string): WelcomeSource[] => {
         title: "Gartner Magic Quadrant for CRM Customer Engagement 2025",
         url: "https://gartner.com/magic-quadrant/crm-2025",
         domain: "gartner.com",
+        description: "Gartner's annual Magic Quadrant positioning Salesforce as a Leader in CRM Customer Engagement Centers for 2025.",
+        snippet: "Gartner's annual Magic Quadrant positioning Salesforce as a Leader in CRM Customer Engagement Centers for 2025.",
         relevance: "high",
-        type: "report"
+        type: "research_report"
       }
     ];
   } else {

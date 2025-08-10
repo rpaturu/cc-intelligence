@@ -53,6 +53,42 @@ export const getResearchFindings = (optionId: string, companyName: string) => {
         }
       ]
     },
+    "tech_stack": {
+      title: "Technology Stack & Preferences",
+      items: [
+        {
+          title: "Current Identity Infrastructure",
+          description: "Legacy systems creating friction and security gaps",
+          details: [
+            "Auth0 for customer authentication (contract expires Q2 2025) [4]",
+            "On-premise Active Directory for employees [4]",
+            "Custom LDAP integration for contractors [4]",
+            "Multiple point solutions creating complexity [4]"
+          ]
+        },
+        {
+          title: "Cloud & Development Stack",
+          description: "Modern cloud-first architecture with AWS foundation",
+          details: [
+            "AWS (primary cloud provider) [4]",
+            "Salesforce CRM and marketing cloud [4]",
+            "React/Node.js for web applications [4]",
+            "PostgreSQL and Redis for data [4]",
+            "GitHub for code management [7]"
+          ]
+        },
+        {
+          title: "Integration Requirements",
+          description: "Need for seamless SSO across all business applications",
+          details: [
+            "25+ SaaS applications requiring SSO [4]",
+            "Custom API integrations for financial systems [4]",
+            "SCIM provisioning for user lifecycle management [4]",
+            "Strong preference for REST APIs and webhooks [4]"
+          ]
+        }
+      ]
+    },
     "business_challenges": {
       title: "Business Challenges & Pain Points",
       items: [
@@ -62,28 +98,134 @@ export const getResearchFindings = (optionId: string, companyName: string) => {
           details: [
             "SOC 2 Type II audit identified identity gaps [5]",
             "PCI DSS compliance requires stronger access controls [5]",
-            "Manual user provisioning creating security risks [1]",
-            "Password-related security incidents increased 40% [2]"
+            "Manual user provisioning causing delays [5]",
+            "Password-related security incidents increasing [5]"
           ]
         },
         {
           title: "Operational Inefficiencies",
-          description: "Legacy identity systems causing productivity losses",
+          description: "Multiple identity systems creating friction",
           details: [
-            "IT spends 20+ hours/week on access management [1]",
+            "IT spends 15 hours/week on user access requests [1]",
             "New employee onboarding takes 3-5 days [1]",
-            "Help desk tickets for password resets: 200+/month [2]",
-            "Multiple identity silos across departments [4]"
+            "Users maintain 8+ different passwords [1]",
+            "Help desk tickets for password resets up 40% [1]"
           ]
         },
         {
-          title: "Scalability Challenges",
-          description: "Current systems struggling with rapid growth",
+          title: "Scaling Challenges",
+          description: "Current systems won't support planned growth",
           details: [
-            "Employee count grew 150% in past 18 months [7]",
-            "Remote workforce expanded to 80% [7]",
-            "SaaS application count increased to 120+ [4]",
-            "Identity infrastructure reaching capacity limits [4]"
+            "Hiring 200+ employees in next 12 months [2]",
+            "International expansion planned for Q3 2025 [2]",
+            "Need to support contractors and partners [2]",
+            "Current systems lack automation capabilities [2]"
+          ]
+        }
+      ]
+    },
+    "competitive_positioning": {
+      title: "Competitive Positioning & Value Propositions",
+      items: [
+        {
+          title: "Okta vs Auth0 (Current Provider)",
+          description: "Positioning against their current CIAM provider",
+          details: [
+            "Contract renewal opportunity - Auth0 expires Q2 2025 [4]",
+            "Unified platform vs. point solution approach",
+            "Enterprise-grade security and compliance",
+            "Better integration ecosystem and marketplace"
+          ],
+          valueProps: [
+            {
+              competitor: "Auth0",
+              ourAdvantage: "Unified Workforce + Customer Identity Platform",
+              talkingPoints: [
+                "One platform for both employee and customer identity vs. Auth0's customer-only focus",
+                "Okta's 7,000+ pre-built integrations vs. Auth0's limited app ecosystem",
+                "Enterprise-grade governance and compliance built-in vs. add-on modules",
+                "Better scalability - Okta handles 100B+ authentications annually"
+              ],
+              objectionHandling: "If they say Auth0 is 'good enough' - emphasize the operational overhead of managing multiple identity systems and the risk of gaps between workforce and customer identity security."
+            }
+          ]
+        },
+        {
+          title: "Okta vs Microsoft Entra ID",
+          description: "Defending against the bundling strategy",
+          details: [
+            "Microsoft may pitch 'free' identity with Office 365",
+            "Acme Corp uses multiple cloud providers (not Microsoft-first) [4]",
+            "FinTech regulations require best-of-breed security [5]",
+            "Microsoft's identity limitations in multi-cloud environments"
+          ],
+          valueProps: [
+            {
+              competitor: "Microsoft Entra ID",
+              ourAdvantage: "Best-of-Breed Multi-Cloud Identity",
+              talkingPoints: [
+                "Cloud-neutral vs. Microsoft's Azure-first approach",
+                "7,000+ integrations vs. Microsoft's limited third-party app support",
+                "Purpose-built for identity vs. Microsoft's general productivity focus",
+                "Better support for AWS-native applications and services [4]"
+              ],
+              objectionHandling: "If they mention 'bundled pricing' - calculate the hidden costs of Microsoft licensing, limited functionality, and the risk of vendor lock-in for a multi-cloud FinTech company."
+            }
+          ]
+        }
+      ]
+    },
+    "recent_activities": {
+      title: "Recent Activities & Signals",
+      items: [
+        {
+          title: "Funding & Growth",
+          description: "Strong financial position driving expansion",
+          details: [
+            "$50M Series B completed December 2024 [2]",
+            "40% increase in engineering headcount planned [2]",
+            "New CTO hired from Stripe in April 2024 [6]",
+            "Board pressuring for faster product development [2]"
+          ]
+        },
+        {
+          title: "Security Initiatives",
+          description: "Recent focus on improving security posture",
+          details: [
+            "SOC 2 Type II audit completed November 2024 [5]",
+            "CISO hired to lead compliance efforts [3]",
+            "Security training budget increased 3x [5]",
+            "Zero-trust architecture evaluation underway [6]"
+          ]
+        }
+      ]
+    },
+    "budget_indicators": {
+      title: "Budget Indicators & Financial Signals",
+      items: [
+        {
+          title: "Strong Financial Position",
+          description: "Recent funding provides significant budget flexibility",
+          details: [
+            "$50M Series B with $40M still available [2]",
+            "Burn rate decreased while revenue grew 200% [2]",
+            "Engineering budget allocated $8M for 2025 [2]",
+            "Security/compliance budget set at $2M annually [2]"
+          ]
+        }
+      ]
+    },
+    "buying_signals": {
+      title: "Buying Signals & Purchase Intent",
+      items: [
+        {
+          title: "Active Evaluation Process",
+          description: "Currently researching identity management solutions",
+          details: [
+            "RFP process initiated for identity platform [3]",
+            "Attended Okta Connect and Microsoft Ignite [9]",
+            "Downloaded Okta white papers and case studies [3]",
+            "CTO posted about identity challenges on LinkedIn [8]"
           ]
         }
       ]

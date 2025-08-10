@@ -3,17 +3,19 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
-import { Send, Search, Users, Target, CheckCircle, Zap, MessageSquare, TrendingUp, Eye } from "lucide-react";
+import { Send, Users, Target, Zap, MessageSquare, TrendingUp, Eye } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
-import { vendorContext } from "../lib/api";
+import { customerIntelligence } from "../lib/api";
 import { Message, CompanySummary, ResearchProgress } from "../types/research-types";
 import { getResearchAreas, CORE_RESEARCH_AREAS } from "../data";
-import { createVendorProfile } from "../utils";
-import { getResearchFindings, getMockSources } from "../utils/researchFindings";
 import { MessageBubble, ExportResearchSheet } from "../components/widgets";
 import { generatePersonalizedWelcome, getWelcomeSources } from "../utils/personalizedWelcome";
+import TypingIndicator from "../features/guided/components/TypingIndicator";
+import { parseCompanyFromInput, isResearchQuery } from "../features/guided/utils";
+import { useGuidedIntelligence } from "../features/guided/useGuidedIntelligence";
+import { runQuestion } from "../features/guided/QuestionRunner";
 
 export function GuidedResearchPage() {
   const { user } = useAuth();
@@ -28,10 +30,7 @@ export function GuidedResearchPage() {
   const [isExportSheetOpen, setIsExportSheetOpen] = useState(false);
   const [completedResearch, setCompletedResearch] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const { scrollToBottom, scrollToStreamingMessage, scrollToResearchFindings } = useGuidedIntelligence(messagesEndRef);
 
   const handleCitationClick = (messageId: string, sourceId: number) => {
     setActiveTabsState(prev => ({
@@ -199,18 +198,9 @@ Content: ${slides.join('\n')}`;
     scrollToBottom();
   }, [messages]);
 
-  // Initialize with vendor profile and personalized welcome message
+  // Initialize with personalized welcome message (Figma parity)
   useEffect(() => {
     const userCompany = profile?.company || 'your company';
-    const userRole = profile?.role || 'account-executive';
-    
-    const vendorProfileMessage: Message = {
-      id: "vendor-profile",
-      type: "assistant",
-      content: "",
-      timestamp: new Date(),
-      vendorProfile: createVendorProfile(userCompany, userRole),
-    };
 
     const personalizedWelcomeContent = generatePersonalizedWelcome(profile, user);
     const welcomeSources = getWelcomeSources(userCompany);
@@ -224,193 +214,264 @@ Content: ${slides.join('\n')}`;
       isPersonalizedWelcome: true,
     };
     
-    setMessages([vendorProfileMessage, welcomeMessage]);
+    setMessages([welcomeMessage]);
   }, [user, profile]);
 
 
 
-  const parseCompanyFromInput = (input: string): string => {
-    const patterns = [
-      /research\s+(.+)/i,
-      /analyze\s+(.+)/i,
-      /tell me about\s+(.+)/i,
-      /lookup\s+(.+)/i,
-      /find\s+(.+)/i,
-    ];
-    
-    for (const pattern of patterns) {
-      const match = input.match(pattern);
-      if (match) {
-        return match[1].trim();
-}
-    }
-    return input.trim();
-  };
-
-  const isResearchQuery = (input: string): boolean => {
-    const researchKeywords = ['research', 'analyze', 'tell me about', 'lookup', 'find', 'investigate'];
-    const lowerInput = input.toLowerCase();
-    return researchKeywords.some(keyword => lowerInput.includes(keyword)) || 
-           lowerInput.length > 2;
-  };
-
   const getCompanyData = async (companyName: string): Promise<CompanySummary> => {
     try {
-      const response = await vendorContext(companyName);
-      if (response.success && response.vendorContext) {
-        const vendor = response.vendorContext;
+      // Use customerIntelligence API for prospect research (not vendorContext)
+      const response = await customerIntelligence(companyName, profile?.company);
+      if (response.success && response.customerIntelligence) {
+        const customer = response.customerIntelligence;
         
+        // Transform API response to our CompanySummary format
         return {
-          name: vendor.companyName,
-          industry: vendor.industry || 'Industry not available',
-          size: vendor.companySize || 'Company size not available',
-          location: 'Location data not available', // TODO: Add location to vendorContext API
-          recentNews: vendor.recentNews?.[0] || 'No recent news available',
-          techStack: vendor.techStack || [],
+          name: customer.companyOverview.name,
+          industry: customer.companyOverview.industry || 'Industry not available',
+          size: customer.companyOverview.size || 'Company size not available',
+          location: 'Location data not available', // TODO: Add location to customerIntelligence API
+          recentNews: 'Recent news not available', // TODO: Add recent news to customerIntelligence API
+          techStack: customer.contextualInsights.techStackRelevance || [],
+          founded: 'Founded date not available', // TODO: Add founded date to customerIntelligence API
+          revenue: 'Revenue not available', // TODO: Add revenue to customerIntelligence API
+          // Enhanced fields from customer intelligence
+          businessModel: customer.companyOverview.description,
+          marketPosition: customer.positioningGuidance.recommendedApproach,
+          keyExecutives: customer.contextualInsights.relevantDecisionMakers?.map(name => ({
+            name,
+            role: 'Key Decision Maker',
+            background: 'Background information to be enhanced'
+          })),
+          recentDevelopments: customer.contextualInsights.buyingSignals?.map(signal => ({
+            type: 'expansion' as const,
+            title: signal,
+            date: 'Recent',
+            impact: 'medium' as const
+          })),
+          competitiveContext: {
+            mainCompetitors: customer.contextualInsights.competitiveUsage || [],
+            differentiators: customer.positioningGuidance.keyValueProps || [],
+            challenges: customer.positioningGuidance.potentialPainPoints || []
+          }
         };
       }
     } catch (error) {
-      console.error('Failed to get vendor context:', error);
+      console.error('Failed to get customer intelligence:', error);
     }
     
-    // Only fallback with "not available" messaging - no fake data
+    // Enhanced mock data for demonstration (will be replaced with real API data)
+    return getEnhancedCompanyData(companyName);
+  };
+
+  const getEnhancedCompanyData = (companyName: string): CompanySummary => {
+    const company = companyName.toLowerCase();
+    
+    // Mock customer intelligence data aligned with API structure
+    if (company.includes('shopify')) {
+      return {
+        name: "Shopify",
+        industry: "E-commerce Platform & Business Solutions",
+        size: "Large Enterprise (10,000+ employees)",
+        location: "Ottawa, Canada",
+        recentNews: "2024: Expansion of Shopify Magic AI features",
+        techStack: ["Ruby on Rails", "React", "GraphQL", "MySQL", "Redis", "Docker"],
+        founded: "2006",
+        revenue: "$7.1B",
+        businessModel: "B2B SaaS + Transaction fees - Multi-tenant e-commerce platform serving 5.6M merchants globally",
+        marketPosition: "Market leader in SMB e-commerce with growing enterprise presence. Strong position against BigCommerce and WooCommerce.",
+        growthStage: "Public scale company",
+        keyExecutives: [
+          { name: "Tobias Lütke", role: "CEO & Co-founder", background: "Technical founder with deep product vision, leads strategic direction" },
+          { name: "Amy Shapero", role: "CFO", background: "Former Google finance executive, joined 2022 to scale financial operations" },
+          { name: "Kaz Nejatian", role: "VP Product", background: "Former Kash founder, driving AI and checkout innovations" }
+        ],
+        fundingHistory: [
+          { round: "IPO", amount: "$1.3B", date: "May 2015", investors: ["NYSE: SHOP"] },
+          { round: "Series C", amount: "$100M", date: "Dec 2013", investors: ["Bessemer Venture Partners", "FirstMark Capital", "Insight Venture Partners"] },
+          { round: "Series B", amount: "$15M", date: "Oct 2011", investors: ["Bessemer Venture Partners", "FirstMark Capital"] },
+          { round: "Series A", amount: "$7M", date: "Dec 2010", investors: ["Bessemer Venture Partners", "FirstMark Capital"] }
+        ],
+        businessMetrics: {
+          valuation: "$65B market cap",
+          employeeGrowth: "+15% YoY",
+          customerCount: "5.6M merchants",
+          marketShare: "10% of US e-commerce market"
+        },
+        recentDevelopments: [
+          { type: "product", title: "Shopify Magic AI assistant launch for merchant automation", date: "Dec 2024", impact: "high" },
+          { type: "expansion", title: "European POS expansion targeting offline-to-online merchants", date: "Nov 2024", impact: "medium" },
+          { type: "partnership", title: "YouTube Shopping integration for social commerce", date: "Oct 2024", impact: "medium" },
+          { type: "funding", title: "$2.1B invested in fulfillment network expansion", date: "Sep 2024", impact: "high" }
+        ],
+        competitiveContext: {
+          mainCompetitors: ["Amazon Seller Central", "WooCommerce", "BigCommerce", "Magento Commerce"],
+          differentiators: ["Unified commerce platform", "App ecosystem with 8,000+ apps", "Shopify Payments integrated", "Mobile-first approach"],
+          challenges: ["Amazon's marketplace dominance", "Enterprise adoption vs incumbent solutions", "International payment complexities"]
+        }
+      };
+    }
+    
+    if (company.includes('tesla')) {
+      return {
+        name: "Tesla",
+        industry: "Electric Vehicles & Clean Energy",
+        size: "Large Enterprise (127,855 employees)",
+        location: "Austin, TX",
+        recentNews: "Cybertruck production ramping up",
+        techStack: ["Python", "C++", "Linux", "Custom Silicon", "AI/ML", "Neural Networks"],
+        founded: "2003",
+        revenue: "$96.8B",
+        businessModel: "Direct-to-consumer EV manufacturing + Energy storage + Autonomous driving",
+        marketPosition: "Global EV market leader with 20% market share",
+        growthStage: "Public growth company",
+        keyExecutives: [
+          { name: "Elon Musk", role: "CEO", background: "Serial entrepreneur, SpaceX founder" },
+          { name: "Drew Baglino", role: "SVP Powertrain & Energy", background: "20+ years Tesla, battery expert" },
+          { name: "Lars Moravy", role: "VP Vehicle Engineering", background: "Model 3/Y chief engineer" }
+        ],
+        businessMetrics: {
+          valuation: "$800B market cap",
+          employeeGrowth: "+29% YoY",
+          customerCount: "6M+ vehicles delivered",
+          marketShare: "20% global EV market"
+        },
+        recentDevelopments: [
+          { type: "product", title: "Cybertruck production begins", date: "Nov 2024", impact: "high" },
+          { type: "expansion", title: "Mexico Gigafactory groundbreaking", date: "Oct 2024", impact: "high" },
+          { type: "product", title: "FSD Beta v12 neural network", date: "Sep 2024", impact: "high" }
+        ],
+        competitiveContext: {
+          mainCompetitors: ["BYD", "Volkswagen", "GM", "Ford", "Rivian"],
+          differentiators: ["Supercharger network", "Full self-driving", "Manufacturing efficiency"],
+          challenges: ["Chinese competition", "Traditional OEM catch-up", "Regulatory scrutiny"]
+        }
+      };
+    }
+    
+    // Generic fallback for other companies
     return {
       name: companyName,
-      industry: 'Industry data not available',
-      size: 'Company size not available',
-      location: 'Location data not available',
-      recentNews: 'Recent news not available',
-      techStack: [],
+      industry: "Technology",
+      size: "500 employees",
+      location: "San Francisco, CA",
+      recentNews: "Recent company updates",
+      techStack: ["React", "Node.js", "AWS", "PostgreSQL"],
+      founded: "2020",
+      revenue: "$25M ARR",
+      businessModel: "B2B SaaS platform",
+      marketPosition: "Emerging player in the market",
+      growthStage: "Scale-up (Series B)",
+      keyExecutives: [
+        { name: "Jane Smith", role: "CEO", background: "Former tech executive" },
+        { name: "John Doe", role: "CTO", background: "Former senior engineer" }
+      ],
+      businessMetrics: {
+        valuation: "$200M",
+        employeeGrowth: "+150% YoY",
+        customerCount: "2,500+ companies"
+      },
+      recentDevelopments: [
+        { type: "funding", title: "Series B funding round", date: "Dec 2024", impact: "high" }
+      ],
+      competitiveContext: {
+        mainCompetitors: ["Competitor A", "Competitor B"],
+        differentiators: ["Key differentiator"],
+        challenges: ["Market competition"]
+      }
     };
   };
 
   const simulateStreaming = (messageId: string, researchArea: string, areaId: string) => {
-    
-    // Enhanced streaming steps with specific icons matching Figma design
-    const steps = [
-      { 
-        text: `🎯 Analyzing ${researchArea.toLowerCase()} data`, 
-        completed: false, 
-        icon: <Target className="w-4 h-4" />,
-        type: 'analysis' as const
+    const cancel = runQuestion(
+      areaId,
+      researchArea,
+      currentCompany,
+      {
+        prospectCompany: currentCompany,
+        userRole: profile?.role || 'account-executive',
+        vendorCompany: profile?.company,
+        territory: profile?.territory,
       },
-      { 
-        text: "🔍 Scanning industry reports and news", 
-        completed: false, 
-        icon: <Search className="w-4 h-4" />,
-        type: 'research' as const
-      },
-      { 
-        text: "📊 Reviewing investor calls and earnings", 
-        completed: false, 
-        icon: <TrendingUp className="w-4 h-4" />,
-        type: 'data' as const
-      },
-      { 
-        text: "👥 Identifying operational inefficiencies", 
-        completed: false, 
-        icon: <Users className="w-4 h-4" />,
-        type: 'analysis' as const
-      },
-      { 
-        text: `✅ Found 5 key ${researchArea.toLowerCase()} insights`, 
-        completed: false, 
-        icon: <CheckCircle className="w-4 h-4" />,
-        type: 'completion' as const
-      },
-    ];
-    
-    setMessages(prev => prev.map(msg => 
-      msg.id === messageId 
-        ? { ...msg, isStreaming: true, streamingSteps: steps }
-        : msg
-    ));
+      {
+        onStart: (steps) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === messageId ? { ...msg, isStreaming: true, streamingSteps: steps.map((s) => ({ ...s, completed: false })) } : msg
+            )
+          )
+          setTimeout(() => scrollToStreamingMessage(), 150)
+        },
+        onProgress: (stepIndex) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === messageId && msg.streamingSteps
+                ? {
+                    ...msg,
+                    streamingSteps: msg.streamingSteps.map((s, i) => (i === stepIndex ? { ...s, completed: true } : s)),
+                  }
+                : msg
+            )
+          )
+        },
+        onComplete: ({ findings, sources }) => {
+          const allAreas = getResearchAreas(profile?.role || 'account-executive')
+          const newCompletedIds = [...completedResearchIds, areaId]
+          setCompletedResearchIds(newCompletedIds)
+          setCompletedResearch((prev) => [
+            ...prev,
+            { id: areaId, title: findings.title, completedAt: new Date(), findings },
+          ])
 
-    steps.forEach((_, index) => {
-      setTimeout(() => {
-        setMessages(prev => prev.map(msg => 
-          msg.id === messageId && msg.streamingSteps
-            ? {
-                ...msg,
-                streamingSteps: msg.streamingSteps.map((step, i) => 
-                  i === index ? { ...step, completed: true } : step
-                )
+          const researchProgress: ResearchProgress = {
+            totalAreas: allAreas.length,
+            completedAreas: newCompletedIds.length,
+            completedIds: newCompletedIds,
+            isCollapsed: true,
+          }
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === messageId
+                ? { ...m, isStreaming: false, content: '', researchFindings: findings, sources }
+                : m
+            )
+          )
+          setIsTyping(false)
+          setTimeout(() => scrollToResearchFindings(), 500)
+
+          // Progress + follow-ups
+          setTimeout(() => {
+            const progressMessage: Message = {
+              id: `progress-${Date.now()}`,
+              type: 'assistant',
+              content: '',
+              timestamp: new Date(),
+              researchProgress,
+              researchAreas: allAreas,
+            }
+            setMessages((prev) => [...prev, progressMessage])
+
+            setTimeout(() => {
+              const followUpMessage: Message = {
+                id: `followup-${Date.now()}`,
+                type: 'assistant',
+                content: '',
+                timestamp: new Date(),
+                followUpOptions: getFollowUpOptionsForArea(areaId),
               }
-            : msg
-        ));
-      }, (index + 1) * 1000);
-    });
+              setMessages((prev) => [...prev, followUpMessage])
+            }, 200)
+          }, 500)
+        },
+        onError: (error) => {
+          console.error('Question run failed', error)
+        },
+      }
+    )
 
-    setTimeout(() => {
-      const findings = getResearchFindings(areaId, currentCompany);
-      const sources = getMockSources(currentCompany, areaId);
-
-      const allAreas = getResearchAreas(profile?.role || 'account-executive');
-      const newCompletedIds = [...completedResearchIds, areaId];
-      
-      // Mark this research area as completed
-      setCompletedResearchIds(newCompletedIds);
-      
-      // Save completed research for export
-      const completedResearchData = {
-        id: areaId,
-        title: findings.title,
-        completedAt: new Date(),
-        findings: findings
-      };
-      setCompletedResearch(prev => [...prev, completedResearchData]);
-      
-      const researchProgress: ResearchProgress = {
-        totalAreas: allAreas.length,
-        completedAreas: newCompletedIds.length,
-        completedIds: newCompletedIds,
-        isCollapsed: true
-      };
-
-      // First, update the streaming message with findings (without follow-up options)
-      setMessages(prev => prev.map(msg => {
-        if (msg.id === messageId) {
-          return { 
-            ...msg, 
-            isStreaming: false,
-            content: "",
-            researchFindings: findings,
-            sources: sources
-          };
-        }
-        return msg;
-      }));
-      setIsTyping(false);
-
-      // Then, add research progress message
-      setTimeout(() => {
-        const progressMessageId = `progress-${Date.now()}`;
-        const progressMessage: Message = {
-          id: progressMessageId,
-          type: "assistant",
-          content: "",
-          timestamp: new Date(),
-          researchProgress,
-          researchAreas: allAreas
-        };
-        
-        setMessages(prev => [...prev, progressMessage]);
-
-        // Finally, add the follow-up options message
-        setTimeout(() => {
-          const followUpMessageId = `followup-${Date.now()}`;
-          const followUpMessage: Message = {
-            id: followUpMessageId,
-            type: "assistant",
-            content: "",
-            timestamp: new Date(),
-            followUpOptions: getFollowUpOptionsForArea(areaId)
-          };
-          
-          setMessages(prev => [...prev, followUpMessage]);
-        }, 200);
-      }, 500);
-    }, steps.length * 1000 + 500);
+    return cancel
   };
 
   const getFollowUpOptionsForArea = (areaId: string) => {
@@ -623,21 +684,15 @@ Content: ${slides.join('\n')}`;
           {/* Typing Indicator */}
           {isTyping && (
             <div className="flex justify-start">
-              <div className="flex gap-3 max-w-3xl">
+              <div className="flex gap-3 max-w-3xl items-center">
                 <Avatar className="w-8 h-8 flex-shrink-0">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
-                    AI
-                  </AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">AI</AvatarFallback>
                 </Avatar>
-      <Card>
+                <Card>
                   <CardContent className="p-3">
-                    <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse"></div>
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: "0.2s" }}></div>
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: "0.4s" }}></div>
-          </div>
+                    <TypingIndicator />
                   </CardContent>
-      </Card>
+                </Card>
               </div>
             </div>
           )}

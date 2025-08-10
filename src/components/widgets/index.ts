@@ -6,4 +6,5 @@ export { ResearchFindingsCard } from './ResearchFindingsCard';
 export { MessageBubble } from './MessageBubble';
 export { CompanyIntelligenceWidget } from './VendorIntelligenceWidget';
 export { RoleIntelligenceWidget } from './RoleIntelligenceWidget';
+export { VendorIntelligenceCard } from './VendorIntelligenceCard';
 export { ExportResearchSheet } from './ExportResearchSheet'; 

@@ -58,7 +58,9 @@ export interface Source {
   title: string;
   url: string;
   domain: string;
-  type: "article" | "press_release" | "report" | "social" | "company_page";
+  description?: string;
+  snippet?: string;
+  type: "article" | "press_release" | "report" | "social" | "company_page" | "news_article" | "research_report";
   relevance: "high" | "medium" | "low";
   publishedDate?: string;
 }
@@ -71,12 +73,48 @@ export interface VendorInsights {
 }
 
 export interface CompanySummary {
+  // Core fields (required)
   name: string;
   industry: string;
   size: string;
   location: string;
   recentNews: string;
   techStack: string[];
+  founded: string;  // Made required to match Figma
+  revenue: string;  // Made required to match Figma
+  
+  // Enhanced fields (optional - matching Figma CompanyData exactly)
+  businessModel?: string;
+  marketPosition?: string;
+  growthStage?: string;
+  fundingHistory?: Array<{
+    round: string;
+    amount: string;
+    date: string;
+    investors?: string[];
+  }>;
+  keyExecutives?: Array<{
+    name: string;
+    role: string;
+    background?: string;  // Made optional to match Figma
+  }>;
+  businessMetrics?: {
+    valuation?: string;
+    employeeGrowth?: string;
+    customerCount?: string;
+    marketShare?: string;
+  };
+  recentDevelopments?: Array<{
+    type: 'funding' | 'product' | 'partnership' | 'expansion' | 'leadership';
+    title: string;
+    date: string;
+    impact: 'high' | 'medium' | 'low';
+  }>;
+  competitiveContext?: {
+    mainCompetitors: string[];
+    differentiators: string[];
+    challenges: string[];
+  };
 }
 
 export interface ResearchProgress {
