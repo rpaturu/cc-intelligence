@@ -10,7 +10,7 @@ import { Badge } from '../../components/ui/badge';
 import { ArrowLeft, ArrowRight, Search, CheckCircle } from "lucide-react";
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { lookupCompanies } from '../../lib/api';
-import { CompanyIntelligenceWidget } from '../../components/CompanyIntelligenceWidget';
+import { CompanyIntelligenceWidget } from '../../components/widgets/VendorIntelligenceWidget';
 
 interface CompanySearchResult {
   name: string;

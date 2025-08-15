@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from './ui/card';
-import { Badge } from './ui/badge';
+import { Card, CardContent } from '../ui/card';
+import { Badge } from '../ui/badge';
 import {
   Building, Building2, Users, DollarSign, TrendingUp, Calendar, MapPin,
   Zap, Target, CheckCircle, BarChart3
 } from 'lucide-react';
-import { vendorContext } from '../lib/api';
+import { vendorContext } from '../../lib/api';
 
 // Helper function for AI config based on role
 const getAIConfigForRole = (role: string) => {

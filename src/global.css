@@ -5,80 +5,80 @@
 
 :root {
   --font-size: 14px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
+  --background: #fafbfc;
+  --foreground: oklch(0.145 0.015 250);
   --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
-  --destructive: #d4183d;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+  --card-foreground: oklch(0.145 0.015 250);
+  --popover: #ffffff;
+  --popover-foreground: oklch(0.145 0.015 250);
+  --primary: oklch(0.455 0.207 255.5);
+  --primary-foreground: #ffffff;
+  --secondary: oklch(0.96 0.013 250);
+  --secondary-foreground: oklch(0.355 0.08 250);
+  --muted: oklch(0.955 0.013 250);
+  --muted-foreground: oklch(0.545 0.065 250);
+  --accent: oklch(0.94 0.025 250);
+  --accent-foreground: oklch(0.355 0.08 250);
+  --destructive: oklch(0.48 0.04 5);
+  --destructive-foreground: oklch(0.145 0.015 250);
+  --border: oklch(0.9 0.02 250);
   --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
+  --input-background: oklch(0.975 0.008 250);
+  --switch-background: oklch(0.85 0.03 250);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --ring: oklch(0.455 0.207 255.5);
+  --chart-1: oklch(0.525 0.19 255);
+  --chart-2: oklch(0.6 0.15 195);
+  --chart-3: oklch(0.65 0.12 285);
+  --chart-4: oklch(0.7 0.16 45);
+  --chart-5: oklch(0.75 0.14 160);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.985 0.008 250);
+  --sidebar-foreground: oklch(0.145 0.015 250);
+  --sidebar-primary: oklch(0.455 0.207 255.5);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: oklch(0.97 0.01 250);
+  --sidebar-accent-foreground: oklch(0.245 0.045 250);
+  --sidebar-border: oklch(0.92 0.015 250);
+  --sidebar-ring: oklch(0.455 0.207 255.5);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --background: oklch(0.08 0.015 250);
+  --foreground: oklch(0.95 0.01 250);
+  --card: oklch(0.105 0.015 250);
+  --card-foreground: oklch(0.95 0.01 250);
+  --popover: oklch(0.105 0.015 250);
+  --popover-foreground: oklch(0.95 0.01 250);
+  --primary: oklch(0.615 0.185 255);
+  --primary-foreground: oklch(0.08 0.015 250);
+  --secondary: oklch(0.155 0.02 250);
+  --secondary-foreground: oklch(0.88 0.02 250);
+  --muted: oklch(0.155 0.02 250);
+  --muted-foreground: oklch(0.665 0.055 250);
+  --accent: oklch(0.18 0.025 250);
+  --accent-foreground: oklch(0.88 0.02 250);
+  --destructive: oklch(0.55 0.06 5);
+  --destructive-foreground: oklch(0.95 0.01 250);
+  --border: oklch(0.2 0.025 250);
+  --input: oklch(0.155 0.02 250);
+  --ring: oklch(0.615 0.185 255);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --chart-1: oklch(0.615 0.185 255);
+  --chart-2: oklch(0.696 0.17 195);
+  --chart-3: oklch(0.755 0.15 285);
+  --chart-4: oklch(0.75 0.16 45);
+  --chart-5: oklch(0.8 0.14 160);
+  --sidebar: oklch(0.105 0.015 250);
+  --sidebar-foreground: oklch(0.95 0.01 250);
+  --sidebar-primary: oklch(0.615 0.185 255);
+  --sidebar-primary-foreground: oklch(0.08 0.015 250);
+  --sidebar-accent: oklch(0.155 0.02 250);
+  --sidebar-accent-foreground: oklch(0.88 0.02 250);
+  --sidebar-border: oklch(0.2 0.025 250);
+  --sidebar-ring: oklch(0.615 0.185 255);
 }
 
 @theme inline {
@@ -188,14 +188,646 @@
   .navbar-floating {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    background: rgba(250, 251, 252, 0.85);
+    border: 1px solid rgba(59, 130, 246, 0.15);
+    box-shadow: 0 4px 20px -4px rgba(59, 130, 246, 0.15), 0 2px 8px -2px rgba(59, 130, 246, 0.08);
   }
   
   .dark .navbar-floating {
-    background: rgba(20, 20, 23, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(15, 20, 35, 0.85);
+    border: 1px solid rgba(99, 165, 255, 0.2);
+    box-shadow: 0 4px 20px -4px rgba(99, 165, 255, 0.1), 0 2px 8px -2px rgba(99, 165, 255, 0.05);
+  }
+
+  /* Export sheet utilities */
+  .export-sheet-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
+  }
+  
+  .export-sheet-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .export-sheet-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .export-sheet-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(59, 130, 246, 0.3);
+    border-radius: 3px;
+  }
+  
+  .export-sheet-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(59, 130, 246, 0.5);
+  }
+  
+  .dark .export-sheet-scroll {
+    scrollbar-color: rgba(99, 165, 255, 0.4) transparent;
+  }
+  
+  .dark .export-sheet-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(99, 165, 255, 0.4);
+  }
+  
+  .dark .export-sheet-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(99, 165, 255, 0.6);
+  }
+
+  /* Professional gradient utilities for intelligence platform */
+  .gradient-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, oklch(0.55 0.19 255) 100%);
+  }
+  
+  .gradient-accent {
+    background: linear-gradient(135deg, var(--accent) 0%, oklch(0.92 0.03 250) 100%);
+  }
+  
+  /* Intelligence-themed glow effects */
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+  }
+  
+  .dark .glow-primary {
+    box-shadow: 0 0 20px rgba(99, 165, 255, 0.25);
+  }
+  
+  /* Research progress indicators */
+  .progress-ring {
+    background: conic-gradient(var(--primary) 0deg, var(--muted) 0deg);
+  }
+
+  /* Animation utilities for enhanced interactions */
+  .animate-in {
+    animation: animate-in 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .animate-out {
+    animation: animate-out 0.4s cubic-bezier(0.7, 0, 0.84, 0);
+  }
+  
+  @keyframes animate-in {
+    0% {
+      opacity: 0;
+      transform: translateY(16px) scale(0.96);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  @keyframes animate-out {
+    0% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-16px) scale(0.96);
+    }
+  }
+
+  /* Core Animation Utilities from Figma Design */
+  .fade-in-0 {
+    animation: fade-in-0 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .fade-in-50 {
+    animation: fade-in-50 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .fade-out {
+    animation: fade-out 0.4s cubic-bezier(0.7, 0, 0.84, 0);
+  }
+  
+  @keyframes fade-in-0 {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fade-in-50 {
+    0% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fade-out {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Directional slide animations */
+  .slide-in-from-top-2 {
+    animation: slide-in-from-top-2 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .slide-in-from-top-4 {
+    animation: slide-in-from-top-4 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .slide-in-from-bottom-2 {
+    animation: slide-in-from-bottom-2 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .slide-in-from-bottom-4 {
+    animation: slide-in-from-bottom-4 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .slide-in-from-left-2 {
+    animation: slide-in-from-left-2 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .slide-in-from-left-4 {
+    animation: slide-in-from-left-4 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .slide-in-from-right-2 {
+    animation: slide-in-from-right-2 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .slide-in-from-right-4 {
+    animation: slide-in-from-right-4 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes slide-in-from-top-2 {
+    0% {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-in-from-top-4 {
+    0% {
+      opacity: 0;
+      transform: translateY(-16px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-in-from-bottom-2 {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-in-from-bottom-4 {
+    0% {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slide-in-from-left-2 {
+    0% {
+      opacity: 0;
+      transform: translateX(-8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slide-in-from-left-4 {
+    0% {
+      opacity: 0;
+      transform: translateX(-16px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slide-in-from-right-2 {
+    0% {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slide-in-from-right-4 {
+    0% {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Animation duration utilities */
+  .duration-150 {
+    animation-duration: 150ms;
+  }
+  
+  .duration-200 {
+    animation-duration: 200ms;
+  }
+  
+  .duration-300 {
+    animation-duration: 300ms;
+  }
+  
+  .duration-500 {
+    animation-duration: 500ms;
+  }
+  
+  .duration-700 {
+    animation-duration: 700ms;
+  }
+  
+  .duration-1000 {
+    animation-duration: 1000ms;
+  }
+
+  /* Animation delay utilities */
+  .delay-75 {
+    animation-delay: 75ms;
+  }
+  
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  
+  .delay-150 {
+    animation-delay: 150ms;
+  }
+  
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* Enhanced button hover effects */
+  .btn-hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .btn-hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+  }
+  
+  .dark .btn-hover-lift:hover {
+    box-shadow: 0 8px 25px rgba(99, 165, 255, 0.15);
+  }
+
+  /* Card hover animations */
+  .card-hover {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.12);
+  }
+  
+  .dark .card-hover:hover {
+    box-shadow: 0 12px 40px rgba(99, 165, 255, 0.1);
+  }
+
+  /* Subtle glow animation for active elements */
+  .glow-pulse {
+    animation: glow-pulse 3s ease-in-out infinite alternate;
+  }
+  
+  @keyframes glow-pulse {
+    0% {
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
+    }
+    100% {
+      box-shadow: 0 0 25px rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.3);
+    }
+  }
+  
+  .dark .glow-pulse {
+    animation: glow-pulse-dark 3s ease-in-out infinite alternate;
+  }
+  
+  @keyframes glow-pulse-dark {
+    0% {
+      box-shadow: 0 0 8px rgba(99, 165, 255, 0.3);
+    }
+    100% {
+      box-shadow: 0 0 25px rgba(99, 165, 255, 0.5), 0 0 40px rgba(99, 165, 255, 0.2);
+    }
+  }
+
+  /* Smooth focus transitions */
+  .focus-ring {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .focus-ring:focus {
+    outline: none;
+    ring: 2px solid var(--ring);
+    ring-offset: 2px;
+    transform: scale(1.02);
+  }
+
+  /* Typography animation utilities */
+  .text-reveal {
+    animation: text-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes text-reveal {
+    0% {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Professional slide-in effects */
+  .slide-in-left {
+    animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  .slide-in-right {
+    animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes slide-in-left {
+    0% {
+      opacity: 0;
+      transform: translateX(-24px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes slide-in-right {
+    0% {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Stagger animation for lists */
+  .stagger-children > * {
+    animation: stagger-item 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  
+  .stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-children > *:nth-child(2) { animation-delay: 0.15s; }
+  .stagger-children > *:nth-child(3) { animation-delay: 0.2s; }
+  .stagger-children > *:nth-child(4) { animation-delay: 0.25s; }
+  .stagger-children > *:nth-child(5) { animation-delay: 0.3s; }
+  .stagger-children > *:nth-child(6) { animation-delay: 0.35s; }
+  .stagger-children > *:nth-child(7) { animation-delay: 0.4s; }
+  .stagger-children > *:nth-child(8) { animation-delay: 0.45s; }
+  
+  @keyframes stagger-item {
+    0% {
+      opacity: 0;
+      transform: translateY(16px) scale(0.96);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Research-specific animations */
+  .research-card-entrance {
+    animation: research-card-entrance 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes research-card-entrance {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.96) rotateX(10deg);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1) rotateX(0deg);
+    }
+  }
+
+  /* Citation highlight animation */
+  .citation-highlight {
+    animation: citation-highlight 0.8s ease-out;
+  }
+  
+  @keyframes citation-highlight {
+    0% {
+      background-color: transparent;
+      transform: scale(1);
+    }
+    30% {
+      background-color: rgba(59, 130, 246, 0.2);
+      transform: scale(1.02);
+    }
+    100% {
+      background-color: rgba(59, 130, 246, 0.1);
+      transform: scale(1);
+    }
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    background: linear-gradient(90deg, 
+      var(--muted) 25%, 
+      rgba(59, 130, 246, 0.1) 50%, 
+      var(--muted) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Breathing animation for AI indicators */
+  .ai-breathing {
+    animation: ai-breathing 4s ease-in-out infinite;
+  }
+  
+  @keyframes ai-breathing {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.05);
+      opacity: 1;
+    }
+  }
+
+  /* Value proposition highlight */
+  .value-prop-reveal {
+    animation: value-prop-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes value-prop-reveal {
+    0% {
+      opacity: 0;
+      transform: translateX(-16px) scale(0.98);
+      border-left-width: 0;
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+      border-left-width: 4px;
+    }
+  }
+
+  /* Contact card reveal animation */
+  .contact-reveal {
+    animation: contact-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes contact-reveal {
+    0% {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+      filter: blur(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+  }
+
+  /* Avatar animation containment and stability */
+  .avatar-container {
+    contain: layout style;
+    will-change: transform;
+    transform-origin: center center;
+    /* Isolate from parent layout changes */
+    position: relative;
+    z-index: 1;
+  }
+  
+  .icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    contain: layout style paint;
+  }
+  
+  .icon-rotation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center center;
+    will-change: transform;
+    backface-visibility: hidden;
+    /* Prevent sub-pixel rendering issues */
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+  }
+  
+  /* Prevent icon distortion during parent transforms */
+  .avatar-container .icon-rotation svg {
+    display: block;
+    transform: translateZ(0);
+    /* Hardware acceleration for smoother rotation */
+    width: 1.25rem;
+    height: 1.25rem;
+    /* Ensure consistent dimensions */
+    flex-shrink: 0;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-in,
+    .animate-out,
+    .fade-in-0,
+    .fade-in-50,
+    .fade-out,
+    .slide-in-from-top-2,
+    .slide-in-from-top-4,
+    .slide-in-from-bottom-2,
+    .slide-in-from-bottom-4,
+    .slide-in-from-left-2,
+    .slide-in-from-left-4,
+    .slide-in-from-right-2,
+    .slide-in-from-right-4,
+    .slide-in-left,
+    .slide-in-right,
+    .text-reveal,
+    .stagger-children > *,
+    .research-card-entrance,
+    .citation-highlight,
+    .value-prop-reveal,
+    .contact-reveal {
+      animation: none;
+    }
+    
+    .card-hover:hover,
+    .btn-hover-lift:hover {
+      transform: none;
+    }
+    
+    .glow-pulse,
+    .ai-breathing,
+    .shimmer {
+      animation: none;
+    }
+    
+    .icon-rotation {
+      animation: none !important;
+    }
   }
 }
 
@@ -263,6 +895,128 @@
   
   /* Prevent layout shift during navbar transitions */
   body {
-    scroll-padding-top: 6rem;
+    scroll-padding-top: 7rem;
+  }
+  
+  /* Research activity scroll positioning */
+  .research-progress-container {
+    scroll-margin-top: 2rem;
+    scroll-margin-bottom: 2rem;
+  }
+  
+  /* Research progress header interaction */
+  .research-progress-header {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    border-radius: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .research-progress-header:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  }
+  
+  .research-progress-header:active {
+    transform: translateY(0) scale(0.99);
+    transition-duration: 0.1s;
+  }
+  
+  .research-progress-header:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--primary), 0 4px 12px rgba(59, 130, 246, 0.15);
+  }
+  
+  .dark .research-progress-header:hover {
+    box-shadow: 0 4px 12px rgba(99, 165, 255, 0.15);
+  }
+  
+  .dark .research-progress-header:focus {
+    box-shadow: 0 0 0 2px var(--primary), 0 4px 12px rgba(99, 165, 255, 0.2);
+  }
+  
+  /* Research message containers need better scroll positioning */
+  .research-message-container {
+    scroll-margin-top: 6rem;
+    scroll-margin-bottom: 4rem;
+    /* Prevent child animations from affecting each other */
+    contain: layout;
+  }
+  
+  /* User message containers need navbar clearance */
+  .research-message-container[data-message-type="user"] {
+    scroll-margin-top: 7rem;
+    scroll-margin-bottom: 2rem;
+  }
+  
+  /* Agent message containers following user messages need less top margin */
+  .research-message-container[data-message-type="user"] + .research-message-container[data-message-type="assistant"] {
+    scroll-margin-top: 5rem;
+  }
+  
+  /* Research findings need optimal positioning */
+  [data-research-findings="true"] {
+    scroll-margin-top: 4rem;
+    scroll-margin-bottom: 6rem;
+    /* Prevent affecting sibling elements during animations */
+    contain: layout style;
+    transform: translateZ(0);
+  }
+  
+  /* Streaming research messages need special positioning for visibility */
+  [data-research-streaming="true"] {
+    scroll-margin-top: 3rem;
+    scroll-margin-bottom: 3rem;
+  }
+  
+  /* Ensure research activities are properly centered */
+  .research-message-container:has([data-research-findings="true"]) {
+    scroll-margin-top: 5rem;
+    scroll-margin-bottom: 5rem;
+  }
+  
+  /* Streaming message containers need better visibility */
+  .research-message-container:has([data-research-streaming="true"]) {
+    scroll-margin-top: 3rem;
+    scroll-margin-bottom: 4rem;
+  }
+  
+  /* Instant research activity positioning for immediate feedback */
+  [data-research-streaming="true"] {
+    /* Ensure research activity is immediately visible */
+    scroll-margin-top: 2rem;
+    scroll-margin-bottom: 2rem;
+    /* Prevent render blocking during immediate scroll */
+    contain: layout;
+  }
+  
+  /* Optimize scroll timing for research actions */
+  .research-message-container[data-message-type="user"] + .research-message-container {
+    /* Research responses following user actions need immediate visibility */
+    scroll-margin-top: 4rem;
+    scroll-margin-bottom: 2rem;
+  }
+  
+  /* Prevent premature scrolling during content loading */
+  .research-content-loading {
+    scroll-behavior: auto;
+    overflow-anchor: none;
+  }
+  
+  /* Ensure content stability during animations */
+  .research-message-container {
+    contain: layout style;
+    will-change: auto;
+  }
+  
+  /* Prevent scroll jumping during layout changes */
+  .message-list-container {
+    scroll-behavior: auto;
+  }
+  
+  .message-list-container.content-stable {
+    scroll-behavior: smooth;
   }
 }

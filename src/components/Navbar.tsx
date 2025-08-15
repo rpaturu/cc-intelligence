@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Search, User, Sun, Moon } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../hooks/useAuth";
+import { getInitials } from "../utils";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -27,10 +28,6 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
 
   const currentPage = location.pathname === '/profile' ? 'profile' : 'research';
 
@@ -70,12 +67,12 @@ export default function Navbar() {
         className={`
           transition-all duration-300 ease-in-out mx-auto px-4 sm:px-6 lg:px-8
           ${scrolled 
-            ? 'max-w-3xl mt-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-full shadow-lg' 
-            : 'max-w-7xl bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b'
+            ? 'max-w-3xl mt-4 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/30 border rounded-full shadow-lg' 
+            : 'max-w-7xl bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/30 border-b'
           }
         `}
       >
-        <div className={`grid items-center transition-all duration-300 ease-in-out ${scrolled ? 'grid-cols-5 h-12' : 'grid-cols-4 h-16'}`}>
+        <div className={`grid items-center transition-all duration-300 ease-in-out ${scrolled ? 'grid-cols-3 h-12' : 'grid-cols-3 h-16'}`}>
           {/* Logo - Left */}
           <div className="flex justify-start">
             <div className="flex items-center">
@@ -88,74 +85,54 @@ export default function Navbar() {
                     </div>
                     </div>
                   
-          {/* Research Button - Center-Left */}
+          {/* Research Button - Center */}
           <div className="flex justify-center">
             <Button
               variant={currentPage === "research" ? "default" : "ghost"}
               onClick={handleResearchClick}
               size={scrolled ? "sm" : "default"}
               className="flex items-center gap-2 transition-all duration-300 ease-in-out"
-                      >
+            >
               <Search className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
               {!scrolled && "Research"}
             </Button>
           </div>
 
-          {/* Onboarding Button - Center */}
-          <div className="flex justify-center">
-            <Button
-              variant={location.pathname.startsWith('/onboarding') ? "default" : "ghost"}
-              onClick={handleOnboardingClick}
-              size={scrolled ? "sm" : "default"}
-              className="flex items-center gap-2 transition-all duration-300 ease-in-out"
-            >
-              <User className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
-              {!scrolled && "Onboarding"}
-            </Button>
-          </div>
 
-          {/* Dark Mode Toggle - Center/Right-Center (only visible when scrolled) */}
-          {scrolled && (
-            <div className="flex justify-center">
+
+          {/* User Actions - Right */}
+          <div className="flex justify-end">
+            <div className={`flex items-center ${scrolled ? 'gap-1' : 'gap-2'}`}>
+              {/* Onboarding Button - User action */}
+              <Button
+                variant={location.pathname.startsWith('/onboarding') ? "default" : "ghost"}
+                onClick={handleOnboardingClick}
+                size={scrolled ? "sm" : "default"}
+                className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+              >
+                <User className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                {!scrolled && "Onboarding"}
+              </Button>
+              
+              {/* Dark Mode Toggle */}
               <Button
                 variant="ghost"
                 onClick={toggleTheme}
-                size="sm"
+                size={scrolled ? "sm" : "default"}
                 className="flex items-center gap-2 transition-all duration-300 ease-in-out"
-                      >
+              >
                 {theme === "light" ? (
-                  <Moon className="w-3 h-3" />
+                  <>
+                    <Moon className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                    {!scrolled && "Dark"}
+                  </>
                 ) : (
-                  <Sun className="w-3 h-3" />
+                  <>
+                    <Sun className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                    {!scrolled && "Light"}
+                  </>
                 )}
               </Button>
-            </div>
-          )}
-
-          {/* Profile Button - Right */}
-          <div className="flex justify-end">
-            <div className="flex items-center gap-2">
-              {/* Dark Mode Toggle - Full size (only visible when not scrolled) */}
-              {!scrolled && (
-                <Button
-                  variant="ghost"
-                  onClick={toggleTheme}
-                  size="default"
-                  className="flex items-center gap-2 transition-all duration-300 ease-in-out"
-                >
-                  {theme === "light" ? (
-                    <>
-                      <Moon className="w-4 h-4" />
-                      Dark
-                    </>
-                  ) : (
-                    <>
-                      <Sun className="w-4 h-4" />
-                      Light
-                    </>
-                  )}
-                </Button>
-              )}
               
               {/* Profile Button */}
               <Button

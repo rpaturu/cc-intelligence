@@ -108,19 +108,23 @@ class SalesIntelligenceApiClient {
 
     while (Date.now() - startTime < timeoutMs) {
       try {
-        const result = await this.makeRequest<{
+        // Check status using the workflows endpoint
+        const statusResult = await this.makeRequest<{
           requestId: string;
           status: string;
-          result?: T;
+          currentStep?: string;
+          progress?: number;
           error?: string;
-        }>(`/requests/${requestId}`);
+        }>(`/workflows/${requestId}/status`);
 
-        if (result.status === 'completed' && result.result) {
-          return result.result;
+        if (statusResult.status === 'completed') {
+          // Get the final result
+          const finalResult = await this.makeRequest<T>(`/workflows/${requestId}/result`);
+          return finalResult;
         }
 
-        if (result.status === 'failed') {
-          throw new Error(result.error || 'Request failed');
+        if (statusResult.status === 'failed') {
+          throw new Error(statusResult.error || 'Workflow failed');
         }
 
         // Still processing, wait before next poll
@@ -378,6 +382,10 @@ class SalesIntelligenceApiClient {
       growthIndicators?: string[];
       techStack?: string[];
       partnerships?: string[];
+      revenue?: string;
+      revenueGrowth?: string;
+      stockSymbol?: string;
+      marketCap?: string;
       lastUpdated: string;
       dataQuality?: {
         completeness: number;
@@ -434,6 +442,10 @@ class SalesIntelligenceApiClient {
           growthIndicators: analysis.growthIndicators || [],
           techStack: analysis.techStack || [],
           partnerships: analysis.partnerships || [],
+          revenue: analysis.revenue || null,
+          revenueGrowth: analysis.revenueGrowth || null,
+          stockSymbol: analysis.stockSymbol || null,
+          marketCap: analysis.marketCap || null,
           lastUpdated: analysis.last_updated || response.generatedAt || new Date().toISOString(),
           dataQuality: analysis.data_quality || null
         },
@@ -484,6 +496,10 @@ class SalesIntelligenceApiClient {
           growthIndicators: analysis.growthIndicators || [],
           techStack: analysis.techStack || [],
           partnerships: analysis.partnerships || [],
+          revenue: analysis.revenue || null,
+          revenueGrowth: analysis.revenueGrowth || null,
+          stockSymbol: analysis.stockSymbol || null,
+          marketCap: analysis.marketCap || null,
           lastUpdated: analysis.last_updated || polledResult.generatedAt || new Date().toISOString(),
           dataQuality: analysis.data_quality || null
         },

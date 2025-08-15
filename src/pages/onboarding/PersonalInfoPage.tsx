@@ -9,7 +9,7 @@ import { Progress } from '../../components/ui/progress';
 import { ArrowRight } from "lucide-react";
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useProfile } from '../../hooks/useProfile';
-import { RoleIntelligenceWidget } from '../../components/RoleIntelligenceWidget';
+import { RoleIntelligenceWidget } from '../../components/widgets/RoleIntelligenceWidget';
 
 const PersonalInfoPage = () => {
   const navigate = useNavigate();
