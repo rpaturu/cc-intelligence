@@ -10,6 +10,13 @@ export interface OnboardingData {
   territory: string;
   salesFocus: string;
   defaultResearchContext: string;
+  consentPreferences?: {
+    researchHistory: boolean;
+    profileData: boolean;
+    analytics: boolean;
+    marketing: boolean;
+    thirdPartyData: boolean;
+  };
 }
 
 interface OnboardingContextType {
@@ -39,7 +46,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [currentStep, setCurrentStep] = useState(0);
 
   const updateData = (updates: Partial<OnboardingData>) => {
-    setData(prev => ({ ...prev, ...updates }));
+    setData(prev => {
+      const newData = { ...prev, ...updates };
+      return newData;
+    });
   };
 
   const resetData = () => {

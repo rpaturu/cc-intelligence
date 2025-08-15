@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Search, User, Sun, Moon } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../hooks/useAuth";
+import { getInitials } from "../utils";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -27,10 +28,6 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
 
   const currentPage = location.pathname === '/profile' ? 'profile' : 'research';
 
@@ -108,7 +105,7 @@ export default function Navbar() {
               onClick={handleOnboardingClick}
               size={scrolled ? "sm" : "default"}
               className="flex items-center gap-2 transition-all duration-300 ease-in-out"
-            >
+                      >
               <User className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
               {!scrolled && "Onboarding"}
             </Button>

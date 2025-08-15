@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -10,7 +10,7 @@ import { Badge } from '../../components/ui/badge';
 import { ArrowLeft, ArrowRight, Search, CheckCircle } from "lucide-react";
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { lookupCompanies } from '../../lib/api';
-import { CompanyIntelligenceWidget } from '../../components/CompanyIntelligenceWidget';
+import { CompanyIntelligenceWidget } from '../../components/widgets/VendorIntelligenceWidget';
 
 interface CompanySearchResult {
   name: string;
@@ -22,7 +22,10 @@ const CompanyInfoPage = () => {
   const navigate = useNavigate();
   const { data, updateData } = useOnboarding();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    company: string;
+    companyDomain: string;
+  }>({
     company: data.company || "",
     companyDomain: data.companyDomain || "",
   });
@@ -31,7 +34,17 @@ const CompanyInfoPage = () => {
   const [searchResults, setSearchResults] = useState<CompanySearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [companySelected, setCompanySelected] = useState(!!data.company);
+  const [companySelected, setCompanySelected] = useState(false);
+  const [lastInputTime, setLastInputTime] = useState<number>(0);
+  
+  // Sync form data with onboarding context
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      company: data.company || prev.company,
+      companyDomain: data.companyDomain || prev.companyDomain
+    }));
+  }, [data.company, data.companyDomain]);
   
   // Removed API integration state - CompanyIntelligenceWidget handles its own state
 
@@ -56,10 +69,18 @@ const CompanyInfoPage = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
     updateData({ [field]: value });
     
-    // If manually editing company name and it's substantial, mark as selected
-    if (field === 'company' && value.trim().length > 2 && !companySelected) {
-      setCompanySelected(true);
+    // Only auto-select if the user is actively typing (not from initialization or browser autofill)
+    if (field === 'company' && value.trim().length > 2 && !companySelected && value !== data.company) {
+      // Check if this might be browser autofill by looking at timing
+      const now = Date.now();
+      if (!lastInputTime || (now - lastInputTime) > 100) {
+        // This is likely user input, not autofill
+        setCompanySelected(true);
+      }
     }
+    
+    // Track input timing to detect autofill
+    setLastInputTime(Date.now());
   };
 
   const handleCompanySearch = async () => {
@@ -72,7 +93,6 @@ const CompanyInfoPage = () => {
       const response = await lookupCompanies(searchQuery);
       setSearchResults(response.data.companies.slice(0, 5)); // Limit to 5 results
     } catch (error) {
-      console.error('Company search failed:', error);
       setSearchError('Failed to search companies. Please try again.');
       setSearchResults([]);
     } finally {
@@ -81,12 +101,23 @@ const CompanyInfoPage = () => {
   };
 
   const handleCompanySelect = (result: CompanySearchResult) => {
-    setFormData(prev => ({
-      ...prev,
+    const newFormData = {
       company: result.name,
       companyDomain: result.domain || ""
-    }));
-    updateData({ company: result.name, companyDomain: result.domain || "" });
+    };
+    
+    // Force immediate update of form data
+    const updatedFormData = {
+      ...formData,
+      ...newFormData
+    };
+    
+    setFormData(updatedFormData);
+    
+    // Update onboarding context
+    updateData(newFormData);
+    
+    // Clear search and mark as selected
     setSearchQuery(""); // Clear search query
     setSearchResults([]);
     setCompanySelected(true); // Mark company as selected
@@ -103,9 +134,9 @@ const CompanyInfoPage = () => {
               <CardTitle>Company Information</CardTitle>
               <CardDescription>Help us understand your company</CardDescription>
             </div>
-            <div className="text-sm text-muted-foreground">Step 2 of 3</div>
+            <div className="text-sm text-muted-foreground">Step 3 of 4</div>
           </div>
-          <Progress value={66.66} className="mt-4" />
+          <Progress value={75} className="mt-4" />
         </CardHeader>
         <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -156,8 +187,12 @@ const CompanyInfoPage = () => {
                     <button
                       key={index}
                       type="button"
-                      onClick={() => handleCompanySelect(result)}
+                      onClick={() => {
+                        console.log('CompanyInfoPage: Button clicked for result:', result);
+                        handleCompanySelect(result);
+                      }}
                       className="w-full p-3 text-left hover:bg-accent border-b last:border-b-0 flex items-center justify-between"
+                      style={{ cursor: 'pointer' }}
                     >
                       <div>
                         <div className="font-medium">{result.name}</div>
@@ -209,6 +244,7 @@ const CompanyInfoPage = () => {
                     required
                     readOnly={companySelected}
                     className={companySelected ? "bg-muted pr-16" : ""}
+                    autoComplete="off"
                   />
                   {companySelected && formData.company && (
                     <Badge 
@@ -231,6 +267,7 @@ const CompanyInfoPage = () => {
                   required
                   readOnly={companySelected}
                   className={companySelected ? "bg-muted" : ""}
+                  autoComplete="off"
                 />
               </div>
             </div>
