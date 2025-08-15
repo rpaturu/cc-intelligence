@@ -11,9 +11,11 @@ import SignUpPage from './pages/SignUpPage'
 import ConfirmSignUpPage from './pages/ConfirmSignUpPage'
 import { ProfilePage } from './pages/ProfilePage'
 import PersonalInfoPage from './pages/onboarding/PersonalInfoPage'
+import ConsentCollectionPage from './pages/onboarding/ConsentCollectionPage'
 import CompanyInfoPage from './pages/onboarding/CompanyInfoPage'
 import SalesContextPage from './pages/onboarding/SalesContextPage'
-import { GuidedResearchPage } from './pages/GuidedResearchPage'
+import PrivacyPage from './pages/PrivacyPage'
+import Research from './pages/Research'
 
 function App() {
   return (
@@ -32,6 +34,14 @@ function App() {
                 element={
                   <ProtectedRoute requireProfileComplete={false}>
                     <PersonalInfoPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/onboarding/consent" 
+                element={
+                  <ProtectedRoute requireProfileComplete={false}>
+                    <ConsentCollectionPage />
                   </ProtectedRoute>
                 } 
               />
@@ -58,13 +68,7 @@ function App() {
               {/* All authenticated routes use DashboardLayout */}
               <Route 
                 path="/" 
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <GuidedResearchPage />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } 
+                element={<Navigate to="/research" replace />}
               />
               
               <Route 
@@ -72,7 +76,7 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DashboardLayout>
-                      <GuidedResearchPage />
+                      <Research />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } 
@@ -84,6 +88,17 @@ function App() {
                   <ProtectedRoute>
                     <DashboardLayout>
                       <ProfilePage />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/privacy" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <PrivacyPage />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } 

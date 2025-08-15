@@ -30,12 +30,13 @@ const SalesContextPage = () => {
     
     // Create complete profile
     const profileData = {
-      name: `${data.firstName} ${data.lastName}`,
+      firstName: data.firstName,
+      lastName: data.lastName,
       email: user?.email || '',
       role: data.role,
-      department: data.department,
+      department: data.department || '',
       company: data.company,
-      companyDomain: data.companyDomain,
+      companyDomain: data.companyDomain || '',
       territory: formData.territory,
       salesFocus: formData.salesFocus as 'enterprise' | 'smb' | 'mid-market' | 'startup',
       defaultResearchContext: formData.defaultResearchContext as 'discovery' | 'competitive' | 'partnership' | 'renewal',
@@ -47,9 +48,9 @@ const SalesContextPage = () => {
 
     try {
       await updateProfile(profileData);
-      navigate('/');
+      navigate('/research');
     } catch (error) {
-      console.error('Failed to complete onboarding:', error);
+      // Handle error silently or show user-friendly message
     }
   };
 
@@ -73,7 +74,7 @@ const SalesContextPage = () => {
               <CardTitle>Sales Context</CardTitle>
               <CardDescription>Configure your sales preferences</CardDescription>
             </div>
-            <div className="text-sm text-muted-foreground">Step 3 of 3</div>
+            <div className="text-sm text-muted-foreground">Step 4 of 4</div>
           </div>
           <Progress value={100} className="mt-4" />
         </CardHeader>

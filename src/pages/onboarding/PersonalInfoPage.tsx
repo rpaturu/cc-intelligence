@@ -27,9 +27,9 @@ const PersonalInfoPage = () => {
 
   // Pre-populate form with existing profile data or onboarding data
   useEffect(() => {
-    if (profile?.name) {
+    if (profile?.firstName) {
       // Split the full name into first and last name
-      const nameParts = profile.name.split(' ');
+      const nameParts = profile.firstName.split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
       
@@ -53,7 +53,7 @@ const PersonalInfoPage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateData(formData);
-    navigate('/onboarding/company');
+    navigate('/onboarding/consent');
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -72,9 +72,9 @@ const PersonalInfoPage = () => {
               <CardTitle>Personal Information</CardTitle>
               <CardDescription>Tell us about yourself</CardDescription>
             </div>
-            <div className="text-sm text-muted-foreground">Step 1 of 3</div>
+            <div className="text-sm text-muted-foreground">Step 1 of 4</div>
           </div>
-          <Progress value={33.33} className="mt-4" />
+          <Progress value={25} className="mt-4" />
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSubmit} className="space-y-4">

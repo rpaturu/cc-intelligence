@@ -3,13 +3,14 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
-import { Building, Mail, User, LogOut, Search, MapPin, Target, BarChart3 } from "lucide-react";
+import { Building, Mail, User, LogOut, Search, MapPin, Target, BarChart3, Shield, Download, Trash2, Settings } from "lucide-react";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
-import { getInitials } from "../utils";
+import { getInitialsFromProfile } from "../components/research/utils";
 import { CompanyIntelligenceWidget } from "../components/widgets/VendorIntelligenceWidget";
 import { RoleIntelligenceWidget } from "../components/widgets/RoleIntelligenceWidget";
+import { gdprManager } from "../lib/gdpr-compliance";
 
 // Mapping functions to convert keys to human-readable values
 const getRoleDisplayName = (role: string): string => {
@@ -89,10 +90,35 @@ export function ProfilePage() {
     navigate('/research');
   };
 
+  const handleDataExport = async () => {
+    if (!user?.userId) return;
+    
+    try {
+      await gdprManager.downloadUserData(user.userId);
+      // Show success message (you can implement a toast notification here)
+      alert('Data export completed successfully!');
+    } catch (error) {
+      console.error('Failed to export data:', error);
+      alert('Failed to export data. Please try again.');
+    }
+  };
+
+  const handleConsentManagement = () => {
+    // TODO: Navigate to consent management page
+    alert('Consent management feature coming soon!');
+  };
+
+  const handleAccountDeletion = () => {
+    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      // TODO: Implement account deletion
+      alert('Account deletion feature coming soon!');
+    }
+  };
+
   // Extract user data from profile or user
   const userData = {
-    firstName: profile?.name?.split(' ')[0] || 'User',
-    lastName: profile?.name?.split(' ')[1] || '',
+    firstName: profile?.firstName || 'User',
+    lastName: profile?.lastName || '',
     email: profile?.email || user?.email || '',
     role: profile?.role || '',
     department: profile?.department || '',
@@ -117,7 +143,7 @@ export function ProfilePage() {
                 <Avatar className="w-12 h-12">
                   <AvatarImage src="" alt={`${userData.firstName} ${userData.lastName}`} />
                   <AvatarFallback>
-                    {getInitials(userData.firstName, userData.lastName)}
+                    {getInitialsFromProfile(userData)}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -224,21 +250,65 @@ export function ProfilePage() {
           </CardContent>
         </Card>
 
+          {/* GDPR & Privacy */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Privacy & Data Rights
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => navigate('/privacy')}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Privacy Policy
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleDataExport}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export My Data
+              </Button>
+              <Button 
+                variant="outline"
+                className="w-full justify-start"
+                onClick={handleConsentManagement}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Manage Consent
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Account Actions */}
           <Card>
-          <CardHeader>
+            <CardHeader>
               <CardTitle>Account</CardTitle>
-          </CardHeader>
-          <CardContent>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <Button 
-                variant="destructive"
+                variant="outline"
                 onClick={handleLogout}
                 className="w-full justify-start"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
               </Button>
-          </CardContent>
+              <Button 
+                variant="destructive"
+                onClick={handleAccountDeletion}
+                className="w-full justify-start"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Account
+              </Button>
+            </CardContent>
           </Card>
         </div>
       </div>
