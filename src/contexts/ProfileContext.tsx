@@ -41,7 +41,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       console.log('ProfileContext: Profile loaded successfully:', {
         hasProfile: !!userProfile,
         profileData: userProfile ? {
-          name: userProfile.name,
+          firstName: userProfile.firstName,
+          lastName: userProfile.lastName,
           role: userProfile.role,
           company: userProfile.company
         } : null
@@ -169,7 +170,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const isProfileComplete = () => {
     if (!profile) return false;
     return !!(
-      profile.name &&
+      profile.firstName &&
+      profile.lastName &&
       profile.role &&
       profile.company
     );

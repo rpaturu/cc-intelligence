@@ -10,10 +10,13 @@ import MessageList from "../components/research/MessageList";
 import ExportSheet from "../components/research/ExportSheet";
 import ResearchAnalysisSheet from "../components/research/ResearchAnalysisSheet";
 import CompanySearch from "../components/research/CompanySearch";
-import { getCompanyData, getMockSources, getFollowUpOptions, getResearchAreas } from "../components/research/data";
-import { getResearchFindings } from "../components/research/researchFindings";
-import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../components/research/utils";
-import { scrollToBottom, scrollToUserMessage, scrollToStreamingMessage, scrollToResearchFindings } from "../components/research/scroll-utils";
+import { getResearchAreas } from "../components/research-content/data";
+import { getFollowUpOptions } from "../components/research-content/data";
+import { getCompanyData } from "../components/research-content/data";
+import { getMockSources } from "../utils/researchFindings";
+import { getResearchFindings } from "../utils/researchFindings";
+import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
+import { scrollToBottom, scrollToUserMessage, scrollToStreamingMessage, scrollToResearchFindings } from "../utils/scroll-utils";
 import { Message, CompletedResearch } from "../types/research";
 import { useProfile } from "../hooks/useProfile";
 import { getResearchHistory, getCompanyResearch, saveCompanyResearch } from '../lib/api';
@@ -63,17 +66,21 @@ export default function Research() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load research history on mount
+  // Load research history when user profile is available
   useEffect(() => {
-    loadResearchHistory();
-  }, []);
+    if (userProfile) {
+      loadResearchHistory();
+    }
+  }, [userProfile]);
 
   // Load research history from backend
   const loadResearchHistory = async () => {
     try {
       setIsLoadingHistory(true);
       console.log('Loading research history...');
-      const response = await getResearchHistory();
+      console.log('UserProfile being passed:', userProfile);
+      console.log('UserProfile userId:', userProfile?.userId);
+      const response = await getResearchHistory(userProfile);
       console.log('Research history response:', response);
       console.log('Setting research history to:', response.companies);
       setResearchHistory(response.companies || []);
@@ -405,7 +412,7 @@ export default function Research() {
       try {
         console.log('Loading existing session for:', company.name);
         // Load the existing session
-        const response = await getCompanyResearch(company.name);
+        const response = await getCompanyResearch(company.name, userProfile);
         console.log('Research response:', response);
         
         setMessages(response.messages.map((msg: any) => ({
@@ -467,7 +474,7 @@ export default function Research() {
 
       console.log('Session data to save:', sessionData);
       // Always save/update the company research
-      await saveCompanyResearch(currentCompany, sessionData);
+      await saveCompanyResearch(currentCompany, sessionData, userProfile);
       console.log('Research session saved successfully');
       
       // Reload research history to include the newly saved session
@@ -526,7 +533,9 @@ export default function Research() {
     if (company === currentCompany) return;
 
     // Save current session before switching
-    await saveCurrentResearchSession();
+    if (currentCompany && (messages.length > 0 || completedResearch.length > 0)) {
+      await saveCurrentResearchSession();
+    }
 
     // Find the saved research session for this company
     const existingSession = researchHistory.find(item => item.company === company);
@@ -534,7 +543,7 @@ export default function Research() {
     if (existingSession) {
       try {
         // Load the saved session
-        const response = await getCompanyResearch(company);
+        const response = await getCompanyResearch(company, userProfile);
         console.log('Loading previous research response:', response);
         
         setCurrentCompany(company);
@@ -773,6 +782,7 @@ export default function Research() {
             user={userProfile}
             activeTabsState={activeTabsState}
             highlightedSource={highlightedSource}
+            availableResearchAreas={allResearchAreas}
             completedResearch={completedResearch}
             onTabChange={handleTabChange}
             onCitationClick={handleCitationClick}

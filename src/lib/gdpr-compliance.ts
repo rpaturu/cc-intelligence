@@ -168,17 +168,11 @@ export class GDPRComplianceManager {
    */
   async implementRightToPortability(userId: string): Promise<any> {
     try {
-      // TODO: Call backend API to export user data
-      // const userData = await apiClient.exportUserData(userId);
+      // Use the existing exportUserData method
+      const userData = await this.exportUserData(userId);
       
-      const exportData = {
-        userId,
-        exportDate: new Date().toISOString(),
-        dataTypes: ['profile', 'researchHistory', 'consentPreferences'],
-        // data: userData
-      };
-
-      return exportData;
+      console.log(`Right to data portability implemented for user: ${userId}`);
+      return userData;
     } catch (error) {
       console.error('Error implementing right to portability:', error);
       throw error;

@@ -15,6 +15,7 @@ import ConsentCollectionPage from './pages/onboarding/ConsentCollectionPage'
 import CompanyInfoPage from './pages/onboarding/CompanyInfoPage'
 import SalesContextPage from './pages/onboarding/SalesContextPage'
 import PrivacyPage from './pages/PrivacyPage'
+import ConsentManagementPage from './pages/ConsentManagementPage'
 import Research from './pages/Research'
 
 function App() {
@@ -99,6 +100,17 @@ function App() {
                   <ProtectedRoute>
                     <DashboardLayout>
                       <PrivacyPage />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } 
+              />
+              
+              <Route 
+                path="/consent" 
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <ConsentManagementPage />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } 

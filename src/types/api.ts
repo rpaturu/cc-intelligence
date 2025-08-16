@@ -10,7 +10,8 @@ export type SalesContext =
 // User Profile Interface
 export interface UserProfile {
   // Personal Information
-  name: string;
+  firstName: string;
+  lastName: string;
   role: string;
   email?: string;
   department?: string;

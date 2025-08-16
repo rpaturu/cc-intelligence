@@ -700,7 +700,7 @@ class SalesIntelligenceApiClient {
   /**
    * Get all researched companies for the current user
    */
-  async getResearchHistory(): Promise<{
+  async getResearchHistory(userProfile?: UserProfile): Promise<{
     companies: Array<{
       company: string;
       lastUpdated: string;
@@ -708,16 +708,24 @@ class SalesIntelligenceApiClient {
       lastActivity?: string;
     }>;
   }> {
-    const userId = this.getCurrentUserId();
+    const userId = userProfile?.userId || this.getCurrentUserId();
+    
+    console.log('getResearchHistory - userId:', userId);
+    
+    // Fix double encoding issue - decode first if already encoded
+    const decodedUserId = decodeURIComponent(userId);
+    const properlyEncodedUserId = encodeURIComponent(decodedUserId);
+    
+    console.log('getResearchHistory - decoded userId:', decodedUserId);
+    console.log('getResearchHistory - properly encoded userId:', properlyEncodedUserId);
     
     // GDPR compliance: Check if user has consented to research history storage
-    // Temporarily allow access while consent system is being implemented
     if (!this.hasResearchHistoryConsent(userId)) {
-      console.warn('Research history access without explicit consent - this will be enforced in production');
-      // throw new Error('Research history access requires explicit consent. Please update your privacy preferences.');
+      throw new Error('Research history access requires explicit consent. Please update your privacy preferences in your profile settings.');
     }
     
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/companies`;
+    const endpoint = `/research-history/users/${properlyEncodedUserId}/companies`;
+    console.log('getResearchHistory - endpoint:', endpoint);
     
     return this.makeRequest(endpoint, {
       method: 'GET',
@@ -727,7 +735,7 @@ class SalesIntelligenceApiClient {
   /**
    * Get research data for a specific company
    */
-  async getCompanyResearch(companyName: string): Promise<{
+  async getCompanyResearch(companyName: string, userProfile?: UserProfile): Promise<{
     userId: string;
     company: string;
     lastUpdated: string;
@@ -753,16 +761,18 @@ class SalesIntelligenceApiClient {
       lastActivity?: string;
     };
   }> {
-    const userId = this.getCurrentUserId();
+    const userId = userProfile?.userId || this.getCurrentUserId();
+    
+    // Fix double encoding issue - decode first if already encoded
+    const decodedUserId = decodeURIComponent(userId);
+    const properlyEncodedUserId = encodeURIComponent(decodedUserId);
     
     // GDPR compliance: Check if user has consented to research history storage
-    // Temporarily allow access while consent system is being implemented
     if (!this.hasResearchHistoryConsent(userId)) {
-      console.warn('Research history access without explicit consent - this will be enforced in production');
-      // throw new Error('Research history access requires explicit consent. Please update your privacy preferences.');
+      throw new Error('Research history access requires explicit consent. Please update your privacy preferences in your profile settings.');
     }
     
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/companies/${encodeURIComponent(companyName)}`;
+    const endpoint = `/research-history/users/${properlyEncodedUserId}/companies/${encodeURIComponent(companyName)}`;
     
     return this.makeRequest(endpoint, {
       method: 'GET',
@@ -794,19 +804,21 @@ class SalesIntelligenceApiClient {
       userCompany?: string;
       lastActivity?: string;
     };
-  }): Promise<{
+  }, userProfile?: UserProfile): Promise<{
     message: string;
   }> {
-    const userId = this.getCurrentUserId();
+    const userId = userProfile?.userId || this.getCurrentUserId();
+    
+    // Fix double encoding issue - decode first if already encoded
+    const decodedUserId = decodeURIComponent(userId);
+    const properlyEncodedUserId = encodeURIComponent(decodedUserId);
     
     // GDPR compliance: Check if user has consented to research history storage
-    // Temporarily allow access while consent system is being implemented
     if (!this.hasResearchHistoryConsent(userId)) {
-      console.warn('Research history storage without explicit consent - this will be enforced in production');
-      // throw new Error('Research history storage requires explicit consent. Please update your privacy preferences.');
+      throw new Error('Research history storage requires explicit consent. Please update your privacy preferences in your profile settings.');
     }
     
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/companies/${encodeURIComponent(companyName)}`;
+    const endpoint = `/research-history/users/${properlyEncodedUserId}/companies/${encodeURIComponent(companyName)}`;
     
     return this.makeRequest(endpoint, {
       method: 'PUT',
@@ -823,10 +835,8 @@ class SalesIntelligenceApiClient {
     const userId = this.getCurrentUserId();
     
     // GDPR compliance: Check if user has consented to research history storage
-    // Temporarily allow access while consent system is being implemented
     if (!this.hasResearchHistoryConsent(userId)) {
-      console.warn('Research history access without explicit consent - this will be enforced in production');
-      // throw new Error('Research history access requires explicit consent. Please update your privacy preferences.');
+      throw new Error('Research history access requires explicit consent. Please update your privacy preferences in your profile settings.');
     }
     
     const endpoint = `/research-history/users/${encodeURIComponent(userId)}/companies/${encodeURIComponent(companyName)}`;
@@ -1090,7 +1100,7 @@ class SalesIntelligenceApiClient {
    */
   private hasResearchHistoryConsent(userId: string): boolean {
     try {
-      // For now, check session storage directly for consent
+      // Check session storage for consent
       const consentKey = `gdpr_consent_preferences_${userId}`;
       const storedConsent = sessionStorage.getItem(consentKey);
       
@@ -1099,12 +1109,11 @@ class SalesIntelligenceApiClient {
         return consent.researchHistory === true;
       }
       
-      // If no consent is stored, allow access for now (temporary fix)
-      // In production, this should default to false for GDPR compliance
-      return true;
+      // GDPR compliance: Default to false - user must explicitly opt-in
+      return false;
     } catch (error) {
-      console.warn('GDPR consent check failed, defaulting to true for now:', error);
-      return true; // Allow access for now while we fix the consent system
+      console.warn('GDPR consent check failed, defaulting to false for compliance:', error);
+      return false; // GDPR-compliant default
     }
   }
 }

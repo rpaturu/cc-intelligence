@@ -7,7 +7,7 @@ import { Building, Mail, User, LogOut, Search, MapPin, Target, BarChart3, Shield
 import Navbar from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
-import { getInitialsFromProfile } from "../components/research/utils";
+import { getInitialsFromProfile } from "../utils/research-utils";
 import { CompanyIntelligenceWidget } from "../components/widgets/VendorIntelligenceWidget";
 import { RoleIntelligenceWidget } from "../components/widgets/RoleIntelligenceWidget";
 import { gdprManager } from "../lib/gdpr-compliance";
@@ -95,23 +95,34 @@ export function ProfilePage() {
     
     try {
       await gdprManager.downloadUserData(user.userId);
-      // Show success message (you can implement a toast notification here)
-      alert('Data export completed successfully!');
+      alert('Data export completed successfully! Your data has been downloaded.');
     } catch (error) {
       console.error('Failed to export data:', error);
-      alert('Failed to export data. Please try again.');
+      if (error instanceof Error) {
+        alert(`Failed to export data: ${error.message}. Please ensure you have given consent for data access.`);
+      } else {
+        alert('Failed to export data. Please try again or contact support.');
+      }
     }
   };
 
   const handleConsentManagement = () => {
-    // TODO: Navigate to consent management page
-    alert('Consent management feature coming soon!');
+    navigate('/consent');
   };
 
-  const handleAccountDeletion = () => {
+  const handleAccountDeletion = async () => {
     if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      // TODO: Implement account deletion
-      alert('Account deletion feature coming soon!');
+      try {
+        if (user?.userId) {
+          await gdprManager.implementRightToErasure(user.userId);
+          alert('Account data deleted successfully. You will be logged out.');
+          await signOut();
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error('Failed to delete account:', error);
+        alert('Failed to delete account. Please try again or contact support.');
+      }
     }
   };
 
