@@ -7,6 +7,7 @@ import type {
   UserProfile 
 } from '../types/api';
 import { API_CONFIG } from './config';
+import { sessionService } from '../services/SessionService';
 
 class SalesIntelligenceApiClient {
   private baseUrl: string;
@@ -25,11 +26,15 @@ class SalesIntelligenceApiClient {
     
     console.log('API Request:', { url, method: options.method || 'GET' });
     
+    // Add session headers automatically
+    const sessionId = sessionService.getSessionId();
+    
     const response = await fetch(url, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
         'X-API-Key': this.apiKey,
+        ...(sessionId && { 'X-Session-ID': sessionId }),
         ...options.headers,
       },
     });
@@ -37,6 +42,13 @@ class SalesIntelligenceApiClient {
     console.log('API Response status:', response.status);
 
     if (!response.ok) {
+      // Handle session expiration
+      if (response.status === 401) {
+        console.log('Session expired, handling logout');
+        await sessionService.handleSessionExpiration();
+        // Let the error propagate so components can handle redirect to login
+      }
+      
       const errorData: ApiError = await response.json();
       console.error('API Error:', errorData);
       throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
@@ -698,9 +710,9 @@ class SalesIntelligenceApiClient {
    */
 
   /**
-   * Get all researched companies for the current user
+   * Get all researched companies for the current user (session-based)
    */
-  async getResearchHistory(userProfile?: UserProfile): Promise<{
+  async getResearchHistory(): Promise<{
     companies: Array<{
       company: string;
       lastUpdated: string;
@@ -708,24 +720,10 @@ class SalesIntelligenceApiClient {
       lastActivity?: string;
     }>;
   }> {
-    const userId = userProfile?.userId || this.getCurrentUserId();
+    console.log('getResearchHistory - using session-based authentication');
     
-    console.log('getResearchHistory - userId:', userId);
-    
-    // Fix double encoding issue - decode first if already encoded
-    const decodedUserId = decodeURIComponent(userId);
-    const properlyEncodedUserId = encodeURIComponent(decodedUserId);
-    
-    console.log('getResearchHistory - decoded userId:', decodedUserId);
-    console.log('getResearchHistory - properly encoded userId:', properlyEncodedUserId);
-    
-    // GDPR compliance: Check if user has consented to research history storage
-    if (!this.hasResearchHistoryConsent(userId)) {
-      throw new Error('Research history access requires explicit consent. Please update your privacy preferences in your profile settings.');
-    }
-    
-    const endpoint = `/research-history/users/${properlyEncodedUserId}/companies`;
-    console.log('getResearchHistory - endpoint:', endpoint);
+    // Session-based endpoint (no userId in path)
+    const endpoint = `/api/research-history/companies`;
     
     return this.makeRequest(endpoint, {
       method: 'GET',
@@ -733,9 +731,9 @@ class SalesIntelligenceApiClient {
   }
 
   /**
-   * Get research data for a specific company
+   * Get research data for a specific company (session-based)
    */
-  async getCompanyResearch(companyName: string, userProfile?: UserProfile): Promise<{
+  async getCompanyResearch(companyName: string): Promise<{
     userId: string;
     company: string;
     lastUpdated: string;
@@ -761,18 +759,10 @@ class SalesIntelligenceApiClient {
       lastActivity?: string;
     };
   }> {
-    const userId = userProfile?.userId || this.getCurrentUserId();
+    console.log('getCompanyResearch - using session-based authentication');
     
-    // Fix double encoding issue - decode first if already encoded
-    const decodedUserId = decodeURIComponent(userId);
-    const properlyEncodedUserId = encodeURIComponent(decodedUserId);
-    
-    // GDPR compliance: Check if user has consented to research history storage
-    if (!this.hasResearchHistoryConsent(userId)) {
-      throw new Error('Research history access requires explicit consent. Please update your privacy preferences in your profile settings.');
-    }
-    
-    const endpoint = `/research-history/users/${properlyEncodedUserId}/companies/${encodeURIComponent(companyName)}`;
+    // Session-based endpoint (no userId in path)
+    const endpoint = `/api/research-history/companies/${encodeURIComponent(companyName)}`;
     
     return this.makeRequest(endpoint, {
       method: 'GET',
@@ -780,7 +770,7 @@ class SalesIntelligenceApiClient {
   }
 
   /**
-   * Save/update research data for a company
+   * Save/update research data for a company (session-based)
    */
   async saveCompanyResearch(companyName: string, data: {
     messages?: Array<{
@@ -804,21 +794,13 @@ class SalesIntelligenceApiClient {
       userCompany?: string;
       lastActivity?: string;
     };
-  }, userProfile?: UserProfile): Promise<{
+  }): Promise<{
     message: string;
   }> {
-    const userId = userProfile?.userId || this.getCurrentUserId();
+    console.log('saveCompanyResearch - using session-based authentication');
     
-    // Fix double encoding issue - decode first if already encoded
-    const decodedUserId = decodeURIComponent(userId);
-    const properlyEncodedUserId = encodeURIComponent(decodedUserId);
-    
-    // GDPR compliance: Check if user has consented to research history storage
-    if (!this.hasResearchHistoryConsent(userId)) {
-      throw new Error('Research history storage requires explicit consent. Please update your privacy preferences in your profile settings.');
-    }
-    
-    const endpoint = `/research-history/users/${properlyEncodedUserId}/companies/${encodeURIComponent(companyName)}`;
+    // Session-based endpoint (no userId in path)
+    const endpoint = `/api/research-history/companies/${encodeURIComponent(companyName)}`;
     
     return this.makeRequest(endpoint, {
       method: 'PUT',

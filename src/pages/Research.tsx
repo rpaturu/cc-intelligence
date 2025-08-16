@@ -73,19 +73,14 @@ export default function Research() {
     }
   }, [userProfile]);
 
-  // Load research history from backend
+  // Load research history from backend (session-based)
   const loadResearchHistory = async () => {
     try {
       setIsLoadingHistory(true);
-      console.log('Loading research history...');
-      console.log('UserProfile being passed:', userProfile);
-      console.log('UserProfile userId:', userProfile?.userId);
-      const response = await getResearchHistory(userProfile);
+      console.log('Loading research history via session...');
+      const response = await getResearchHistory();
       console.log('Research history response:', response);
-      console.log('Setting research history to:', response.companies);
       setResearchHistory(response.companies || []);
-      console.log('Research history state should now be updated');
-      console.log('Final research history length:', (response.companies || []).length);
     } catch (error) {
       console.error('Failed to load research history:', error);
       setResearchHistory([]);
@@ -412,7 +407,7 @@ export default function Research() {
       try {
         console.log('Loading existing session for:', company.name);
         // Load the existing session
-        const response = await getCompanyResearch(company.name, userProfile);
+        const response = await getCompanyResearch(company.name);
         console.log('Research response:', response);
         
         setMessages(response.messages.map((msg: any) => ({
@@ -474,7 +469,7 @@ export default function Research() {
 
       console.log('Session data to save:', sessionData);
       // Always save/update the company research
-      await saveCompanyResearch(currentCompany, sessionData, userProfile);
+      await saveCompanyResearch(currentCompany, sessionData);
       console.log('Research session saved successfully');
       
       // Reload research history to include the newly saved session
@@ -543,7 +538,7 @@ export default function Research() {
     if (existingSession) {
       try {
         // Load the saved session
-        const response = await getCompanyResearch(company, userProfile);
+        const response = await getCompanyResearch(company);
         console.log('Loading previous research response:', response);
         
         setCurrentCompany(company);

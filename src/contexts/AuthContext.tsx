@@ -1,10 +1,12 @@
 import React, { createContext, useEffect, useState } from 'react'
 import { signIn, signUp, signOut, getCurrentUser, confirmSignUp, fetchAuthSession, resendSignUpCode, fetchUserAttributes } from 'aws-amplify/auth'
+import { sessionService } from '../services/SessionService'
 
 interface User {
   userId: string
   username: string
   email: string
+  sessionId?: string // NEW: Optional sessionId (non-breaking change)
   attributes?: {
     email: string
     email_verified: boolean
@@ -49,10 +51,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         const actualEmail = userAttributes.email || currentUser.signInDetails?.loginId || ''
         
+        // Create session for sessionId-based authentication
+        const sessionId = await sessionService.createSession({
+          userId: actualEmail,
+          email: actualEmail,
+          firstName: userAttributes.given_name || '',
+          lastName: userAttributes.family_name || ''
+        })
+
         const newUser = {
           userId: actualEmail, // Use email as the primary identifier instead of UUID
           username: currentUser.username,
           email: actualEmail,
+          sessionId, // NEW: Add sessionId to user object
           attributes: {
             email: actualEmail,
             email_verified: userAttributes.email_verified === 'true',
@@ -116,6 +127,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignOut = async () => {
     try {
       await signOut()
+      await sessionService.destroySession() // Clean up session
       setUser(null)
       console.log('Sign out successful')
     } catch (error) {
