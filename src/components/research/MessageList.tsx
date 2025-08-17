@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { CheckCircle, Clock, Sparkles } from "lucide-react";
 import { ResearchFindingsCard, CompanySummaryCard } from "./components";
 import { getInitials } from "../../utils/research-utils";
+import { Icon } from "../ui/icon";
 import ResearchProgress from "./ResearchProgress";
 import MessageFeedback from "./MessageFeedback";
 import { Message } from "../../types/research";
@@ -396,7 +397,7 @@ export default function MessageList({
                                           animate={{ scale: 1 }}
                                           transition={{ delay: 0.7 + optionIndex * 0.1, type: "spring", stiffness: 200 }}
                                         >
-                                          {option.iconName}
+                                          <Icon name={option.iconName} size="sm" />
                                         </motion.span>
                                       )}
                                       <span className="flex-1 text-left">{option.text}</span>

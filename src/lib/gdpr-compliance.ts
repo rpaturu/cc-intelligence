@@ -3,6 +3,8 @@
  * Handles data protection, consent management, and user rights
  */
 
+import apiClient from './api';
+
 export interface ConsentPreferences {
   analytics: boolean;
   marketing: boolean;
@@ -153,8 +155,11 @@ export class GDPRComplianceManager {
       localStorage.removeItem('userId');
       localStorage.removeItem('userData');
 
-      // TODO: Call backend API to delete user data
-      // await apiClient.deleteUserData(userId);
+      // Call backend API to delete all user data (GDPR right to erasure)
+      await apiClient.deleteAllUserData().catch((error) => {
+        console.error('Failed to delete backend user data:', error);
+        // Don't throw - continue with local cleanup even if backend deletion fails
+      });
 
       console.log(`Right to erasure implemented for user: ${userId}`);
     } catch (error) {
@@ -184,13 +189,11 @@ export class GDPRComplianceManager {
    */
   async exportUserData(userId: string): Promise<any> {
     try {
-      // Get profile data
-      const profileResponse = await fetch(`/api/profile/${encodeURIComponent(userId)}`);
-      const profile = profileResponse.ok ? await profileResponse.json() : null;
+      // Get profile data using sessionId-based API client
+      const profile = await apiClient.getProfile(userId).catch(() => null);
 
-      // Get research history
-      const researchResponse = await fetch(`/api/research-history/users/${encodeURIComponent(userId)}`);
-      const researchHistory = researchResponse.ok ? await researchResponse.json() : null;
+      // Get research history using sessionId-based API client  
+      const researchHistory = await apiClient.getResearchHistory().catch(() => null);
 
       // Get consent preferences
       const consentPreferences = this.getConsentPreferences(userId);

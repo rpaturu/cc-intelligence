@@ -341,6 +341,7 @@ export const iconMap: Record<string, LucideIcon> = {
   'radar': Radar,
   'binoculars': Binoculars,
   'scale': Scale,
+  'swords': Crosshair, // Map swords to crosshair for competitive analysis
 };
 
 // Default icon sizes for different use cases
@@ -405,7 +406,7 @@ export const iconCategories = {
   research: ['brain', 'lightbulb', 'microscope', 'telescope', 'flask-conical', 'chart-bar', 'activity', 'layers', 'git-branch', 'workflow'],
   integration: ['puzzle', 'plug', 'cable', 'router', 'network'],
   growth: ['rocket', 'expand'],
-  competitive: ['crosshair', 'radar', 'binoculars', 'scale'],
+  competitive: ['crosshair', 'radar', 'binoculars', 'scale', 'swords'],
 } as const;
 
 // Get icons by category

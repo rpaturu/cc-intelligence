@@ -12,6 +12,9 @@ A modern React-based user interface for the Sales Intelligence AI platform. This
 - **🔐 Enhanced Authentication**: Improved sign-up, email confirmation, and login flows
 - **📱 Responsive Design**: Optimized for all device sizes with consistent UI components
 - **🎨 Modern UI Components**: Built with shadcn/ui for consistent design system
+- **🔧 Icon System**: Centralized icon mapping with proper rendering across all components
+- **🔗 Session Management**: SessionId-based authentication for improved security and performance
+- **📊 Research Progress**: Visual progress tracking with proper icon display
 
 ### Core Features
 - **AI-Powered Intelligence**: Generate comprehensive company insights with advanced AI analysis
@@ -275,6 +278,10 @@ npm run preview      # Preview production build
 - ✅ Dark mode support
 - ✅ Enhanced authentication
 - ✅ Improved UI/UX consistency
+- ✅ Centralized icon system with proper rendering
+- ✅ SessionId-based authentication
+- ✅ Research progress tracking with icons
+- ✅ GDPR compliance features (consent management, data export, account deletion)
 
 ### M2-frontend
 - ✅ Core intelligence features

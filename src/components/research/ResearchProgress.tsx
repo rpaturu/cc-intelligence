@@ -6,6 +6,7 @@ import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
 import { Collapsible, CollapsibleContent } from "../ui/collapsible";
 import { CheckCircle, Clock, ArrowRight, TrendingUp, ChevronDown } from "lucide-react";
+import { Icon } from "../ui/icon";
 
 interface ResearchOption {
   id: string;
@@ -16,9 +17,11 @@ interface ResearchOption {
 
 interface ResearchArea {
   id: string;
-  text: string;
-  icon: React.ReactNode;
-  category: string;
+  text?: string;           // For research-areas-data.ts structure
+  title?: string;          // For CORE_RESEARCH_AREAS structure
+  description?: string;    // For CORE_RESEARCH_AREAS structure
+  icon: React.ReactNode | string; // Can be ReactNode or iconName string
+  category?: string;       // Optional for CORE_RESEARCH_AREAS
   completed?: boolean;
 }
 
@@ -186,15 +189,15 @@ export default function ResearchProgress({
                         size="sm"
                         className="w-full justify-start text-left transition-all duration-200 bg-card/50 border-border/60 hover:bg-accent hover:text-accent-foreground hover:border-primary/50 active:bg-accent/80 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:bg-card/80 dark:border-border dark:hover:bg-accent/80 dark:hover:border-primary/60 dark:hover:text-foreground dark:active:bg-accent/60"
                         onClick={(e) => {
-                          onOptionClick(area.id, area.text);
+                          onOptionClick(area.id, area.text || area.title || area.id);
                           // Immediate visual feedback and focus management
                           e.currentTarget.blur();
                         }}
                       >
                         <span className="mr-2 flex-shrink-0">
-                          {area.icon}
+                          {typeof area.icon === 'string' ? <Icon name={area.icon} size="sm" /> : area.icon}
                         </span>
-                        <span className="flex-1 text-left">{area.text}</span>
+                        <span className="flex-1 text-left">{area.text || area.title || area.id}</span>
                       </Button>
                     ))}
                   </div>
@@ -217,7 +220,7 @@ export default function ResearchProgress({
                         className="flex items-center gap-3 p-2 rounded-md text-sm text-green-600 dark:text-green-400"
                       >
                         <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        <span className="flex-1 line-through decoration-2 opacity-75">{area.text}</span>
+                        <span className="flex-1 line-through decoration-2 opacity-75">{area.text || area.title || area.id}</span>
                       </div>
                     ))}
                   </div>
@@ -247,7 +250,7 @@ export default function ResearchProgress({
                     }}
                   >
                     <div className="flex items-center gap-2 flex-1">
-                      <span>{option.icon}</span>
+                      <span><Icon name={option.icon} size="sm" /></span>
                       <span className="flex-1">{option.text}</span>
                     </div>
                     <div className="flex items-center gap-2 ml-2">

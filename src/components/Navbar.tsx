@@ -3,13 +3,28 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Search, User, Sun, Moon, ChevronDown, Settings, LogOut } from "lucide-react";
+import { Search, User, Sun, Moon, ChevronDown, Settings, LogOut, Building2, Clock, Shuffle } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
 import { getInitials } from "../utils";
 
-export default function Navbar() {
+interface NavbarProps {
+  currentCompany?: string;
+  areasResearched?: number;
+  totalAreas?: number;
+  onCompanySwitch?: () => void;
+  onHistoryClick?: () => void;
+}
+
+export default function Navbar(props: NavbarProps = {}) {
+  const { 
+    currentCompany, 
+    areasResearched = 0, 
+    totalAreas = 13, 
+    onCompanySwitch, 
+    onHistoryClick 
+  } = props;
   const [scrolled, setScrolled] = useState(false);
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
@@ -100,21 +115,78 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Research Button - Center */}
+          {/* Center Section - Company Context or Research Button */}
           <div className="flex justify-center">
-            <Button
-              variant={currentPage === "research" ? "default" : "ghost"}
-              onClick={handleResearchClick}
-              size={scrolled ? "sm" : "default"}
-              className="flex items-center gap-2 transition-all duration-300 ease-in-out"
-            >
-              <Search className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
-              {!scrolled && "Research"}
-            </Button>
+            {currentCompany && currentPage === "research" ? (
+              // Company Context Display - Figma-style font sizing
+              <div className="flex items-center gap-2">
+                <div className={`bg-primary/10 rounded-lg flex items-center justify-center transition-all duration-300 ${scrolled ? 'p-1.5' : 'p-2'}`}>
+                  <Building2 className={`text-primary transition-all duration-300 ${scrolled ? 'w-4 h-4' : 'w-5 h-5'}`} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className={`font-medium truncate transition-all duration-300 ${scrolled ? 'text-sm' : 'text-lg'}`}>
+                      {currentCompany}
+                    </h3>
+                  </div>
+                  <div className={`flex items-center gap-2 text-muted-foreground transition-all duration-300 ${scrolled ? 'text-xs' : 'text-sm'}`}>
+                    <span className={scrolled ? 'hidden lg:inline' : 'inline'}>
+                      {areasResearched} of {totalAreas} areas researched
+                    </span>
+                    <div className={`bg-muted rounded-full overflow-hidden transition-all duration-300 ${scrolled ? 'w-12 h-1' : 'w-16 h-1.5'}`}>
+                      <div 
+                        className="h-full bg-primary transition-all duration-300"
+                        style={{ width: `${(areasResearched / totalAreas) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Default Research Button
+              <Button
+                variant={currentPage === "research" ? "default" : "ghost"}
+                onClick={handleResearchClick}
+                size={scrolled ? "sm" : "default"}
+                className="flex items-center gap-2 transition-all duration-300 ease-in-out"
+              >
+                <Search className={`transition-all duration-300 ease-in-out ${scrolled ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                {!scrolled && "Research"}
+              </Button>
+            )}
           </div>
 
-          {/* User Menu Dropdown - Right */}
-          <div className="flex justify-end">
+          {/* Right Section - Research Controls + User Menu */}
+          <div className="flex justify-end items-center gap-2">
+            {/* Research Controls - Show when company is selected */}
+            {currentCompany && currentPage === "research" && (
+              <div className="flex items-center gap-1.5">
+                {/* History Button */}
+                <Button
+                  variant="outline"
+                  size={scrolled ? "sm" : "sm"}
+                  className="gap-1 px-2"
+                  onClick={onHistoryClick}
+                >
+                  <Clock className={scrolled ? 'w-3 h-3' : 'w-4 h-4'} />
+                  <span className={scrolled ? 'hidden' : 'hidden sm:inline'}>History</span>
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+
+                {/* Switch Company Button */}
+                <Button
+                  variant="outline"
+                  size={scrolled ? "sm" : "sm"}
+                  className="gap-1 px-2"
+                  onClick={onCompanySwitch}
+                >
+                  <Shuffle className={scrolled ? 'w-3 h-3' : 'w-4 h-4'} />
+                  <span className={scrolled ? 'hidden' : 'hidden sm:inline'}>Switch</span>
+                </Button>
+              </div>
+            )}
+
+            {/* User Menu Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

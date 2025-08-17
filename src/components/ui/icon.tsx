@@ -1,5 +1,5 @@
 import { Icon as BaseIcon, IconProps, IconName, IconSize, iconSizes, hasIcon } from '../../lib/icon-mapping';
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 
 // Extended Icon component with additional styling options
 interface ExtendedIconProps extends Omit<IconProps, 'className'> {

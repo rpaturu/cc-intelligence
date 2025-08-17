@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../components/ui/dropdown-menu";
-import { Send, Search, Building2, History, ChevronDown } from "lucide-react";
+import { Send, Search } from "lucide-react";
 import Navbar from "../components/Navbar";
 import MessageList from "../components/research/MessageList";
 import ExportSheet from "../components/research/ExportSheet";
@@ -24,8 +23,9 @@ import { getResearchHistory, getCompanyResearch, saveCompanyResearch } from '../
 // Import centralized research areas for scroll detection
 import { CORE_RESEARCH_AREAS } from "../data/research-areas";
 
-// Define all research areas for scroll detection
-const allResearchAreas = CORE_RESEARCH_AREAS.map(area => area.id);
+// Define all research areas for scroll detection (full objects for ResearchProgress)
+const allResearchAreas = CORE_RESEARCH_AREAS;
+const allResearchAreaIds = CORE_RESEARCH_AREAS.map(area => area.id);
 
 
 
@@ -62,7 +62,7 @@ export default function Research() {
     completedAreas: number;
     lastActivity?: string;
   }>>([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -76,7 +76,6 @@ export default function Research() {
   // Load research history from backend (session-based)
   const loadResearchHistory = async () => {
     try {
-      setIsLoadingHistory(true);
       console.log('Loading research history via session...');
       const response = await getResearchHistory();
       console.log('Research history response:', response);
@@ -84,8 +83,6 @@ export default function Research() {
     } catch (error) {
       console.error('Failed to load research history:', error);
       setResearchHistory([]);
-    } finally {
-      setIsLoadingHistory(false);
     }
   };
 
@@ -319,7 +316,7 @@ export default function Research() {
     setIsTyping(true);
 
     // Check if this is a research area for special handling
-    const isResearchArea = allResearchAreas.includes(optionId);
+    const isResearchArea = allResearchAreaIds.includes(optionId);
 
     // Immediate scroll to show user message for quick feedback
     setTimeout(() => {
@@ -524,52 +521,25 @@ export default function Research() {
     }, 200);
   };
 
-  const handleLoadPreviousResearch = async (company: string) => {
-    if (company === currentCompany) return;
 
-    // Save current session before switching
-    if (currentCompany && (messages.length > 0 || completedResearch.length > 0)) {
-      await saveCurrentResearchSession();
-    }
-
-    // Find the saved research session for this company
-    const existingSession = researchHistory.find(item => item.company === company);
-
-    if (existingSession) {
-      try {
-        // Load the saved session
-        const response = await getCompanyResearch(company);
-        console.log('Loading previous research response:', response);
-        
-        setCurrentCompany(company);
-        setMessages(response.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp),
-        })));
-        setCompletedResearch(response.completedResearch.map((research: any) => ({
-          id: research.id,
-          title: research.title,
-          completedAt: research.completedAt ? new Date(research.completedAt) : new Date(),
-          researchArea: research.areaId,
-          findings: research.data?.findings || {
-            title: research.title,
-            items: []
-          }
-        })));
-      } catch (error) {
-        console.error('Failed to load previous research:', error);
-        // Fall back to creating a new session
-        createNewResearchSession(company);
-      }
-    } else {
-      // Create a new session
-      createNewResearchSession(company);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
+      <Navbar 
+        currentCompany={currentCompany}
+        areasResearched={completedResearch.length}
+        totalAreas={13}
+        onCompanySwitch={() => {
+          setShowCompanySearch(true);
+          setCurrentCompany("");
+          setMessages([]);
+          setCompletedResearch([]);
+        }}
+        onHistoryClick={() => {
+          // This will be handled by the existing history dropdown
+          console.log('History clicked');
+        }}
+      />
 
       <ExportSheet
         isOpen={isExportSheetOpen}
@@ -590,134 +560,6 @@ export default function Research() {
           console.log('Navigating to research area:', areaId);
         }}
       />
-
-            {/* Research History Dropdown - Always available */}
-      <div className="border-b bg-background/95 backdrop-blur sticky top-16 z-40">
-        <div className="max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {currentCompany ? (
-                <div className="flex items-center gap-2">
-                  <div className="bg-primary/10 rounded-lg p-2">
-                    <Building2 className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{currentCompany}</h3>
-                      <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                        {completedResearch.length} area{completedResearch.length !== 1 ? 's' : ''} researched
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Started {new Date().toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="bg-primary/10 rounded-lg p-2">
-                    <Building2 className="w-4 h-4 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Company Research</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Select a company to begin research
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Research History Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <History className="w-4 h-4" />
-                    History
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  {(() => {
-                    console.log('Rendering research history dropdown. researchHistory:', researchHistory);
-                    console.log('researchHistory.length:', researchHistory.length);
-                    console.log('isLoadingHistory:', isLoadingHistory);
-                    
-                    if (isLoadingHistory) {
-                      return (
-                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                          Loading history...
-                        </div>
-                      );
-                    } else if (researchHistory.length > 0) {
-                      return (
-                        <>
-                          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                            Recent Research
-                          </div>
-                          {researchHistory.slice(0, 5).map((item) => (
-                            <DropdownMenuItem
-                              key={item.company}
-                              className="flex items-center justify-between"
-                              onClick={() => handleLoadPreviousResearch(item.company)}
-                            >
-                              <div>
-                                <div className="font-medium">{item.company}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {new Date(item.lastUpdated).toLocaleDateString()}
-                                </div>
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {item.completedAreas} areas
-                              </div>
-                            </DropdownMenuItem>
-                          ))}
-                          {researchHistory.length > 5 && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-center text-xs text-muted-foreground">
-                                +{researchHistory.length - 5} more
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </>
-                      );
-                    } else {
-                      return (
-                        <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                          No research history yet
-                        </div>
-                      );
-                    }
-                  })()}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Switch Company Button - Only show when a company is selected */}
-              {currentCompany && (
-                <Button
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    // Save current session before switching
-                    saveCurrentResearchSession();
-                    setShowCompanySearch(true);
-                    setCurrentCompany("");
-                    // Clear current research session
-                    setMessages([]);
-                    setCompletedResearch([]);
-                  }}
-                  className="gap-2"
-                >
-                  <Search className="w-4 h-4" />
-                  Switch Company
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Chat Interface */}
       <motion.div
