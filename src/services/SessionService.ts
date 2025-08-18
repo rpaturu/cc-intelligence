@@ -9,6 +9,7 @@
  */
 
 import { API_CONFIG } from '../lib/config';
+import { getApiHeaders } from '../utils/apiHeaders';
 
 export interface UserContext {
   userId: string;
@@ -47,12 +48,17 @@ export class SessionService {
     try {
       console.log('SessionService: Creating session via backend', { userId: userContext.userId });
       
+      const headers = getApiHeaders({
+        contentType: 'application/json',
+        includeSession: false, // No session yet for session creation
+        additionalHeaders: {
+          'X-API-Key': API_CONFIG.apiKey,
+        }
+      });
+      
       const response = await fetch(`${this.baseUrl}/session`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': API_CONFIG.apiKey,
-        },
+        headers,
         body: JSON.stringify(userContext),
       });
 
@@ -105,12 +111,17 @@ export class SessionService {
     // Notify backend to destroy session
     if (sessionId) {
       try {
+        const headers = getApiHeaders({
+          contentType: 'application/json',
+          includeSession: false, // No session needed for session destruction
+          additionalHeaders: {
+            'X-API-Key': API_CONFIG.apiKey,
+          }
+        });
+        
         await fetch(`${this.baseUrl}/session/${sessionId}`, {
           method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': API_CONFIG.apiKey,
-          },
+          headers,
         });
         console.log('SessionService: Backend session destroyed');
       } catch (error) {
@@ -141,12 +152,17 @@ export class SessionService {
     if (!sessionId) return false;
 
     try {
+      const headers = getApiHeaders({
+        contentType: 'application/json',
+        includeSession: false, // No session needed for session validation
+        additionalHeaders: {
+          'X-API-Key': API_CONFIG.apiKey,
+        }
+      });
+      
       const response = await fetch(`${this.baseUrl}/session/${sessionId}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': API_CONFIG.apiKey,
-        },
+        headers,
       });
 
       return response.ok;

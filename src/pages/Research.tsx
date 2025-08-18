@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Avatar, AvatarFallback } from "../components/ui/avatar";
@@ -29,8 +30,10 @@ const allResearchAreaIds = CORE_RESEARCH_AREAS.map(area => area.id);
 
 
 
+
 export default function Research() {
   const { profile: userProfile, loading: profileLoading } = useProfile();
+  const [searchParams] = useSearchParams();
 
   // Early return with loading state if profile is not yet available
   if (profileLoading || !userProfile) {
@@ -66,12 +69,26 @@ export default function Research() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+
+
   // Load research history when user profile is available
   useEffect(() => {
     if (userProfile) {
       loadResearchHistory();
     }
   }, [userProfile]);
+
+  // Check for company parameter in URL and load company research
+  useEffect(() => {
+    if (userProfile) {
+      const companyParam = searchParams.get('company');
+      if (companyParam) {
+        const decodedCompany = decodeURIComponent(companyParam);
+        console.log('Loading company from URL parameter:', decodedCompany);
+        loadCompanyResearch(decodedCompany);
+      }
+    }
+  }, [userProfile, searchParams]);
 
   // Load research history from backend (session-based)
   const loadResearchHistory = async () => {
@@ -86,12 +103,67 @@ export default function Research() {
     }
   };
 
+  // Load specific company research data
+  const loadCompanyResearch = async (companyName: string) => {
+    try {
+      console.log('Loading company research for:', companyName);
+      const response = await getCompanyResearch(companyName);
+      console.log('Company research response:', response);
+      
+      // The response structure is {success: true, data: Object}
+      // where data contains the actual research data
+      const researchData = response.data;
+      
+      if (researchData.messages && researchData.messages.length > 0) {
+        // Convert API messages to frontend Message format
+        const convertedMessages: Message[] = researchData.messages.map((msg: any) => ({
+          id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+          type: msg.role === 'user' ? 'user' : 'assistant',
+          content: msg.content,
+          timestamp: new Date(msg.timestamp),
+          sources: msg.sources || undefined,
+          options: msg.options || undefined,
+          isStreaming: msg.isStreaming || false,
+          streamingSteps: msg.streamingSteps || undefined,
+          companySummary: msg.companySummary || undefined,
+          researchFindings: msg.researchFindings || undefined,
+          followUpOptions: msg.followUpOptions || undefined,
+          vendorProfile: msg.vendorProfile || undefined
+        }));
+        setMessages(convertedMessages);
+      }
+      
+      if (researchData.completedResearch && researchData.completedResearch.length > 0) {
+        // Convert API completed research to frontend format
+        const convertedCompletedResearch: CompletedResearch[] = researchData.completedResearch.map((research: any) => ({
+          id: research.id || `research-${Date.now()}-${Math.random()}`,
+          title: research.title || `${research.researchArea} Research`,
+          completedAt: new Date(research.timestamp),
+          researchArea: research.researchArea,
+          findings: research.findings || { title: '', items: [] }
+        }));
+        setCompletedResearch(convertedCompletedResearch);
+      }
+      
+      // Set the current company
+      setCurrentCompany(companyName);
+      
+      // Hide company search since we have a company selected
+      setShowCompanySearch(false);
+      
+    } catch (error) {
+      console.error('Failed to load company research:', error);
+      // If loading fails, show company search
+      setShowCompanySearch(true);
+    }
+  };
+
   // Auto-save research session whenever messages or completed research change
   useEffect(() => {
     if (currentCompany && (messages.length > 0 || completedResearch.length > 0)) {
-      const timeoutId = setTimeout(() => {
-        saveCurrentResearchSession();
-      }, 1000); // Debounce saves by 1 second
+              const timeoutId = setTimeout(() => {
+          saveCurrentResearchSession();
+        }, 1000); // Debounce saves by 1 second
 
       return () => clearTimeout(timeoutId);
     }
@@ -407,11 +479,11 @@ export default function Research() {
         const response = await getCompanyResearch(company.name);
         console.log('Research response:', response);
         
-        setMessages(response.messages.map((msg: any) => ({
+        setMessages(response.data.messages.map((msg: any) => ({
           ...msg,
           timestamp: new Date(msg.timestamp),
         })));
-        setCompletedResearch(response.completedResearch.map((research: any) => ({
+        setCompletedResearch(response.data.completedResearch.map((research: any) => ({
           id: research.id,
           title: research.title,
           completedAt: research.completedAt ? new Date(research.completedAt) : new Date(),
@@ -445,14 +517,18 @@ export default function Research() {
       const sessionData = {
         messages: messages.map(msg => ({
           ...msg,
-          timestamp: msg.timestamp.toISOString(),
+          timestamp: msg.timestamp instanceof Date && !isNaN(msg.timestamp.getTime()) 
+            ? msg.timestamp.toISOString() 
+            : new Date().toISOString(),
         })),
         completedResearch: completedResearch.map(research => ({
           id: research.id,
           areaId: research.researchArea || research.id,
           title: research.title,
           status: 'completed' as const,
-          completedAt: research.completedAt?.toISOString(),
+          completedAt: research.completedAt instanceof Date && !isNaN(research.completedAt.getTime())
+            ? research.completedAt.toISOString()
+            : new Date().toISOString(),
           data: {
             findings: research.findings
           }
@@ -536,8 +612,9 @@ export default function Research() {
           setCompletedResearch([]);
         }}
         onHistoryClick={() => {
-          // This will be handled by the existing history dropdown
-          console.log('History clicked');
+          // This will be called when user selects a company from history
+          // We can add logic here to handle the selection if needed
+          console.log('History company selected');
         }}
       />
 

@@ -194,7 +194,7 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
           <div className="space-y-4">
             {/* Company Header */}
             <motion.div 
-              className="flex items-center gap-2"
+              className="flex flex-wrap items-center gap-2 sm:flex-nowrap"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2, duration: 0.4 }}
@@ -203,83 +203,90 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                className="flex-shrink-0"
               >
                 <BarChart3 className="w-5 h-5 text-primary" />
               </motion.div>
-              <span className="text-foreground">{companySummary.name}</span>
-              <Badge variant="secondary">{companySummary.industry}</Badge>
-              <span className="text-muted-foreground">|</span>
-              <span className="text-muted-foreground">{companySummary.size}</span>
+              <span className="text-foreground font-medium min-w-0 flex-1">{companySummary.name}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">{companySummary.industry}</Badge>
+                <span className="text-muted-foreground hidden sm:inline">|</span>
+                <span className="text-muted-foreground text-sm">{companySummary.size}</span>
+              </div>
             </motion.div>
 
             {/* Business Context */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
               <motion.div 
-                className="space-y-2"
+                className="space-y-3"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.3 }}
               >
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="w-4 h-4" />
-                  <span>{companySummary.location}</span>
+                <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm">
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <MapPin className="w-4 h-4" />
+                    <span>{companySummary.location}</span>
+                  </div>
                   {companySummary.founded && (
                     <>
-                      <span>•</span>
-                      <span>Founded {companySummary.founded}</span>
+                      <span className="hidden sm:inline">•</span>
+                      <span className="flex-shrink-0">Founded {companySummary.founded}</span>
                     </>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>{companySummary.revenue}</span>
+                <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm">
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <TrendingUp className="w-4 h-4" />
+                    <span>{companySummary.revenue}</span>
+                  </div>
                   {companySummary.businessMetrics?.valuation && (
                     <>
-                      <span>•</span>
-                      <span>{companySummary.businessMetrics.valuation}</span>
+                      <span className="hidden sm:inline">•</span>
+                      <span className="flex-shrink-0">{companySummary.businessMetrics.valuation}</span>
                     </>
                   )}
                 </div>
 
                 {companySummary.businessModel && (
                   <div className="text-sm text-muted-foreground">
-                    <span className="text-foreground">Business Model:</span> {companySummary.businessModel}
+                    <span className="text-foreground font-medium">Business Model:</span> {companySummary.businessModel}
                   </div>
                 )}
 
                 {companySummary.marketPosition && (
                   <div className="text-sm text-muted-foreground">
-                    <span className="text-foreground">Market Position:</span> {companySummary.marketPosition}
+                    <span className="text-foreground font-medium">Market Position:</span> {companySummary.marketPosition}
                   </div>
                 )}
               </motion.div>
 
               <motion.div 
-                className="space-y-2"
+                className="space-y-3"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.3 }}
               >
                 {/* Recent News */}
                 <div className="text-sm">
-                  <span className="text-foreground">Recent:</span> 
-                  <span className="text-muted-foreground ml-1">{companySummary.recentNews}</span>
+                  <span className="text-foreground font-medium">Recent:</span> 
+                  <span className="text-muted-foreground ml-1 break-words">{companySummary.recentNews}</span>
                 </div>
 
                 {/* Key Metrics */}
                 {companySummary.businessMetrics && (
-                  <div className="flex flex-wrap gap-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3 text-sm">
                     {companySummary.businessMetrics.employeeGrowth && (
-                      <div>
-                        <span className="text-foreground">Growth:</span>
-                        <span className="text-green-600 ml-1">{companySummary.businessMetrics.employeeGrowth}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-foreground font-medium">Growth:</span>
+                        <span className="text-green-600">{companySummary.businessMetrics.employeeGrowth}</span>
                       </div>
                     )}
                     {companySummary.businessMetrics.customerCount && (
-                      <div>
-                        <span className="text-foreground">Customers:</span>
-                        <span className="text-muted-foreground ml-1">{companySummary.businessMetrics.customerCount}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-foreground font-medium">Customers:</span>
+                        <span className="text-muted-foreground">{companySummary.businessMetrics.customerCount}</span>
                       </div>
                     )}
                   </div>
@@ -298,52 +305,56 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
 
             {/* Technology Stack */}
             <motion.div 
-              className="flex items-start gap-2"
+              className="flex items-start gap-3"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.3 }}
             >
-              <Zap className="w-4 h-4 text-muted-foreground mt-0.5" />
-              <div className="flex flex-wrap gap-1">
-                <span className="text-muted-foreground text-sm">Tech Stack:</span>
-                {companySummary.techStack.map((tech, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.7 + index * 0.05, duration: 0.2 }}
-                  >
-                    <Badge variant="outline" className="text-xs">
-                      {tech}
-                    </Badge>
-                  </motion.div>
-                ))}
+              <Zap className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-muted-foreground text-sm font-medium">Tech Stack:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {companySummary.techStack.map((tech, index) => (
+                      <motion.div
+                        key={`tech-${tech}-${index}`}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.7 + index * 0.05, duration: 0.2 }}
+                      >
+                        <Badge variant="outline" className="text-xs whitespace-nowrap">
+                          {tech}
+                        </Badge>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </motion.div>
 
             {/* Key Leadership */}
             {companySummary.keyExecutives && companySummary.keyExecutives.length > 0 && (
               <motion.div 
-                className="space-y-1"
+                className="space-y-3"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8, duration: 0.3 }}
               >
-                <span className="text-sm text-foreground">Key Leadership:</span>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                <span className="text-sm text-foreground font-medium">Key Leadership:</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-3">
                   {companySummary.keyExecutives.slice(0, 4).map((exec, index) => (
                     <motion.div 
-                      key={index} 
-                      className="text-sm bg-background/50 rounded p-2 card-hover"
+                      key={`exec-${exec.name}-${index}`}
+                      className="text-sm bg-background/50 rounded-lg p-3 card-hover"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.9 + index * 0.1, duration: 0.3 }}
                       whileHover={{ x: 5, transition: { duration: 0.2 } }}
                     >
-                      <div className="text-foreground">{exec.name}</div>
-                      <div className="text-xs text-muted-foreground">{exec.role}</div>
+                      <div className="text-foreground font-medium break-words">{exec.name}</div>
+                      <div className="text-xs text-muted-foreground break-words">{exec.role}</div>
                       {exec.background && (
-                        <div className="text-xs text-muted-foreground">{exec.background}</div>
+                        <div className="text-xs text-muted-foreground break-words mt-1">{exec.background}</div>
                       )}
                     </motion.div>
                   ))}
@@ -354,29 +365,29 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
             {/* Recent Developments */}
             {companySummary.recentDevelopments && companySummary.recentDevelopments.length > 0 && (
               <motion.div 
-                className="space-y-1"
+                className="space-y-3"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.0, duration: 0.3 }}
               >
-                <span className="text-sm text-foreground">Recent Developments:</span>
-                <div className="space-y-1">
+                <span className="text-sm text-foreground font-medium">Recent Developments:</span>
+                <div className="space-y-2">
                   {companySummary.recentDevelopments.slice(0, 3).map((dev, index) => (
                     <motion.div 
-                      key={index} 
-                      className="flex items-center gap-2 text-sm"
+                      key={`dev-${dev.title}-${index}`}
+                      className="flex flex-wrap items-start gap-2 text-sm"
                       initial={{ opacity: 0, x: -15 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 1.1 + index * 0.1, duration: 0.3 }}
                     >
                       <Badge 
                         variant={dev.impact === "high" ? "default" : "secondary"} 
-                        className="text-xs capitalize"
+                        className="text-xs capitalize flex-shrink-0"
                       >
                         {dev.type}
                       </Badge>
-                      <span className="text-muted-foreground text-xs">{dev.title}</span>
-                      <span className="text-muted-foreground text-xs">({dev.date})</span>
+                      <span className="text-muted-foreground text-xs flex-1 break-words">{dev.title}</span>
+                      <span className="text-muted-foreground text-xs flex-shrink-0">({dev.date})</span>
                     </motion.div>
                   ))}
                 </div>
@@ -386,20 +397,24 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
             {/* Competitive Context */}
             {companySummary.competitiveContext && (
               <motion.div 
-                className="space-y-1"
+                className="space-y-3"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2, duration: 0.3 }}
               >
-                <span className="text-sm text-foreground">Competitive Landscape:</span>
-                <div className="text-xs text-muted-foreground">
-                  <span className="text-foreground">Main Competitors:</span> {companySummary.competitiveContext.mainCompetitors.join(", ")}
-                </div>
-                {companySummary.competitiveContext.differentiators.length > 0 && (
+                <span className="text-sm text-foreground font-medium">Competitive Landscape:</span>
+                <div className="space-y-2">
                   <div className="text-xs text-muted-foreground">
-                    <span className="text-foreground">Key Differentiators:</span> {companySummary.competitiveContext.differentiators.join(", ")}
+                    <span className="text-foreground font-medium">Main Competitors:</span> 
+                    <span className="break-words ml-1">{companySummary.competitiveContext.mainCompetitors.join(", ")}</span>
                   </div>
-                )}
+                  {companySummary.competitiveContext.differentiators.length > 0 && (
+                    <div className="text-xs text-muted-foreground">
+                      <span className="text-foreground font-medium">Key Differentiators:</span> 
+                      <span className="break-words ml-1">{companySummary.competitiveContext.differentiators.join(", ")}</span>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
           </div>
@@ -410,7 +425,7 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.4, duration: 0.3 }}
-              className="mt-4 pt-4 border-t border-border/50"
+              className="mt-6 pt-4 border-t border-border/50"
             >
               <MessageFeedback
                 messageId={messageId}

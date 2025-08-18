@@ -21,10 +21,10 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { gdprManager, ConsentPreferences } from '../lib/gdpr-compliance';
+import { gdprService, GdprConsentStatus } from '../services/GdprService';
 
 interface ConsentChange {
-  type: keyof ConsentPreferences;
+  type: string;
   oldValue: boolean;
   newValue: boolean;
   timestamp: string;
@@ -33,43 +33,32 @@ interface ConsentChange {
 const ConsentManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [consentPreferences, setConsentPreferences] = useState<ConsentPreferences | null>(null);
-  const [pendingChanges, setPendingChanges] = useState<Partial<ConsentPreferences>>({});
+  const [consentStatus, setConsentStatus] = useState<GdprConsentStatus | null>(null);
+  const [pendingConsent, setPendingConsent] = useState<boolean | null>(null);
   const [consentHistory, setConsentHistory] = useState<ConsentChange[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
-  // Load consent preferences on component mount
+  // Load GDPR data on component mount
   useEffect(() => {
     if (user?.userId) {
-      loadConsentPreferences();
+      loadGdprData();
       loadConsentHistory();
     }
   }, [user?.userId]);
 
-  const loadConsentPreferences = () => {
+  const loadGdprData = async () => {
     try {
-      const preferences = gdprManager.getConsentPreferences(user!.userId);
+      setIsLoading(true);
+      setMessage(null);
       
-      // If no preferences exist yet, initialize with default values (all false for GDPR compliance)
-      if (!preferences) {
-        const defaultPreferences: ConsentPreferences = {
-          researchHistory: false,
-          profileData: false,
-          analytics: false,
-          marketing: false,
-          thirdPartyData: false,
-          timestamp: new Date().toISOString(),
-          version: '1.0'
-        };
-        setConsentPreferences(defaultPreferences);
-      } else {
-        setConsentPreferences(preferences);
-      }
+      // Load consent status
+      const consent = await gdprService.checkConsentStatus();
+      setConsentStatus(consent);
     } catch (error) {
-      console.error('Error loading consent preferences:', error);
-      setMessage({ type: 'error', text: 'Failed to load consent preferences' });
+      console.error('Error loading GDPR data:', error);
+      setMessage({ type: 'error', text: 'Failed to load GDPR data' });
     } finally {
       setIsLoading(false);
     }
@@ -88,59 +77,47 @@ const ConsentManagementPage: React.FC = () => {
     }
   };
 
-  const handleConsentChange = (type: keyof ConsentPreferences, value: boolean) => {
-    if (!consentPreferences) return;
-
-    setPendingChanges(prev => ({
-      ...prev,
-      [type]: value
-    }));
-
-    // Clear any existing messages
+  const handleConsentChange = (value: boolean) => {
+    setPendingConsent(value);
     setMessage(null);
   };
 
   const handleSaveChanges = async () => {
-    if (!user?.userId || !consentPreferences) return;
+    if (!user?.userId || pendingConsent === null) return;
 
     setIsSaving(true);
     try {
-      // Create updated preferences
-      const updatedPreferences: ConsentPreferences = {
-        ...consentPreferences,
-        ...pendingChanges,
+      // Update consent via backend
+      const updatedStatus = pendingConsent 
+        ? await gdprService.grantConsent('1.0')
+        : await gdprService.withdrawConsent();
+
+      // Record change in history
+      const change: ConsentChange = {
+        type: 'researchHistory',
+        oldValue: consentStatus?.hasConsent || false,
+        newValue: pendingConsent,
         timestamp: new Date().toISOString()
       };
-
-      // Update consent preferences
-      gdprManager.updateConsentPreferences(user.userId, updatedPreferences);
-
-      // Record changes in history
-      const changes: ConsentChange[] = Object.entries(pendingChanges).map(([type, newValue]) => ({
-        type: type as keyof ConsentPreferences,
-        oldValue: consentPreferences[type as keyof ConsentPreferences] as boolean,
-        newValue: newValue as boolean,
-        timestamp: new Date().toISOString()
-      }));
 
       // Save to history
       const historyKey = `consent_history_${user.userId}`;
       const existingHistory = sessionStorage.getItem(historyKey);
       const allHistory = existingHistory ? JSON.parse(existingHistory) : [];
-      sessionStorage.setItem(historyKey, JSON.stringify([...changes, ...allHistory]));
+      sessionStorage.setItem(historyKey, JSON.stringify([change, ...allHistory]));
 
       // Update state
-      setConsentPreferences(updatedPreferences);
-      setConsentHistory(prev => [...changes, ...prev]);
-      setPendingChanges({});
+      setConsentStatus(updatedStatus);
+      setConsentHistory(prev => [change, ...prev]);
+      setPendingConsent(null);
 
-      setMessage({ type: 'success', text: 'Consent preferences updated successfully' });
+      setMessage({ type: 'success', text: 'Consent updated successfully' });
 
       // Clear success message after 3 seconds
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      console.error('Error saving consent preferences:', error);
-      setMessage({ type: 'error', text: 'Failed to save consent preferences' });
+      console.error('Error saving consent:', error);
+      setMessage({ type: 'error', text: 'Failed to save consent' });
     } finally {
       setIsSaving(false);
     }
@@ -149,23 +126,13 @@ const ConsentManagementPage: React.FC = () => {
   const handleResetToDefaults = () => {
     if (!user?.userId) return;
 
-    const defaultConsent: ConsentPreferences = {
-      analytics: false,
-      marketing: false,
-      researchHistory: false,
-      profileData: false,
-      thirdPartyData: false,
-      timestamp: new Date().toISOString(),
-      version: '1.0'
-    };
-
-    setPendingChanges(defaultConsent);
-    setMessage({ type: 'info', text: 'Reset to default preferences. Click Save to apply changes.' });
+    setPendingConsent(false);
+    setMessage({ type: 'info', text: 'Reset to no consent. Click Save to apply changes.' });
   };
 
-  const hasChanges = Object.keys(pendingChanges).length > 0;
+  const hasChanges = pendingConsent !== null;
 
-  const getConsentIcon = (type: keyof ConsentPreferences) => {
+  const getConsentIcon = (type: string) => {
     switch (type) {
       case 'researchHistory': return <Database className="h-4 w-4" />;
       case 'profileData': return <Users className="h-4 w-4" />;
@@ -176,7 +143,7 @@ const ConsentManagementPage: React.FC = () => {
     }
   };
 
-  const getConsentDescription = (type: keyof ConsentPreferences) => {
+  const getConsentDescription = (type: string) => {
     switch (type) {
       case 'researchHistory':
         return 'Store your company research sessions to enable you to continue where you left off and access previous findings.';
@@ -193,13 +160,13 @@ const ConsentManagementPage: React.FC = () => {
     }
   };
 
-  const getConsentStatus = (type: keyof ConsentPreferences) => {
-    if (!consentPreferences) return 'unknown';
+  const getConsentStatus = () => {
+    if (!consentStatus) return 'unknown';
     
-    const currentValue = consentPreferences[type];
-    const pendingValue = pendingChanges[type];
+    const currentValue = consentStatus.hasConsent;
+    const pendingValue = pendingConsent;
     
-    if (pendingValue !== undefined) {
+    if (pendingValue !== null) {
       return pendingValue ? 'pending-enabled' : 'pending-disabled';
     }
     
@@ -217,7 +184,7 @@ const ConsentManagementPage: React.FC = () => {
     );
   }
 
-  if (!consentPreferences) {
+  if (!consentStatus) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
@@ -225,7 +192,7 @@ const ConsentManagementPage: React.FC = () => {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Unable to load consent preferences. Please try refreshing the page.
+                Unable to load consent status. Please try refreshing the page.
               </AlertDescription>
             </Alert>
             <Button 
@@ -289,52 +256,41 @@ const ConsentManagementPage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {Object.entries(consentPreferences).map(([key, value]) => {
-                if (key === 'timestamp' || key === 'version') return null;
-                
-                const type = key as keyof ConsentPreferences;
-                const status = getConsentStatus(type);
-                const pendingValue = pendingChanges[type];
-                const currentValue = value as boolean;
-                
-                return (
-                  <div key={key} className="flex items-start space-x-3 p-4 border rounded-lg">
-                                         <Checkbox
-                       id={key}
-                       checked={pendingValue !== undefined ? (pendingValue as boolean) : currentValue}
-                       onCheckedChange={(checked) => handleConsentChange(type, checked === true)}
-                       className="mt-1 border border-gray-300"
-                     />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {getConsentIcon(type)}
-                        <label htmlFor={key} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                        </label>
-                        <Badge 
-                          variant={
-                            status === 'enabled' || status === 'pending-enabled' ? 'default' :
-                            status === 'disabled' || status === 'pending-disabled' ? 'secondary' : 'outline'
-                          }
-                          className="text-xs"
-                        >
-                          {status === 'enabled' && <CheckCircle className="h-3 w-3 mr-1" />}
-                          {status === 'disabled' && <XCircle className="h-3 w-3 mr-1" />}
-                          {status === 'pending-enabled' && <Clock className="h-3 w-3 mr-1" />}
-                          {status === 'pending-disabled' && <Clock className="h-3 w-3 mr-1" />}
-                          {status === 'enabled' ? 'Enabled' : 
-                           status === 'disabled' ? 'Disabled' : 
-                           status === 'pending-enabled' ? 'Will Enable' : 
-                           status === 'pending-disabled' ? 'Will Disable' : 'Unknown'}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {getConsentDescription(type)}
-                      </p>
-                    </div>
+              <div className="flex items-start space-x-3 p-4 border rounded-lg">
+                <Checkbox
+                  id="researchHistory"
+                  checked={pendingConsent !== null ? pendingConsent : consentStatus.hasConsent}
+                  onCheckedChange={(checked) => handleConsentChange(checked === true)}
+                  className="mt-1 border border-gray-300"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    {getConsentIcon('researchHistory')}
+                    <label htmlFor="researchHistory" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Research History
+                    </label>
+                    <Badge 
+                      variant={
+                        getConsentStatus() === 'enabled' || getConsentStatus() === 'pending-enabled' ? 'default' :
+                        getConsentStatus() === 'disabled' || getConsentStatus() === 'pending-disabled' ? 'secondary' : 'outline'
+                      }
+                      className="text-xs"
+                    >
+                      {getConsentStatus() === 'enabled' && <CheckCircle className="h-3 w-3 mr-1" />}
+                      {getConsentStatus() === 'disabled' && <XCircle className="h-3 w-3 mr-1" />}
+                      {getConsentStatus() === 'pending-enabled' && <Clock className="h-3 w-3 mr-1" />}
+                      {getConsentStatus() === 'pending-disabled' && <Clock className="h-3 w-3 mr-1" />}
+                      {getConsentStatus() === 'enabled' ? 'Enabled' : 
+                       getConsentStatus() === 'disabled' ? 'Disabled' : 
+                       getConsentStatus() === 'pending-enabled' ? 'Will Enable' : 
+                       getConsentStatus() === 'pending-disabled' ? 'Will Disable' : 'Unknown'}
+                    </Badge>
                   </div>
-                );
-              })}
+                  <p className="text-sm text-muted-foreground">
+                    {getConsentDescription('researchHistory')}
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

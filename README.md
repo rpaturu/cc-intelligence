@@ -15,6 +15,8 @@ A modern React-based user interface for the Sales Intelligence AI platform. This
 - **🔧 Icon System**: Centralized icon mapping with proper rendering across all components
 - **🔗 Session Management**: SessionId-based authentication for improved security and performance
 - **📊 Research Progress**: Visual progress tracking with proper icon display
+- **🏷️ Consistent Research Labels**: Standardized descriptive research area labels across all components
+- **📱 Enhanced Company Overview**: Flexible grid layout optimized for mobile experience with improved responsive design
 
 ### Core Features
 - **AI-Powered Intelligence**: Generate comprehensive company insights with advanced AI analysis
@@ -134,6 +136,22 @@ The platform adapts to different sales roles:
 - **Sales Development (SDR/BDR)**: Prospecting insights, contact strategies, qualification
 - **Customer Success (CSM)**: Expansion opportunities, health scores, retention factors
 - **Sales Manager**: Team performance, pipeline analysis, coaching insights
+
+### Recent UI/UX Improvements
+
+#### Consistent Research Area Labels
+- **Standardized Naming**: All research areas now use descriptive labels consistently
+- **13 Research Areas**: Complete coverage with clear, descriptive names
+- **Cross-Component Consistency**: Same labels used in initial list, progress tracking, and history
+- **User Experience**: No confusion between different label variations
+
+#### Enhanced Company Overview Card
+- **Flexible Grid Layout**: Responsive design that adapts from mobile to desktop
+- **Mobile-First Design**: Optimized for 375px+ screen widths with touch-friendly interactions
+- **Improved Typography**: Better text wrapping, truncation, and visual hierarchy
+- **Enhanced Spacing**: Consistent spacing with responsive breakpoints
+- **Better Touch Targets**: Adequate spacing and sizing for mobile interaction
+- **Responsive Elements**: Hidden separators on mobile, flexible icon positioning
 
 ## 🎨 Design System
 
@@ -282,6 +300,8 @@ npm run preview      # Preview production build
 - ✅ SessionId-based authentication
 - ✅ Research progress tracking with icons
 - ✅ GDPR compliance features (consent management, data export, account deletion)
+- ✅ Consistent research area labels with descriptive naming
+- ✅ Enhanced company overview card with flexible grid for mobile experience
 
 ### M2-frontend
 - ✅ Core intelligence features

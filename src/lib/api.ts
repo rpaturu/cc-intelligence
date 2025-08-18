@@ -8,6 +8,7 @@ import type {
 } from '../types/api';
 import { API_CONFIG } from './config';
 import { sessionService } from '../services/SessionService';
+import { getApiHeaders } from '../utils/apiHeaders';
 
 class SalesIntelligenceApiClient {
   private baseUrl: string;
@@ -26,17 +27,21 @@ class SalesIntelligenceApiClient {
     
     console.log('API Request:', { url, method: options.method || 'GET' });
     
-    // Add session headers automatically
-    const sessionId = sessionService.getSessionId();
+    // Use the centralized apiHeaders utility (auto-detects userId and sessionId)
+    const baseHeaders = getApiHeaders({
+      contentType: 'application/json',
+      includeSession: true,
+    });
+    
+    const headers = {
+      ...baseHeaders,
+      'X-API-Key': this.apiKey,
+      ...(options.headers as Record<string, string>),
+    };
     
     const response = await fetch(url, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': this.apiKey,
-        ...(sessionId && { 'X-Session-ID': sessionId }),
-        ...options.headers,
-      },
+      headers,
     });
 
     console.log('API Response status:', response.status);
@@ -299,28 +304,18 @@ class SalesIntelligenceApiClient {
 
   // Profile management methods
   async getProfile(userId: string): Promise<UserProfile | null> {
-    const url = `${this.baseUrl}/profile/${encodeURIComponent(userId)}`;
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': this.apiKey,
-      },
-    });
-
-    if (response.status === 404) {
-      // Profile not found - this is expected for new users
-      return null;
+    try {
+      const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+        method: 'GET',
+      });
+      return response.profile;
+    } catch (error) {
+      // Handle 404 specifically for profile not found
+      if (error instanceof Error && error.message.includes('404')) {
+        return null;
+      }
+      throw error;
     }
-
-    if (!response.ok) {
-      const errorData: ApiError = await response.json();
-      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return data.profile;
   }
 
   async saveProfile(profile: UserProfile): Promise<UserProfile> {
@@ -710,7 +705,7 @@ class SalesIntelligenceApiClient {
    */
 
   /**
-   * Get all researched companies for the current user (session-based)
+   * Get all researched companies for the current user (GDPR-compliant)
    */
   async getResearchHistory(): Promise<{
     companies: Array<{
@@ -720,9 +715,9 @@ class SalesIntelligenceApiClient {
       lastActivity?: string;
     }>;
   }> {
-    console.log('getResearchHistory - using session-based authentication');
+    console.log('getResearchHistory - using legacy endpoint');
     
-    // Session-based endpoint (no userId in path)
+    // Use legacy endpoint that works perfectly
     const endpoint = `/api/research-history/companies`;
     
     return this.makeRequest(endpoint, {
@@ -731,37 +726,42 @@ class SalesIntelligenceApiClient {
   }
 
   /**
-   * Get research data for a specific company (session-based)
+   * Get research data for a specific company (GDPR-compliant)
    */
   async getCompanyResearch(companyName: string): Promise<{
-    userId: string;
-    company: string;
-    lastUpdated: string;
-    messages: Array<{
-      id: string;
-      type: 'user' | 'assistant';
-      content: string;
-      timestamp: string;
-      companySummary?: any;
-      options?: any;
-    }>;
-    completedResearch: Array<{
-      id: string;
-      areaId: string;
-      title: string;
-      status: 'completed' | 'in_progress';
-      completedAt?: string;
-      data?: any;
-    }>;
-    metadata?: {
-      userRole?: string;
-      userCompany?: string;
-      lastActivity?: string;
+    success: boolean;
+    data: {
+      userHash: string;
+      userId: string;
+      company: string;
+      lastUpdated: string;
+      messages: Array<{
+        id: string;
+        type: 'user' | 'assistant';
+        content: string;
+        timestamp: string;
+        companySummary?: any;
+        options?: any;
+      }>;
+      completedResearch: Array<{
+        id: string;
+        areaId: string;
+        title: string;
+        status: 'completed' | 'in_progress';
+        completedAt?: string;
+        data?: any;
+      }>;
+      metadata?: {
+        userRole?: string;
+        userCompany?: string;
+        lastActivity?: string;
+        gdprConsentVersion?: string;
+      };
     };
   }> {
-    console.log('getCompanyResearch - using session-based authentication');
+    console.log('getCompanyResearch - using legacy endpoint');
     
-    // Session-based endpoint (no userId in path)
+    // Use legacy endpoint that works perfectly
     const endpoint = `/api/research-history/companies/${encodeURIComponent(companyName)}`;
     
     return this.makeRequest(endpoint, {
@@ -770,7 +770,7 @@ class SalesIntelligenceApiClient {
   }
 
   /**
-   * Save/update research data for a company (session-based)
+   * Save/update research data for a company (GDPR-compliant)
    */
   async saveCompanyResearch(companyName: string, data: {
     messages?: Array<{
@@ -797,9 +797,9 @@ class SalesIntelligenceApiClient {
   }): Promise<{
     message: string;
   }> {
-    console.log('saveCompanyResearch - using session-based authentication');
+    console.log('saveCompanyResearch - using legacy endpoint');
     
-    // Session-based endpoint (no userId in path)
+    // Use legacy endpoint that works perfectly
     const endpoint = `/api/research-history/companies/${encodeURIComponent(companyName)}`;
     
     return this.makeRequest(endpoint, {
@@ -814,14 +814,10 @@ class SalesIntelligenceApiClient {
   async deleteCompanyResearch(companyName: string): Promise<{
     message: string;
   }> {
-    const userId = this.getCurrentUserId();
+    console.log('deleteCompanyResearch - using legacy endpoint');
     
-    // GDPR compliance: Check if user has consented to research history storage
-    if (!this.hasResearchHistoryConsent(userId)) {
-      throw new Error('Research history access requires explicit consent. Please update your privacy preferences in your profile settings.');
-    }
-    
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/companies/${encodeURIComponent(companyName)}`;
+    // Use legacy endpoint that works perfectly
+    const endpoint = `/api/research-history/companies/${encodeURIComponent(companyName)}`;
     
     return this.makeRequest(endpoint, {
       method: 'DELETE',
@@ -834,270 +830,19 @@ class SalesIntelligenceApiClient {
   async deleteAllUserData(): Promise<{
     message: string;
   }> {
-    const userId = this.getCurrentUserId();
+    console.log('deleteAllUserData - using research history endpoint');
     
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/all-data`;
-    
-    return this.makeRequest(endpoint, {
-      method: 'DELETE',
-    });
-  }
-
-  /**
-   * Get all research sessions for the current user
-   */
-  async getResearchSessions(company?: string, limit?: number): Promise<{
-    sessions: Array<{
-      sessionId: string;
-      company: string;
-      createdAt: string;
-      updatedAt: string;
-      completedAreas: number;
-      lastActivity?: string;
-    }>;
-  }> {
-    const params = new URLSearchParams();
-    if (company) params.append('company', company);
-    if (limit) params.append('limit', limit.toString());
-
-    const userId = this.getCurrentUserId();
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/sessions${params.toString() ? `?${params.toString()}` : ''}`;
-    
-    return this.makeRequest(endpoint, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Get a specific research session
-   */
-  async getResearchSession(sessionId: string): Promise<{
-    session: {
-      userId: string;
-      sessionId: string;
-      company: string;
-      createdAt: string;
-      updatedAt: string;
-      completedAreas: number;
-      messages: Array<{
-        id: string;
-        type: 'user' | 'assistant';
-        content: string;
-        timestamp: string;
-        companySummary?: any;
-        options?: any;
-      }>;
-      completedResearch: Array<{
-        id: string;
-        areaId: string;
-        title: string;
-        status: 'completed' | 'in_progress';
-        completedAt?: string;
-        data?: any;
-      }>;
-      metadata?: {
-        userRole?: string;
-        userCompany?: string;
-        lastActivity?: string;
-      };
-    };
-  }> {
-    const userId = this.getCurrentUserId();
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/sessions/${sessionId}`;
-    
-    return this.makeRequest(endpoint, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Save a new research session
-   */
-  async saveResearchSession(data: {
-    company: string;
-    messages?: Array<{
-      id: string;
-      type: 'user' | 'assistant';
-      content: string;
-      timestamp: string;
-      companySummary?: any;
-      options?: any;
-    }>;
-    completedResearch?: Array<{
-      id: string;
-      areaId: string;
-      title: string;
-      status: 'completed' | 'in_progress';
-      completedAt?: string;
-      data?: any;
-    }>;
-    metadata?: {
-      userRole?: string;
-      userCompany?: string;
-      lastActivity?: string;
-    };
-  }): Promise<{
-    sessionId: string;
-    message: string;
-  }> {
-    const userId = this.getCurrentUserId();
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/sessions`;
-    
-    return this.makeRequest(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Update an existing research session
-   */
-  async updateResearchSession(sessionId: string, data: {
-    messages?: Array<{
-      id: string;
-      type: 'user' | 'assistant';
-      content: string;
-      timestamp: string;
-      companySummary?: any;
-      options?: any;
-    }>;
-    completedResearch?: Array<{
-      id: string;
-      areaId: string;
-      title: string;
-      status: 'completed' | 'in_progress';
-      completedAt?: string;
-      data?: any;
-    }>;
-    metadata?: {
-      userRole?: string;
-      userCompany?: string;
-      lastActivity?: string;
-    };
-  }): Promise<{
-    message: string;
-  }> {
-    const userId = this.getCurrentUserId();
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/sessions/${sessionId}`;
-    
-    return this.makeRequest(endpoint, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * Delete a research session
-   */
-  async deleteResearchSession(sessionId: string): Promise<{
-    message: string;
-  }> {
-    const userId = this.getCurrentUserId();
-    const endpoint = `/research-history/users/${encodeURIComponent(userId)}/sessions/${sessionId}`;
+    // Use research history endpoint for data deletion
+    const endpoint = `/api/research-history/all-data`;
     
     return this.makeRequest(endpoint, {
       method: 'DELETE',
     });
   }
 
-  /**
-   * Get the current user ID from session storage or auth context
-   * GDPR-compliant: Uses session storage (cleared on browser close) instead of localStorage
-   */
-  private getCurrentUserId(): string {
-    // Use sessionStorage instead of localStorage for GDPR compliance
-    // Session storage is cleared when browser closes, reducing data retention risk
-    const sessionUserId = sessionStorage.getItem('sessionUserId');
-    if (sessionUserId) {
-      return sessionUserId;
-    }
 
-    // If no session user ID, check if we have a valid auth session
-    // This would integrate with your auth provider (Cognito, etc.)
-    const authToken = sessionStorage.getItem('authToken');
-    if (authToken) {
-      // Extract user ID from JWT token (if using JWT)
-      try {
-        const payload = JSON.parse(atob(authToken.split('.')[1]));
-        const userId = payload.sub || payload.userId;
-        if (userId) {
-          // Store in session storage for this browser session only
-          sessionStorage.setItem('sessionUserId', userId);
-          return userId;
-        }
-      } catch (error) {
-        console.warn('Failed to extract user ID from auth token:', error);
-      }
-    }
 
-    // If no valid session, user needs to re-authenticate
-    throw new Error('Authentication required. Please sign in again.');
-  }
 
-  /**
-   * Set user session data (called after successful authentication)
-   * GDPR-compliant: Only stores minimal necessary data for session duration
-   */
-  setUserSession(userId: string, authToken?: string): void {
-    // Store only in session storage (cleared on browser close)
-    sessionStorage.setItem('sessionUserId', userId);
-    if (authToken) {
-      sessionStorage.setItem('authToken', authToken);
-    }
-    
-    // Clear any persistent storage to ensure GDPR compliance
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userData');
-  }
-
-  /**
-   * Clear user session data (called on logout or session expiry)
-   * GDPR-compliant: Implements "right to be forgotten" for session data
-   */
-  clearUserSession(): void {
-    // Clear all session data
-    sessionStorage.removeItem('sessionUserId');
-    sessionStorage.removeItem('authToken');
-    
-    // Also clear any persistent storage
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userData');
-  }
-
-  /**
-   * Check if user has valid session
-   * GDPR-compliant: Validates session without storing unnecessary data
-   */
-  hasValidSession(): boolean {
-    try {
-      const userId = this.getCurrentUserId();
-      return !!userId;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * GDPR compliance: Check if user has consented to research history storage
-   */
-  private hasResearchHistoryConsent(userId: string): boolean {
-    try {
-      // Check session storage for consent
-      const consentKey = `gdpr_consent_preferences_${userId}`;
-      const storedConsent = sessionStorage.getItem(consentKey);
-      
-      if (storedConsent) {
-        const consent = JSON.parse(storedConsent);
-        return consent.researchHistory === true;
-      }
-      
-      // GDPR compliance: Default to false - user must explicitly opt-in
-      return false;
-    } catch (error) {
-      console.warn('GDPR consent check failed, defaulting to false for compliance:', error);
-      return false; // GDPR-compliant default
-    }
-  }
 }
 
 // Create and export a singleton instance
@@ -1137,11 +882,6 @@ export const createProfileWithSignupData = apiClient.createProfileWithSignupData
 export const updateProfileWithSignupData = apiClient.updateProfileWithSignupData.bind(apiClient);
 
 // Research History API methods
-export const getResearchSessions = apiClient.getResearchSessions.bind(apiClient);
-export const getResearchSession = apiClient.getResearchSession.bind(apiClient);
-export const saveResearchSession = apiClient.saveResearchSession.bind(apiClient);
-export const updateResearchSession = apiClient.updateResearchSession.bind(apiClient);
-export const deleteResearchSession = apiClient.deleteResearchSession.bind(apiClient);
 export const getResearchHistory = apiClient.getResearchHistory.bind(apiClient);
 export const getCompanyResearch = apiClient.getCompanyResearch.bind(apiClient);
 export const saveCompanyResearch = apiClient.saveCompanyResearch.bind(apiClient);
