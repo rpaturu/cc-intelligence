@@ -107,6 +107,8 @@ export default function Research() {
   const loadCompanyResearch = async (companyName: string) => {
     try {
       console.log('Loading company research for:', companyName);
+      setIsLoadingExistingData(true); // Prevent auto-save during loading
+      
       const response = await getCompanyResearch(companyName);
       console.log('Company research response:', response);
       
@@ -114,11 +116,15 @@ export default function Research() {
       // where data contains the actual research data
       const researchData = response.data;
       
-      if (researchData.messages && researchData.messages.length > 0) {
+      // Always reset messages and completed research first
+      setMessages([]);
+      setCompletedResearch([]);
+      
+      if (researchData && researchData.messages && researchData.messages.length > 0) {
         // Convert API messages to frontend Message format
         const convertedMessages: Message[] = researchData.messages.map((msg: any) => ({
           id: msg.id || `msg-${Date.now()}-${Math.random()}`,
-          type: msg.role === 'user' ? 'user' : 'assistant',
+          type: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content,
           timestamp: new Date(msg.timestamp),
           sources: msg.sources || undefined,
@@ -131,9 +137,18 @@ export default function Research() {
           vendorProfile: msg.vendorProfile || undefined
         }));
         setMessages(convertedMessages);
+      } else {
+        // No existing messages, create a user message for company selection (like Figma design)
+        const userMessage: Message = {
+          id: `user-${Date.now()}`,
+          type: "user",
+          content: `Research ${companyName}`,
+          timestamp: new Date(),
+        };
+        setMessages([userMessage]);
       }
       
-      if (researchData.completedResearch && researchData.completedResearch.length > 0) {
+      if (researchData && researchData.completedResearch && researchData.completedResearch.length > 0) {
         // Convert API completed research to frontend format
         const convertedCompletedResearch: CompletedResearch[] = researchData.completedResearch.map((research: any) => ({
           id: research.id || `research-${Date.now()}-${Math.random()}`,
@@ -151,23 +166,29 @@ export default function Research() {
       // Hide company search since we have a company selected
       setShowCompanySearch(false);
       
+      // Allow auto-save after data is loaded
+      setTimeout(() => setIsLoadingExistingData(false), 2000);
+      
     } catch (error) {
       console.error('Failed to load company research:', error);
+      setIsLoadingExistingData(false);
       // If loading fails, show company search
       setShowCompanySearch(true);
     }
   };
 
   // Auto-save research session whenever messages or completed research change
+  const [isLoadingExistingData, setIsLoadingExistingData] = useState(false);
+  
   useEffect(() => {
-    if (currentCompany && (messages.length > 0 || completedResearch.length > 0)) {
-              const timeoutId = setTimeout(() => {
-          saveCurrentResearchSession();
-        }, 1000); // Debounce saves by 1 second
+    if (currentCompany && (messages.length > 0 || completedResearch.length > 0) && !isLoadingExistingData) {
+      const timeoutId = setTimeout(() => {
+        saveCurrentResearchSession();
+      }, 1000); // Debounce saves by 1 second
 
       return () => clearTimeout(timeoutId);
     }
-  }, [currentCompany, messages, completedResearch]);
+  }, [currentCompany, messages, completedResearch, isLoadingExistingData]);
 
   // Simplified scroll positioning - avoid conflicts with manual research scrolling
   useEffect(() => {
@@ -475,6 +496,8 @@ export default function Research() {
     if (existingSession) {
       try {
         console.log('Loading existing session for:', company.name);
+        setIsLoadingExistingData(true); // Prevent auto-save during loading
+        
         // Load the existing session
         const response = await getCompanyResearch(company.name);
         console.log('Research response:', response);
@@ -493,8 +516,12 @@ export default function Research() {
             items: []
           }
         })));
+        
+        // Allow auto-save after data is loaded
+        setTimeout(() => setIsLoadingExistingData(false), 2000);
       } catch (error) {
         console.error('Failed to load existing session:', error);
+        setIsLoadingExistingData(false);
         // Fall back to creating a new session
         createNewResearchSession(company.name);
       }

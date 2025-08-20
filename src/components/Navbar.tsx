@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription, SheetHeader } from "./ui/sheet";
-import { Search, ChevronDown, Sparkles,  LogOut, Building2, Clock, Shuffle, Settings, Moon, Sun, Menu } from "lucide-react";
+import { Search, ChevronDown, Zap, LogOut, Building2, Clock, Shuffle, Settings, Moon, Sun, Menu } from "lucide-react";
 import { useTheme } from "./ThemeProvider";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
@@ -68,7 +68,8 @@ export default function Navbar(props: NavbarProps = {}) {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const currentScrollY = window.scrollY;
+      setIsScrolled(currentScrollY > 20);
     };
 
     window.addEventListener("scroll", handleScroll);
@@ -101,8 +102,22 @@ export default function Navbar(props: NavbarProps = {}) {
       setIsMobileMenuOpen(false);
       setIsDesktopHistoryOpen(false);
       
-      // Navigate to research page with the selected company as URL parameter
-      navigate(`/research?company=${encodeURIComponent(session.company)}`);
+      // Get current URL parameters
+      const currentParams = new URLSearchParams(window.location.search);
+      const currentCompany = currentParams.get('company');
+      
+      // If we're already on the same company's page, force a reload by navigating to research first
+      if (currentCompany === session.company && window.location.pathname === '/research') {
+        // Navigate to research without params first, then to the company
+        navigate('/research');
+        // Use setTimeout to ensure the navigation completes before setting company
+        setTimeout(() => {
+          navigate(`/research?company=${encodeURIComponent(session.company)}`);
+        }, 50);
+      } else {
+        // Navigate to research page with the selected company as URL parameter
+        navigate(`/research?company=${encodeURIComponent(session.company)}`);
+      }
       
       // Log the selected session for debugging
       console.log('Selected history session:', session.company);
@@ -112,6 +127,14 @@ export default function Navbar(props: NavbarProps = {}) {
     } catch (error) {
       console.error('Failed to select history session:', error);
     }
+  };
+
+  const handleCompanySelect = (companyHistory: CompanyHistory) => {
+    // Get the most recent session for this company
+    const mostRecentSession = companyHistory.sessions.reduce((latest, current) => 
+      current.lastActivity > latest.lastActivity ? current : latest
+    );
+    handleHistorySessionSelect(mostRecentSession);
   };
 
   const handleResearchClick = () => {
@@ -233,54 +256,91 @@ export default function Navbar(props: NavbarProps = {}) {
         ) : researchHistory.length > 0 ? (
           researchHistory.map((companyHistory: CompanyHistory) => (
             <div key={companyHistory.company} className="border-b last:border-b-0">
-              <div className="p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-3 h-3" />
-                    <span className="font-medium">{companyHistory.company}</span>
-                    {companyHistory.company === currentCompany && (
-                      <Badge variant="secondary" className="text-xs">Current</Badge>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {companyHistory.insights} insights
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  {companyHistory.sessions.map((session: ResearchSession) => (
-                    <Button
-                      key={session.id}
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start h-auto p-2 text-left"
-                      onClick={() => handleHistorySessionSelect(session)}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${
-                              session.status === 'active' ? 'bg-green-500' :
-                              session.status === 'paused' ? 'bg-yellow-500' :
-                              'bg-gray-400'
-                            }`} />
-                            <span className="text-sm">
-                              {session.areasResearched}/{session.totalAreas} areas
-                            </span>
-                            <Badge variant="outline" className="text-xs">
-                              {session.status}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Started {formatDate(session.startedAt)}
-                          </div>
-                        </div>
-                        <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
+              {/* Unified Clickable Company Block */}
+              <button
+                onClick={() => handleCompanySelect(companyHistory)}
+                className="history-company-button w-full p-3 text-left focus:outline-none rounded-sm group"
+              >
+                <div className="w-full">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Building2 className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+                        {companyHistory.company}
+                      </span>
+                      {companyHistory.company === currentCompany && (
+                        <Badge variant="secondary" className="text-xs">Current</Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {companyHistory.sessions[0]?.areasResearched || 0}/{companyHistory.sessions[0]?.totalAreas || 13} areas
+                        </span>
+                        <ChevronDown className="w-3 h-3 rotate-[-90deg] opacity-60 group-hover:opacity-100 transition-all" />
                       </div>
-                    </Button>
-                  ))}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className={`w-1.5 h-1.5 rounded-full ${
+                        companyHistory.sessions[0]?.status === 'active' ? 'bg-green-500' :
+                        companyHistory.sessions[0]?.status === 'paused' ? 'bg-yellow-500' :
+                        'bg-gray-400'
+                      }`} />
+                      <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                        {companyHistory.sessions[0]?.status}
+                      </Badge>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      Started {formatDate(companyHistory.sessions[0]?.startedAt)}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </button>
+              
+              {/* Individual Sessions - Only show if more than one session */}
+              {companyHistory.sessions.length > 1 && (
+                <div className="px-3 pb-3 border-t border-border/30">
+                  <div className="space-y-1 pt-2">
+                    {companyHistory.sessions.map((session) => (
+                      <Button
+                        key={session.id}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start h-auto p-2 text-left history-session-indent ml-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleHistorySessionSelect(session);
+                        }}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                session.status === 'active' ? 'bg-green-500' :
+                                session.status === 'paused' ? 'bg-yellow-500' :
+                                'bg-gray-400'
+                              }`} />
+                              <span className="text-sm">
+                                {session.areasResearched}/{session.totalAreas} areas
+                              </span>
+                              <Badge variant="outline" className="text-xs">
+                                {session.status}
+                              </Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Started {formatDate(session.startedAt)}
+                            </div>
+                          </div>
+                          <ChevronDown className="w-3 h-3 rotate-[-90deg] opacity-60" />
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ))
         ) : (
@@ -294,17 +354,23 @@ export default function Navbar(props: NavbarProps = {}) {
   );
 
   return (
-    <motion.nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 navbar-safe ${
-        isScrolled
-          ? "pt-safe bg-background/95 backdrop-blur-md border-b border-border/50 shadow-sm"
-          : "pt-safe bg-background/95 backdrop-blur-sm border-b border-border/30"
-      }`}
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${
+          isScrolled
+            ? "pt-safe-compressed"
+            : "pt-safe"
+        }`}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        <div className={`
+          transition-all duration-300 ease-in-out mx-auto px-4 sm:px-6 lg:px-8
+          ${isScrolled 
+            ? 'max-w-5xl mt-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-full shadow-lg' 
+            : 'max-w-7xl bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b'
+          }
+        `}>
         <div className={`flex items-center justify-between transition-all duration-300 ${
           isScrolled ? "h-14" : "h-16"
         }`}>
@@ -316,17 +382,11 @@ export default function Navbar(props: NavbarProps = {}) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1, duration: 0.5 }}
             >
-              <div className={`bg-primary text-primary-foreground rounded-xl flex items-center justify-center transition-all duration-300 ${
-                isScrolled ? "p-2" : "p-2"
-              }`}>
-                <Sparkles className={`transition-all duration-300 ${
-                  isScrolled ? "w-5 h-5" : "w-5 h-5"
-                }`} />
+              <div className="bg-primary text-primary-foreground rounded-xl flex items-center justify-center p-2">
+                <Zap className="w-5 h-5" />
               </div>
-              <div className="hidden sm:block">
-                <h1 className={`font-semibold text-foreground transition-all duration-300 ${
-                  isScrolled ? "text-lg" : "text-xl"
-                }`}>
+              <div className={`transition-all duration-300 ease-in-out ${isScrolled ? "hidden" : "hidden sm:block"}`}>
+                <h1 className="font-semibold text-foreground text-xl">
                   AI Intelligence
                 </h1>
               </div>
@@ -388,6 +448,7 @@ export default function Navbar(props: NavbarProps = {}) {
                   variant="outline" 
                   size="default"
                   className="gap-2 bg-card/50 hover:bg-card border-border/50 hover:border-primary/50"
+                  onClick={handleResearchClick}
                 >
                   <Search className="w-4 h-4 text-primary" />
                   <span className="font-medium">Research</span>
@@ -414,7 +475,9 @@ export default function Navbar(props: NavbarProps = {}) {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        className="gap-2 bg-card/50 hover:bg-card"
+                        className={`bg-card/50 hover:bg-card transition-all duration-300 ease-in-out ${
+                          isScrolled ? "gap-1" : "gap-2"
+                        }`}
                       >
                         <Clock className="w-4 h-4" />
                         <span className="hidden lg:inline">History</span>
@@ -431,7 +494,7 @@ export default function Navbar(props: NavbarProps = {}) {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      className="gap-2 bg-card/50 hover:bg-card"
+                      className="gap-2 bg-card/50 hover:bg-card border-border/50 hover:border-primary/50"
                       onClick={onCompanySwitch}
                     >
                       <Shuffle className="w-4 h-4" />
@@ -493,7 +556,7 @@ export default function Navbar(props: NavbarProps = {}) {
                     ) : (
                       <Moon className="mr-2 h-4 w-4" />
                     )}
-                    <span>Dark Mode</span>
+                    <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
@@ -544,6 +607,7 @@ export default function Navbar(props: NavbarProps = {}) {
                           variant="ghost" 
                           className="w-full justify-start gap-4 h-12 px-4"
                           onClick={() => {
+                            handleResearchClick();
                             setIsMobileMenuOpen(false);
                           }}
                         >
@@ -628,8 +692,8 @@ export default function Navbar(props: NavbarProps = {}) {
 
       {/* Mobile History Sheet */}
       <Sheet open={isMobileHistoryOpen} onOpenChange={setIsMobileHistoryOpen}>
-        <SheetContent side="right" className="w-full sm:w-96">
-          <SheetHeader className="pb-4">
+        <SheetContent side="bottom" className="h-[80vh]">
+          <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
               Research History
