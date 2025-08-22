@@ -3,9 +3,10 @@
  * 
  * Centralized utility for managing API request headers including:
  * - API Key authentication
- * - Session-based authentication
- * - User ID headers
+ * - Session-based authentication (X-Session-ID)
  * - Common content types
+ * 
+ * Note: User ID is extracted server-side from session for security
  */
 
 import { API_CONFIG } from '../lib/config';

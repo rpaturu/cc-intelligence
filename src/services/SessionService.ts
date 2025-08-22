@@ -18,13 +18,6 @@ export interface UserContext {
   lastName: string;
 }
 
-interface SessionResponse {
-  sessionId: string;
-  message: string;
-  expiresIn: string;
-  requestId: string;
-}
-
 export class SessionService {
   private static instance: SessionService;
   private readonly SESSION_KEY = 'app_session_id';
@@ -67,17 +60,20 @@ export class SessionService {
         throw new Error(`Session creation failed: ${errorData.error}`);
       }
 
-      const data: SessionResponse = await response.json();
+      const responseData = await response.json();
+      
+      // Extract session data from the nested response structure
+      const sessionData = responseData.data || responseData;
       
       // Store sessionId locally for API calls
-      sessionStorage.setItem(this.SESSION_KEY, data.sessionId);
+      sessionStorage.setItem(this.SESSION_KEY, sessionData.sessionId);
       
       console.log('SessionService: Session created successfully', { 
-        sessionId: data.sessionId,
-        expiresIn: data.expiresIn 
+        sessionId: sessionData.sessionId,
+        expiresIn: sessionData.expiresIn 
       });
       
-      return data.sessionId;
+      return sessionData.sessionId;
     } catch (error) {
       console.error('SessionService: Failed to create session', error);
       throw error;

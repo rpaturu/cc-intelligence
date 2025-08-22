@@ -48,7 +48,7 @@ const ConfirmSignUpPage: React.FC = () => {
       // Create profile with signup data immediately after confirmation using email as ID
       if (firstName && lastName && email) {
         try {
-          await createProfileWithSignupData(email, firstName, lastName, email)
+          await createProfileWithSignupData(firstName, lastName, email)
           console.log('Profile created with signup data for user:', email)
         } catch (profileError) {
           console.error('Failed to create profile after confirmation:', profileError)

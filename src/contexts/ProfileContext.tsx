@@ -37,7 +37,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      const userProfile = await getProfile(user.userId);
+      const userProfile = await getProfile();
       console.log('ProfileContext: Profile loaded successfully:', {
         hasProfile: !!userProfile,
         profileData: userProfile ? {
@@ -71,7 +71,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       
       // First try to load existing profile
-      const existingProfile = await getProfile(user.userId);
+      const existingProfile = await getProfile();
       if (existingProfile) {
         console.log('ProfileContext: Profile already exists for user');
         setProfile(existingProfile);
@@ -81,7 +81,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
       // No profile exists, create empty one
       console.log('ProfileContext: No profile found, creating empty profile for user:', user.userId);
-      const emptyProfile = await createEmptyProfile(user.userId);
+      const emptyProfile = await createEmptyProfile();
       console.log('ProfileContext: Empty profile created successfully:', emptyProfile);
       setProfile(emptyProfile);
       setProfileLoaded(true);
@@ -155,7 +155,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      await deleteProfile(user.userId);
+      await deleteProfile();
       setProfile(null);
       setProfileLoaded(true); // Profile successfully deleted, so we know the state
     } catch (error) {

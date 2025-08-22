@@ -190,7 +190,7 @@ export class GDPRComplianceManager {
   async exportUserData(userId: string): Promise<any> {
     try {
       // Get profile data using sessionId-based API client
-      const profile = await apiClient.getProfile(userId).catch(() => null);
+      const profile = await apiClient.getProfile().catch(() => null);
 
       // Get research history using sessionId-based API client  
       const researchHistory = await apiClient.getResearchHistory().catch(() => null);

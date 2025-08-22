@@ -10,6 +10,60 @@ import { API_CONFIG } from './config';
 import { sessionService } from '../services/SessionService';
 import { getApiHeaders } from '../utils/apiHeaders';
 
+/**
+ * Create a custom EventSource-like interface using fetch response
+ * This allows us to use custom headers for security while maintaining EventSource API
+ */
+function createCustomEventSource(response: Response): EventSource {
+  // Create a custom EventSource that wraps the fetch response
+  const customEventSource = {
+    addEventListener: (event: string, listener: EventListener) => {
+      // Handle the streaming response
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Response body not available for streaming');
+      }
+      
+      // Process the stream
+      const processStream = async () => {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            // Convert Uint8Array to string and parse SSE data
+            const chunk = new TextDecoder().decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.substring(6);
+                if (data.trim()) {
+                  // Create a custom event
+                  const customEvent = new CustomEvent(event, {
+                    detail: { data }
+                  });
+                  listener(customEvent as any);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error processing SSE stream:', error);
+        }
+      };
+      
+      processStream();
+    },
+    
+    close: () => {
+      response.body?.cancel();
+    }
+  } as EventSource;
+  
+  return customEventSource;
+}
+
 class SalesIntelligenceApiClient {
   private baseUrl: string;
   private apiKey: string;
@@ -76,6 +130,8 @@ class SalesIntelligenceApiClient {
       body: JSON.stringify(request),
     });
   }
+
+
 
   // New optimized endpoints
   async getCompanyOverview(domain: string): Promise<{
@@ -302,13 +358,13 @@ class SalesIntelligenceApiClient {
   // These endpoints were removed in the ultra-clean backend
   // Use vendorContext() and customerIntelligence() for context-aware intelligence instead
 
-  // Profile management methods
-  async getProfile(userId: string): Promise<UserProfile | null> {
+  // Profile management methods (session-based - always operates on authenticated user)
+  async getProfile(): Promise<UserProfile | null> {
     try {
-      const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+      const response = await this.makeRequest<{ data: UserProfile }>(`/profile`, {
         method: 'GET',
       });
-      return response.profile;
+      return response.data;
     } catch (error) {
       // Handle 404 specifically for profile not found
       if (error instanceof Error && error.message.includes('404')) {
@@ -319,23 +375,23 @@ class SalesIntelligenceApiClient {
   }
 
   async saveProfile(profile: UserProfile): Promise<UserProfile> {
-    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(profile.userId)}`, {
+    const response = await this.makeRequest<{ data: UserProfile }>(`/profile`, {
       method: 'PUT',
       body: JSON.stringify(profile),
     });
-    return response.profile;
+    return response.data;
   }
 
-  async deleteProfile(userId: string): Promise<void> {
-    await this.makeRequest<{ message: string }>(`/profile/${encodeURIComponent(userId)}`, {
+  async deleteProfile(): Promise<void> {
+    await this.makeRequest<{ data: { message: string } }>(`/profile`, {
       method: 'DELETE',
     });
   }
 
   // Helper function to create empty profile for new users
-  async createEmptyProfile(userId: string): Promise<UserProfile> {
+  async createEmptyProfile(): Promise<UserProfile> {
     const emptyProfile: UserProfile = {
-      userId,
+      userId: '', // Will be set by backend from session
       firstName: '', // Empty - user will fill during onboarding
       lastName: '', // Empty - user will fill during onboarding
       role: '', // Empty - user will fill during onboarding  
@@ -351,18 +407,18 @@ class SalesIntelligenceApiClient {
       updatedAt: new Date().toISOString()
     };
 
-    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+    const response = await this.makeRequest<{ data: UserProfile }>(`/profile`, {
       method: 'PUT',
       body: JSON.stringify(emptyProfile),
     });
 
-    return response.profile;
+    return response.data;
   }
 
   // Helper function to create profile with signup data
-  async createProfileWithSignupData(userId: string, firstName: string, lastName: string, email: string): Promise<UserProfile> {
+  async createProfileWithSignupData(firstName: string, lastName: string, email: string): Promise<UserProfile> {
     const profileWithSignupData: UserProfile = {
-      userId,
+      userId: '', // Will be set by backend from session
       firstName, // Pre-filled from signup
       lastName, // Pre-filled from signup
       email, // Pre-filled from signup
@@ -379,18 +435,18 @@ class SalesIntelligenceApiClient {
       updatedAt: new Date().toISOString()
     };
 
-    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+    const response = await this.makeRequest<{ data: UserProfile }>(`/profile`, {
       method: 'PUT',
       body: JSON.stringify(profileWithSignupData),
     });
 
-    return response.profile;
+    return response.data;
   }
 
   // Helper function to update existing profile with signup data
-  async updateProfileWithSignupData(userId: string, firstName: string, lastName: string, email: string): Promise<UserProfile> {
+  async updateProfileWithSignupData(firstName: string, lastName: string, email: string): Promise<UserProfile> {
     // First get the existing profile
-    const existingProfile = await this.getProfile(userId)
+    const existingProfile = await this.getProfile()
     if (!existingProfile) {
       throw new Error('Profile not found')
     }
@@ -402,12 +458,12 @@ class SalesIntelligenceApiClient {
       email, // Update with signup data
     }
 
-    const response = await this.makeRequest<{ profile: UserProfile }>(`/profile/${encodeURIComponent(userId)}`, {
+    const response = await this.makeRequest<{ data: UserProfile }>(`/profile`, {
       method: 'PUT',
       body: JSON.stringify(updatedProfile),
     })
 
-    return response.profile
+    return response.data
   }
 
   // Context-Aware Intelligence APIs - Ultra-Clean Backend
@@ -464,7 +520,7 @@ class SalesIntelligenceApiClient {
     });
 
     // Handle immediate cache hit response (200)
-    if (response.status === 'completed' && response.data) {
+    if ((response.status === 'completed' || response.data?.status === 'completed') && response.data) {
       const analysis = response.data.analysis || response.analysis || {};
       
       return {
@@ -609,7 +665,7 @@ class SalesIntelligenceApiClient {
     });
 
     // Handle immediate cache hit response (200)
-    if (response.status === 'completed' && response.data) {
+    if ((response.status === 'completed' || response.data?.status === 'completed') && response.data) {
       const analysis = response.data.analysis || response.analysis || {};
       
       return {
@@ -840,9 +896,74 @@ class SalesIntelligenceApiClient {
     });
   }
 
-
-
-
+  /**
+   * Create SSE EventSource for real-time research updates
+   * Uses the centralized API configuration for proper URL construction
+   * Includes session ID in query parameters since EventSource doesn't support custom headers
+   */
+  async createResearchEventSource(areaId: string, companyId: string): Promise<EventSource> {
+    // Step 1: Initiate research session
+    const sessionId = sessionService.getSessionId();
+    const initiateUrl = `${this.baseUrl}/api/research/stream`;
+    console.log('Initiating research session:', initiateUrl);
+    
+    // Make POST request to initiate research session with data in body (not URL params)
+    const response = await fetch(initiateUrl, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': this.apiKey,
+        'Content-Type': 'application/json',
+        ...(sessionId ? { 'X-Session-ID': sessionId } : {})
+      },
+      body: JSON.stringify({
+        areaId,
+        companyId
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to initiate research session: ${response.status} ${response.statusText}`);
+    }
+    
+    const initResponse = await response.json();
+    const researchSessionId = initResponse.researchSessionId;
+    const sseEndpoint = initResponse.streaming?.sseEndpoint;
+    
+    if (!researchSessionId) {
+      throw new Error('No research session ID returned from backend');
+    }
+    
+    if (!sseEndpoint) {
+      throw new Error('No SSE endpoint returned from backend');
+    }
+    
+    console.log('Research session created:', researchSessionId);
+    console.log('SSE endpoint provided:', sseEndpoint);
+    
+    // Step 2: Create SSE connection using fetch() for secure headers
+    const sseUrl = `${this.baseUrl}${sseEndpoint}`;
+    console.log('Creating SSE connection to:', sseUrl);
+    
+    // Use fetch() to support custom headers for security
+    const sseResponse = await fetch(sseUrl, {
+      method: 'GET',
+      headers: {
+        'X-API-Key': this.apiKey,
+        'X-Session-ID': sessionId!,
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    
+    if (!sseResponse.ok) {
+      throw new Error(`SSE connection failed: ${sseResponse.status} ${sseResponse.statusText}`);
+    }
+    
+    // Create a custom EventSource-like interface using fetch response
+    const eventSource = createCustomEventSource(sseResponse);
+    
+    return eventSource;
+  }
 }
 
 // Create and export a singleton instance
@@ -887,6 +1008,9 @@ export const getCompanyResearch = apiClient.getCompanyResearch.bind(apiClient);
 export const saveCompanyResearch = apiClient.saveCompanyResearch.bind(apiClient);
 export const deleteCompanyResearch = apiClient.deleteCompanyResearch.bind(apiClient);
 export const deleteAllUserData = apiClient.deleteAllUserData.bind(apiClient);
+
+// Research Streaming API methods
+export const createResearchEventSource = apiClient.createResearchEventSource.bind(apiClient);
 
 // Export types for convenience
 export type { 

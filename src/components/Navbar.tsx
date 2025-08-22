@@ -12,7 +12,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
 import { getInitials } from "../utils";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getResearchHistory } from "../lib/api";
+// import { getResearchHistory } from "../lib/api"; // COMMENTED OUT for testing
 
 interface ResearchSession {
   id: string;
@@ -183,8 +183,12 @@ export default function Navbar(props: NavbarProps = {}) {
     
     try {
       setIsLoadingHistory(true);
-      const response = await getResearchHistory();
-      const companies = response.companies || [];
+      // COMMENTED OUT: Research history API call for testing
+      // const response = await getResearchHistory();
+      // const companies = response.companies || [];
+      
+      // Mock data for testing without API calls
+      const companies: any[] = [];
       
       // Convert API response to CompanyHistory format
       const historyData: CompanyHistory[] = companies.map(company => ({
@@ -205,6 +209,7 @@ export default function Navbar(props: NavbarProps = {}) {
       }));
       
       setResearchHistory(historyData);
+      console.log('Research history loading COMMENTED OUT for testing');
     } catch (error) {
       console.error('Failed to load research history:', error);
       setResearchHistory([]);

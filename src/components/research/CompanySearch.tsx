@@ -175,20 +175,43 @@ export default function CompanySearch({ onCompanySelect, onClose, placeholder = 
     inputRef.current?.focus();
   }, []);
 
-  // Mock search function - in real app this would call external API
+  // Real search function - calls backend /companies/lookup API
   const searchCompanies = async (query: string): Promise<CompanyResult[]> => {
     if (!query || query.length < 2) return [];
     
-    // Simulate external API call with realistic filtering
-    const filtered = mockCompanyResults.filter(company => 
-      company.name.toLowerCase().includes(query.toLowerCase()) ||
-      company.domain.toLowerCase().includes(query.toLowerCase()) ||
-      company.industry.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    // Simulate API delay and network latency
-    await new Promise(resolve => setTimeout(resolve, 800));
-    return filtered.slice(0, 8); // Limit results like a real API would
+    try {
+      // Import the API client
+      const { lookupCompanies } = await import('../../lib/api');
+      
+      // Call real backend API
+      const response = await lookupCompanies(query, 8);
+      
+      // Transform backend response to CompanyResult format
+      return response.data.companies.map(company => ({
+        id: company.name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        name: company.name,
+        domain: company.domain || `${company.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+        industry: company.industry || 'Technology',
+        description: company.description || `Company information for ${company.name}`,
+        location: company.location || 'Unknown',
+        employees: company.employees || 'Unknown',
+        revenue: company.size || undefined,
+        verified: !!company.domain, // Consider it verified if we have a domain
+        marketCap: undefined,
+        founded: company.founded || undefined
+      }));
+      
+    } catch (error) {
+      console.error("❌ Backend API search failed, falling back to mock data:", error);
+      
+      // Fallback to mock data if API fails
+      const filtered = mockCompanyResults.filter(company => 
+        company.name.toLowerCase().includes(query.toLowerCase()) ||
+        company.domain.toLowerCase().includes(query.toLowerCase()) ||
+        company.industry.toLowerCase().includes(query.toLowerCase())
+      );
+      return filtered.slice(0, 8);
+    }
   };
 
   const handleSearchClick = async () => {

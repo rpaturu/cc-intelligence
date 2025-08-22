@@ -4,7 +4,8 @@ A modern React-based user interface for the Sales Intelligence AI platform. This
 
 ## 🚀 Features
 
-### M3 Release (Latest)
+### v1.0.9 Release (Latest)
+- **🔧 API Response Fixes**: Fixed vendor context and company lookup API response parsing
 - **📋 Guided Onboarding**: Step-by-step onboarding flow for new users
 - **🏢 Company Intelligence Widgets**: Comprehensive company insights with real-time data
 - **👤 Role-Based Intelligence**: AI configuration tailored to specific sales roles (AE, SE, BDR, etc.)
@@ -289,7 +290,15 @@ npm run preview      # Preview production build
 
 ## 🔄 Release History
 
-### M3-frontend (Current)
+### v1.0.9 (Current)
+- ✅ Fixed vendor context and company lookup API response parsing
+- ✅ Enhanced session-based profile management
+- ✅ Improved API error handling and response consistency
+- ✅ Updated profile interface to use firstName/lastName consistently
+- ✅ Enhanced company search with proper response structure
+- ✅ Improved vendor intelligence widget error handling
+
+### v1.0.8
 - ✅ Guided onboarding flow
 - ✅ Company intelligence widgets
 - ✅ Role-based AI configuration
@@ -303,12 +312,12 @@ npm run preview      # Preview production build
 - ✅ Consistent research area labels with descriptive naming
 - ✅ Enhanced company overview card with flexible grid for mobile experience
 
-### M2-frontend
+### v1.0.7
 - ✅ Core intelligence features
 - ✅ User authentication
 - ✅ Basic company search
 
-### M1-frontend
+### v1.0.6 and earlier
 - ✅ Initial UI foundation
 - ✅ Basic routing and layout
 

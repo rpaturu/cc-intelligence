@@ -10,16 +10,12 @@ import MessageList from "../components/research/MessageList";
 import ExportSheet from "../components/research/ExportSheet";
 import ResearchAnalysisSheet from "../components/research/ResearchAnalysisSheet";
 import CompanySearch from "../components/research/CompanySearch";
-import { getResearchAreas } from "../components/research-content/data";
-import { getFollowUpOptions } from "../components/research-content/data";
-import { getCompanyData } from "../components/research-content/data";
-import { getMockSources } from "../utils/researchFindings";
-import { getResearchFindings } from "../utils/researchFindings";
+import { getResearchAreas, getFollowUpOptions } from "../components/research-content/data";
 import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
 import { scrollToBottom, scrollToUserMessage, scrollToStreamingMessage, scrollToResearchFindings } from "../utils/scroll-utils";
 import { Message, CompletedResearch } from "../types/research";
 import { useProfile } from "../hooks/useProfile";
-import { getResearchHistory, getCompanyResearch, saveCompanyResearch } from '../lib/api';
+import { /* getResearchHistory, */ getCompanyResearch, /* saveCompanyResearch, */ createResearchEventSource } from '../lib/api';
 
 // Import centralized research areas for scroll detection
 import { CORE_RESEARCH_AREAS } from "../data/research-areas";
@@ -94,9 +90,11 @@ export default function Research() {
   const loadResearchHistory = async () => {
     try {
       console.log('Loading research history via session...');
-      const response = await getResearchHistory();
-      console.log('Research history response:', response);
-      setResearchHistory(response.companies || []);
+      // COMMENTED OUT for testing: const response = await getResearchHistory();
+      // console.log('Research history response:', response);
+      // setResearchHistory(response.companies || []);
+      console.log('Research history loading COMMENTED OUT for testing');
+      setResearchHistory([]); // Set empty array for testing
     } catch (error) {
       console.error('Failed to load research history:', error);
       setResearchHistory([]);
@@ -107,7 +105,7 @@ export default function Research() {
   const loadCompanyResearch = async (companyName: string) => {
     try {
       console.log('Loading company research for:', companyName);
-      setIsLoadingExistingData(true); // Prevent auto-save during loading
+      // setIsLoadingExistingData(true); // Prevent auto-save during loading - COMMENTED OUT
       
       const response = await getCompanyResearch(companyName);
       console.log('Company research response:', response);
@@ -166,29 +164,30 @@ export default function Research() {
       // Hide company search since we have a company selected
       setShowCompanySearch(false);
       
-      // Allow auto-save after data is loaded
-      setTimeout(() => setIsLoadingExistingData(false), 2000);
+      // Allow auto-save after data is loaded - COMMENTED OUT
+      // setTimeout(() => setIsLoadingExistingData(false), 2000);
       
     } catch (error) {
       console.error('Failed to load company research:', error);
-      setIsLoadingExistingData(false);
+      // setIsLoadingExistingData(false); // COMMENTED OUT for testing
       // If loading fails, show company search
       setShowCompanySearch(true);
     }
   };
 
   // Auto-save research session whenever messages or completed research change
-  const [isLoadingExistingData, setIsLoadingExistingData] = useState(false);
+  // const [isLoadingExistingData, setIsLoadingExistingData] = useState(false); // COMMENTED OUT for testing
   
-  useEffect(() => {
-    if (currentCompany && (messages.length > 0 || completedResearch.length > 0) && !isLoadingExistingData) {
-      const timeoutId = setTimeout(() => {
-        saveCurrentResearchSession();
-      }, 1000); // Debounce saves by 1 second
+  // COMMENTED OUT: Auto-save research session for testing
+  // useEffect(() => {
+  //   if (currentCompany && (messages.length > 0 || completedResearch.length > 0) && !isLoadingExistingData) {
+  //     const timeoutId = setTimeout(() => {
+  //       saveCurrentResearchSession();
+  //     }, 1000); // Debounce saves by 1 second
 
-      return () => clearTimeout(timeoutId);
-    }
-  }, [currentCompany, messages, completedResearch, isLoadingExistingData]);
+  //     return () => clearTimeout(timeoutId);
+  //   }
+  // }, [currentCompany, messages, completedResearch, isLoadingExistingData]);
 
   // Simplified scroll positioning - avoid conflicts with manual research scrolling
   useEffect(() => {
@@ -258,24 +257,24 @@ export default function Research() {
     setIsAnalysisSheetOpen(true);
   };
 
-  const startRealResearch = async (messageId: string, researchAreaId: string) => {
-    if (!userProfile || !currentCompany) {
+  const startRealResearch = async (messageId: string, researchAreaId: string, companyName?: string) => {
+    const targetCompany = companyName || currentCompany;
+    if (!userProfile || !targetCompany) {
       console.error('Missing user profile or company for research');
       return;
     }
 
-    // Initialize streaming message
+    // Get appropriate streaming steps for this research area
+    const steps = getStreamingSteps(researchAreaId);
+    const streamingSteps = steps.map(step => ({ ...step, completed: false }));
+
+    // Initialize streaming message with proper progress steps
     setMessages(prev => prev.map(msg =>
       msg.id === messageId
         ? { 
             ...msg, 
             isStreaming: true, 
-            streamingSteps: [
-              { text: "🔍 Creating research plan...", completed: false },
-              { text: "📊 Collecting data sources...", completed: false },
-              { text: "🧠 Analyzing findings...", completed: false },
-              { text: "💡 Generating insights...", completed: false }
-            ]
+            streamingSteps
           }
         : msg
     ));
@@ -286,9 +285,10 @@ export default function Research() {
     }, 150);
 
     try {
-      // Start SSE connection for real-time research updates
-      const eventSource = new EventSource(
-        `/api/research/stream?areaId=${researchAreaId}&companyId=${encodeURIComponent(currentCompany)}&userRole=${userProfile.role}&userCompany=${encodeURIComponent(userProfile.company || '')}`
+      // Start SSE connection for real-time research updates using API client
+      const eventSource = await createResearchEventSource(
+        researchAreaId,
+        targetCompany
       );
 
       let stepIndex = 0;
@@ -380,7 +380,7 @@ export default function Research() {
                   researchAreaId: researchAreaId 
                 },
                 sources: collectedData?.sources || [],
-                followUpOptions: collectedData?.followUpOptions || []
+                followUpOptions: collectedData?.followUpOptions || getFollowUpOptions(researchAreaId)
               }
             : msg
         ));
@@ -431,76 +431,7 @@ export default function Research() {
     }
   };
 
-  // Keep the old simulateStreaming for fallback during development
-  const simulateStreaming = (messageId: string, steps: Array<{ text: string; icon?: React.ReactNode }>, findings: any, researchArea: string) => {
-    console.log('⚠️ Using mock streaming - replace with startRealResearch for production');
-    
-    const streamingSteps = steps.map(step => ({ ...step, completed: false }));
-
-    setMessages(prev => prev.map(msg =>
-      msg.id === messageId
-        ? { ...msg, isStreaming: true, streamingSteps }
-        : msg
-    ));
-
-    // Scroll to show the streaming progress after message is added
-    setTimeout(() => {
-      console.log("🚀 Triggering scroll to streaming message");
-      scrollToStreamingMessage();
-    }, 150); // Reduced delay for immediate scroll feedback
-
-    steps.forEach((_, index) => {
-      setTimeout(() => {
-        setMessages(prev => prev.map(msg =>
-          msg.id === messageId && msg.streamingSteps
-            ? {
-              ...msg,
-              streamingSteps: msg.streamingSteps.map((step, i) =>
-                i === index ? { ...step, completed: true } : step
-              )
-            }
-            : msg
-        ));
-      }, (index + 1) * 1000);
-    });
-
-    setTimeout(() => {
-      const completedResearchItem: CompletedResearch = {
-        id: messageId,
-        title: findings.title,
-        completedAt: new Date(),
-        findings: findings,
-        researchArea: researchArea // Store the research area ID so we can match it in ResearchProgress
-      };
-
-      setCompletedResearch(prev => [...prev, completedResearchItem]);
-
-      // Update research history with completed area count - will be saved by the subsequent setMessages call
-      // This is now handled by saveCurrentResearchSession
-
-      const sources = getMockSources(currentCompany, researchArea);
-
-      setMessages(prev => prev.map(msg =>
-        msg.id === messageId
-          ? {
-            ...msg,
-            isStreaming: false,
-            content: "",
-            researchFindings: { ...findings, researchAreaId: researchArea },
-            sources: sources,
-            followUpOptions: getFollowUpOptions(researchArea)
-          }
-          : msg
-      ));
-      setIsTyping(false);
-
-      // Scroll to show the completed research findings
-      setTimeout(() => {
-        console.log("✅ Triggering scroll from completed research");
-        scrollToResearchFindings();
-      }, 800); // Longer delay to ensure findings card is fully rendered and animations complete
-    }, steps.length * 1000 + 500);
-  };
+  // Note: simulateStreaming function removed - now using startRealResearch for all streaming
 
   const handleSendMessage = (messageContent?: string) => {
     const messageToSend = messageContent || inputValue;
@@ -523,33 +454,25 @@ export default function Research() {
       if (isResearchQuery(messageToSend)) {
         const company = parseCompanyFromInput(messageToSend);
         setCurrentCompany(company);
-        const companyData = getCompanyData(company);
 
-        const summaryMessage: Message = {
+        // Get streaming steps for company overview
+        const steps = getStreamingSteps("overview");
+        const streamingSteps = steps.map(step => ({ ...step, completed: false }));
+
+        // Create streaming message for company overview research
+        const streamingMessage: Message = {
           id: messageId,
           type: "assistant",
-          content: "",
+          content: `🔍 Researching ${company}...`,
           timestamp: new Date(),
-          companySummary: companyData,
+          isStreaming: true,
+          streamingSteps
         };
 
-        setMessages(prev => [...prev, summaryMessage]);
+        setMessages(prev => [...prev, streamingMessage]);
 
-        setTimeout(() => {
-          const optionsMessageId = (Date.now() + 2).toString();
-          const researchAreas = getResearchAreas(company, userProfile?.role || "Account Manager", userProfile?.company || "your company");
-
-          const optionsMessage: Message = {
-            id: optionsMessageId,
-            type: "assistant",
-            content: researchAreas.intro,
-            timestamp: new Date(),
-            options: researchAreas.options,
-          };
-
-          setMessages(prev => [...prev, optionsMessage]);
-          setIsTyping(false);
-        }, 2000);
+        // Start real SSE research for company overview
+        startRealResearch(messageId, "overview");
       } else {
         const assistantMessage: Message = {
           id: messageId,
@@ -671,7 +594,7 @@ export default function Research() {
     if (existingSession) {
       try {
         console.log('Loading existing session for:', company.name);
-        setIsLoadingExistingData(true); // Prevent auto-save during loading
+        // setIsLoadingExistingData(true); // Prevent auto-save during loading - COMMENTED OUT
         
         // Load the existing session
         const response = await getCompanyResearch(company.name);
@@ -692,11 +615,11 @@ export default function Research() {
           }
         })));
         
-        // Allow auto-save after data is loaded
-        setTimeout(() => setIsLoadingExistingData(false), 2000);
+        // Allow auto-save after data is loaded - COMMENTED OUT
+        // setTimeout(() => setIsLoadingExistingData(false), 2000);
       } catch (error) {
         console.error('Failed to load existing session:', error);
-        setIsLoadingExistingData(false);
+        // setIsLoadingExistingData(false); // COMMENTED OUT for testing
         // Fall back to creating a new session
         createNewResearchSession(company.name);
       }
@@ -704,10 +627,14 @@ export default function Research() {
       console.log('No existing session found, creating new session for:', company.name);
       // Create a new session
       createNewResearchSession(company.name);
+      
+      // Automatically trigger overview research for new companies
+      console.log('Triggering automatic overview research for:', company.name);
+      await startRealResearch(`company_overview-${Date.now()}`, 'company_overview', company.name);
     }
     
-    // Reload research history to ensure it's up to date
-    await loadResearchHistory();
+    // Reload research history to ensure it's up to date - COMMENTED OUT for testing
+    // await loadResearchHistory();
   };
 
   // Auto-save current research session to backend
@@ -743,12 +670,12 @@ export default function Research() {
       };
 
       console.log('Session data to save:', sessionData);
-      // Always save/update the company research
-      await saveCompanyResearch(currentCompany, sessionData);
-      console.log('Research session saved successfully');
+      // COMMENTED OUT: Always save/update the company research
+      // await saveCompanyResearch(currentCompany, sessionData);
+      console.log('Research session saving COMMENTED OUT for testing');
       
-      // Reload research history to include the newly saved session
-      await loadResearchHistory();
+      // COMMENTED OUT: Reload research history to include the newly saved session
+      // await loadResearchHistory();
     } catch (error) {
       console.error('Failed to save research session:', error);
     }
@@ -767,35 +694,21 @@ export default function Research() {
 
       setMessages([userMessage]);
 
+      // Skip mock company summary and show research areas directly
       setTimeout(() => {
-        const messageId = (Date.now() + 1).toString();
-        const companyData = getCompanyData(companyName);
+        const optionsMessageId = (Date.now() + 2).toString();
+        const researchAreas = getResearchAreas(companyName, userProfile.role, userProfile.company);
 
-        const summaryMessage: Message = {
-          id: messageId,
+        const optionsMessage: Message = {
+          id: optionsMessageId,
           type: "assistant",
-          content: "",
+          content: researchAreas.intro,
           timestamp: new Date(),
-          companySummary: companyData,
+          options: researchAreas.options,
         };
 
-        setMessages(prev => [...prev, summaryMessage]);
-
-        setTimeout(() => {
-          const optionsMessageId = (Date.now() + 2).toString();
-          const researchAreas = getResearchAreas(companyName, userProfile?.role || "Account Manager", userProfile?.company || "your company");
-
-          const optionsMessage: Message = {
-            id: optionsMessageId,
-            type: "assistant",
-            content: researchAreas.intro,
-            timestamp: new Date(),
-            options: researchAreas.options,
-          };
-
-          setMessages(prev => [...prev, optionsMessage]);
-        }, 500);
-      }, 300);
+        setMessages(prev => [...prev, optionsMessage]);
+      }, 500);
     }, 200);
   };
 

@@ -107,6 +107,13 @@ export const renderTextWithCitations = (
 
 export const getStreamingSteps = (optionId: string): StreamingStep[] => {
   const streamingSteps: Record<string, StreamingStep[]> = {
+    "company_overview": [
+      { text: "🎯 Creating comprehensive research plan", iconName: "target", completed: false },
+      { text: "🔍 Collecting company data from multiple sources", iconName: "search", completed: false },
+      { text: "📊 Analyzing financial and market position", iconName: "trending-up", completed: false },
+      { text: "👥 Mapping leadership and organizational structure", iconName: "users", completed: false },
+      { text: "✅ Generated comprehensive company overview", iconName: "check-circle", completed: false }
+    ],
     "decision_makers": [
       { text: "🎯 Mapping organizational structure", iconName: "target", completed: false },
       { text: "🔍 Scanning LinkedIn and company directory", iconName: "search", completed: false },

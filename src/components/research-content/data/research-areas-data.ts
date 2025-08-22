@@ -2,6 +2,7 @@ import { ResearchArea } from "../../../types/research";
 
 export const getResearchAreas = (company: string, role: string, userCompanyName?: string): { intro: string; options: ResearchArea[] } => {
   const baseAreas: ResearchArea[] = [
+    { id: "company_overview", text: "Company overview and profile", iconName: "building", category: "research" },
     { id: "decision_makers", text: "Key contacts and decision makers", iconName: "users", category: "research" },
     { id: "tech_stack", text: "Current technology usage and preferences", iconName: "zap", category: "research" },
     { id: "business_challenges", text: "Pain points and operational challenges", iconName: "target", category: "research" },
