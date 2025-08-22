@@ -258,7 +258,183 @@ export default function Research() {
     setIsAnalysisSheetOpen(true);
   };
 
+  const startRealResearch = async (messageId: string, researchAreaId: string) => {
+    if (!userProfile || !currentCompany) {
+      console.error('Missing user profile or company for research');
+      return;
+    }
+
+    // Initialize streaming message
+    setMessages(prev => prev.map(msg =>
+      msg.id === messageId
+        ? { 
+            ...msg, 
+            isStreaming: true, 
+            streamingSteps: [
+              { text: "🔍 Creating research plan...", completed: false },
+              { text: "📊 Collecting data sources...", completed: false },
+              { text: "🧠 Analyzing findings...", completed: false },
+              { text: "💡 Generating insights...", completed: false }
+            ]
+          }
+        : msg
+    ));
+
+    // Scroll to show streaming progress
+    setTimeout(() => {
+      scrollToStreamingMessage();
+    }, 150);
+
+    try {
+      // Start SSE connection for real-time research updates
+      const eventSource = new EventSource(
+        `/api/research/stream?areaId=${researchAreaId}&companyId=${encodeURIComponent(currentCompany)}&userRole=${userProfile.role}&userCompany=${encodeURIComponent(userProfile.company || '')}`
+      );
+
+      let stepIndex = 0;
+      let collectedData: any = null;
+
+      eventSource.addEventListener('collection_started', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('🔍 Research collection started:', data);
+        
+        // Update first step
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId && msg.streamingSteps
+            ? {
+                ...msg,
+                streamingSteps: msg.streamingSteps.map((step, i) =>
+                  i === 0 ? { ...step, completed: true } : step
+                )
+              }
+            : msg
+        ));
+        stepIndex = 1;
+      });
+
+      eventSource.addEventListener('progress_update', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('📊 Progress update:', data);
+        
+        // Update progress step
+        if (stepIndex < 3) {
+          setMessages(prev => prev.map(msg =>
+            msg.id === messageId && msg.streamingSteps
+              ? {
+                  ...msg,
+                  streamingSteps: msg.streamingSteps.map((step, i) =>
+                    i === stepIndex ? { ...step, completed: true } : step
+                  )
+                }
+              : msg
+          ));
+          stepIndex++;
+        }
+      });
+
+      eventSource.addEventListener('research_findings', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('💡 Research findings received:', data);
+        collectedData = data;
+        
+        // Complete final step
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId && msg.streamingSteps
+            ? {
+                ...msg,
+                streamingSteps: msg.streamingSteps.map((step, i) =>
+                  i === 3 ? { ...step, completed: true } : step
+                )
+              }
+            : msg
+        ));
+      });
+
+      eventSource.addEventListener('research_complete', (event) => {
+        const data = JSON.parse(event.data);
+        console.log('✅ Research completed:', data);
+        
+        // Close SSE connection
+        eventSource.close();
+
+        // Create completed research item
+        const completedResearchItem: CompletedResearch = {
+          id: messageId,
+          title: collectedData?.title || `${researchAreaId} Research`,
+          completedAt: new Date(),
+          findings: collectedData || { title: '', items: [] },
+          researchArea: researchAreaId
+        };
+
+        setCompletedResearch(prev => [...prev, completedResearchItem]);
+
+        // Update message with real findings
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                isStreaming: false,
+                content: "",
+                researchFindings: { 
+                  ...collectedData, 
+                  researchAreaId: researchAreaId 
+                },
+                sources: collectedData?.sources || [],
+                followUpOptions: collectedData?.followUpOptions || []
+              }
+            : msg
+        ));
+        
+        setIsTyping(false);
+
+        // Scroll to show completed findings
+        setTimeout(() => {
+          scrollToResearchFindings();
+        }, 800);
+      });
+
+      eventSource.addEventListener('error', (event) => {
+        console.error('❌ SSE connection error:', event);
+        eventSource.close();
+        
+        // Handle error gracefully
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId
+            ? {
+                ...msg,
+                isStreaming: false,
+                content: "Sorry, I encountered an error while researching. Please try again.",
+                streamingSteps: undefined
+              }
+            : msg
+        ));
+        
+        setIsTyping(false);
+      });
+
+    } catch (error) {
+      console.error('❌ Failed to start research:', error);
+      
+      // Handle error gracefully
+      setMessages(prev => prev.map(msg =>
+        msg.id === messageId
+          ? {
+              ...msg,
+              isStreaming: false,
+              content: "Sorry, I couldn't start the research. Please try again.",
+              streamingSteps: undefined
+            }
+          : msg
+      ));
+      
+      setIsTyping(false);
+    }
+  };
+
+  // Keep the old simulateStreaming for fallback during development
   const simulateStreaming = (messageId: string, steps: Array<{ text: string; icon?: React.ReactNode }>, findings: any, researchArea: string) => {
+    console.log('⚠️ Using mock streaming - replace with startRealResearch for production');
+    
     const streamingSteps = steps.map(step => ({ ...step, completed: false }));
 
     setMessages(prev => prev.map(msg =>
