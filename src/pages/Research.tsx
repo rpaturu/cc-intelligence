@@ -605,9 +605,8 @@ export default function Research() {
 
         setMessages(prev => [...prev, streamingMessage]);
 
-        const steps = getStreamingSteps(optionId);
-        const findings = getResearchFindings(optionId, currentCompany);
-        simulateStreaming(messageId, steps, findings, optionId);
+        // Use real SSE streaming instead of mock
+        startRealResearch(messageId, optionId);
       } else {
         if (optionId === "research_another") {
           // Save current session before switching
