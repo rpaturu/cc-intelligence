@@ -136,8 +136,18 @@ export class SessionService {
     // Clear local session
     sessionStorage.removeItem(this.SESSION_KEY);
     
-    // Could emit event for components to handle logout
+    // Clear any other session-related data
+    sessionStorage.removeItem('sessionUserId');
+    sessionStorage.removeItem('authToken');
+    
+    // Clear any persistent storage that might contain session data
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userData');
+    
+    // Emit event for components to handle logout
     window.dispatchEvent(new CustomEvent('sessionExpired'));
+    
+    console.log('SessionService: Session expiration handled, event dispatched');
   }
 
   /**

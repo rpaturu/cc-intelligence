@@ -10,7 +10,7 @@ interface ExportSheetProps {
   currentCompany: string;
   user: any;
   messages: any[];
-  completedResearch: any[];
+  completedResearch?: any[];
   onDownloadReport: (format: 'pdf' | 'powerpoint' | 'word' | 'excel' | 'json') => void;
 }
 
@@ -20,7 +20,7 @@ export default function ExportSheet({
   currentCompany,
   user,
   messages,
-  completedResearch,
+  completedResearch = [],
   onDownloadReport
 }: ExportSheetProps) {
   return (
@@ -142,14 +142,14 @@ export default function ExportSheet({
             </div>
           )}
 
-          {completedResearch.length > 0 && (
+          {completedResearch && completedResearch.length > 0 && (
             <div>
               <h3 className="mb-3 flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
-                Research Findings ({completedResearch.length} areas completed)
+                Research Findings ({completedResearch?.length || 0} areas completed)
               </h3>
               <div className="space-y-4">
-                {completedResearch.map((research) => (
+                {completedResearch?.map((research) => (
                   <Card key={research.id}>
                     <CardContent className="p-4">
                       <div className="space-y-3">
@@ -159,7 +159,7 @@ export default function ExportSheet({
                             Completed: {research.completedAt.toLocaleString()}
                           </p>
                         </div>
-                        {research.findings.items.map((item: any, itemIndex: number) => (
+                        {research.findings?.items?.map((item: any, itemIndex: number) => (
                           <div key={itemIndex} className="border-l-2 border-primary/20 pl-3">
                             <h5 className="text-sm text-foreground mb-1">{item.title}</h5>
                             <p className="text-xs text-muted-foreground mb-2">{item.description}</p>
@@ -195,7 +195,7 @@ export default function ExportSheet({
 
                             {item.valueProps && (
                               <div className="space-y-2 mb-2">
-                                {item.valueProps.map((valueProp: any, vpIndex: number) => (
+                                {item.valueProps?.map((valueProp: any, vpIndex: number) => (
                                   <div key={vpIndex} className="bg-primary/5 rounded p-2 border-l-2 border-l-primary">
                                     <div className="flex items-center gap-2 mb-1">
                                       <Swords className="w-3 h-3 text-primary" />
@@ -203,7 +203,7 @@ export default function ExportSheet({
                                       <Badge variant="outline" className="text-xs">vs {valueProp.competitor}</Badge>
                                     </div>
                                     <div className="text-xs space-y-1">
-                                      {valueProp.talkingPoints.map((point: string, pointIndex: number) => (
+                                      {valueProp.talkingPoints?.map((point: string, pointIndex: number) => (
                                         <div key={pointIndex} className="flex items-start gap-1">
                                           <span className="text-primary mt-0.5">•</span>
                                           <span>{point}</span>
@@ -217,7 +217,7 @@ export default function ExportSheet({
                             
                             {item.details && (
                               <div className="text-xs text-muted-foreground space-y-1">
-                                {item.details.map((detail: string, detailIndex: number) => (
+                                {item.details?.map((detail: string, detailIndex: number) => (
                                   <div key={detailIndex} className="flex items-start gap-1">
                                     <span className="text-primary mt-0.5">•</span>
                                     <span>{detail}</span>
@@ -235,7 +235,7 @@ export default function ExportSheet({
             </div>
           )}
 
-          {completedResearch.length === 0 && (
+          {(!completedResearch || completedResearch.length === 0) && (
             <div className="text-center py-8">
               <p className="text-muted-foreground">No research findings yet. Complete some research areas to see them here.</p>
             </div>

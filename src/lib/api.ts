@@ -16,50 +16,124 @@ import { getApiHeaders } from '../utils/apiHeaders';
  */
 function createCustomEventSource(response: Response): EventSource {
   // Create a custom EventSource that wraps the fetch response
+  const listeners: { [key: string]: EventListener[] } = {};
+  
   const customEventSource = {
-    addEventListener: (event: string, listener: EventListener) => {
-      // Handle the streaming response
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('Response body not available for streaming');
+    addEventListener: (eventType: string, listener: EventListener) => {
+      if (!listeners[eventType]) {
+        listeners[eventType] = [];
       }
+      listeners[eventType].push(listener);
       
-      // Process the stream
-      const processStream = async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            // Convert Uint8Array to string and parse SSE data
-            const chunk = new TextDecoder().decode(value);
-            const lines = chunk.split('\n');
-            
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.substring(6);
-                if (data.trim()) {
-                  // Create a custom event
-                  const customEvent = new CustomEvent(event, {
-                    detail: { data }
-                  });
-                  listener(customEvent as any);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error processing SSE stream:', error);
-        }
-      };
-      
-      processStream();
+      // Only start processing once we have listeners
+      if (Object.keys(listeners).length === 1) {
+        processStream();
+      }
     },
     
     close: () => {
-      response.body?.cancel();
+      try {
+        // Only cancel if the stream is not locked
+        if (response.body && !response.body.locked) {
+          response.body.cancel();
+        }
+      } catch (error) {
+        console.warn('Error closing SSE stream:', error);
+      }
     }
   } as EventSource;
+
+  // Process the stream once
+  const processStream = async () => {
+    try {
+      // Check if response body is available
+      if (!response.body) {
+        throw new Error('Response body not available for streaming');
+      }
+
+      const reader = response.body.getReader();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        // Convert Uint8Array to string and add to buffer
+        buffer += new TextDecoder().decode(value);
+        
+        // Process complete lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.substring(6).trim();
+            if (dataStr) {
+              try {
+                // Parse the JSON data
+                const data = JSON.parse(dataStr);
+                const eventType = data.type || 'message';
+                
+                console.log(`🔍 Processing SSE event: ${eventType}`, data);
+                
+                // Create a standard MessageEvent-like object
+                const messageEvent = {
+                  data: dataStr,
+                  type: eventType,
+                  target: customEventSource,
+                  preventDefault: () => {},
+                  stopPropagation: () => {}
+                } as unknown as MessageEvent;
+                
+                // Dispatch to specific event listeners
+                if (listeners[eventType]) {
+                  listeners[eventType].forEach(listener => {
+                    try {
+                      listener(messageEvent as any);
+                    } catch (error) {
+                      console.error(`Error in ${eventType} listener:`, error);
+                    }
+                  });
+                }
+                
+                // Also dispatch to 'message' listeners for compatibility
+                if (eventType !== 'message' && listeners['message']) {
+                  listeners['message'].forEach(listener => {
+                    try {
+                      listener(messageEvent as any);
+                    } catch (error) {
+                      console.error('Error in message listener:', error);
+                    }
+                  });
+                }
+              } catch (parseError) {
+                console.error('Error parsing SSE data:', parseError, 'Data:', dataStr);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error processing SSE stream:', error);
+      
+      // Dispatch error to error listeners
+      if (listeners['error']) {
+        const errorEvent = {
+          type: 'error',
+          target: customEventSource,
+          error: error
+        } as any;
+        
+        listeners['error'].forEach(listener => {
+          try {
+            listener(errorEvent);
+          } catch (listenerError) {
+            console.error('Error in error listener:', listenerError);
+          }
+        });
+      }
+    }
+  };
   
   return customEventSource;
 }
@@ -105,10 +179,26 @@ class SalesIntelligenceApiClient {
       if (response.status === 401) {
         console.log('Session expired, handling logout');
         await sessionService.handleSessionExpiration();
-        // Let the error propagate so components can handle redirect to login
+        
+        // Create a specific error for session expiration
+        const sessionExpiredError = new Error('Session expired. Please log in again.');
+        (sessionExpiredError as any).isSessionExpired = true;
+        throw sessionExpiredError;
       }
       
-      const errorData: ApiError = await response.json();
+      // Try to parse error response, but handle cases where response might not be JSON
+      let errorData: ApiError;
+      try {
+        errorData = await response.json();
+      } catch (parseError) {
+        // If we can't parse JSON, create a basic error
+        errorData = {
+          error: `HTTP ${response.status}: ${response.statusText}`,
+          message: 'An error occurred while processing your request',
+          requestId: 'unknown'
+        };
+      }
+      
       console.error('API Error:', errorData);
       throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
     }
@@ -926,22 +1016,22 @@ class SalesIntelligenceApiClient {
     }
     
     const initResponse = await response.json();
-    const researchSessionId = initResponse.researchSessionId;
-    const sseEndpoint = initResponse.streaming?.sseEndpoint;
+    const researchSessionId = initResponse.data?.researchSessionId;
+    const sseToken = response.headers.get('X-SSE-Token');
     
     if (!researchSessionId) {
       throw new Error('No research session ID returned from backend');
     }
     
-    if (!sseEndpoint) {
-      throw new Error('No SSE endpoint returned from backend');
+    if (!sseToken) {
+      throw new Error('No SSE token returned in response header');
     }
     
     console.log('Research session created:', researchSessionId);
-    console.log('SSE endpoint provided:', sseEndpoint);
+    console.log('SSE token provided in header:', sseToken);
     
     // Step 2: Create SSE connection using fetch() for secure headers
-    const sseUrl = `${this.baseUrl}${sseEndpoint}`;
+    const sseUrl = `${this.baseUrl}/api/research/stream/events`; // Fixed endpoint without token
     console.log('Creating SSE connection to:', sseUrl);
     
     // Use fetch() to support custom headers for security
@@ -950,6 +1040,7 @@ class SalesIntelligenceApiClient {
       headers: {
         'X-API-Key': this.apiKey,
         'X-Session-ID': sessionId!,
+        'X-SSE-Token': sseToken,
         'Accept': 'text/event-stream',
         'Cache-Control': 'no-cache'
       }

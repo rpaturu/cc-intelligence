@@ -13,9 +13,9 @@ import CompanySearch from "../components/research/CompanySearch";
 import { getResearchAreas, getFollowUpOptions } from "../components/research-content/data";
 import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
 import { scrollToBottom, scrollToUserMessage, scrollToStreamingMessage, scrollToResearchFindings } from "../utils/scroll-utils";
-import { Message, CompletedResearch } from "../types/research";
+import { Message, CompletedResearch, CompanyData } from "../types/research";
 import { useProfile } from "../hooks/useProfile";
-import { /* getResearchHistory, */ getCompanyResearch, /* saveCompanyResearch, */ createResearchEventSource } from '../lib/api';
+import { /* getResearchHistory, */ getCompanyResearch, saveCompanyResearch, createResearchEventSource } from '../lib/api';
 
 // Import centralized research areas for scroll detection
 import { CORE_RESEARCH_AREAS } from "../data/research-areas";
@@ -71,8 +71,90 @@ export default function Research() {
   useEffect(() => {
     if (userProfile) {
       loadResearchHistory();
+      
+      // Check for pending research data that might have been saved during session expiry
+      const pendingResearchData = localStorage.getItem('pending_research_save');
+      if (pendingResearchData) {
+        try {
+          const data = JSON.parse(pendingResearchData);
+          console.log('Research: Found pending research data from previous session:', data);
+          
+          // Clear the pending data since we've processed it
+          localStorage.removeItem('pending_research_save');
+          
+          // Optionally, we could restore the research session here
+          // For now, we'll just log it for debugging
+        } catch (error) {
+          console.error('Research: Error parsing pending research data:', error);
+          localStorage.removeItem('pending_research_save');
+        }
+      }
     }
   }, [userProfile]);
+
+  // Listen for session expiry events
+  useEffect(() => {
+    const handleSessionExpired = async () => {
+      console.log('Research: Session expired event received, saving research before logout');
+      
+      try {
+        // Save current research session before signing out
+        if (currentCompany && (messages.length > 0 || completedResearch.length > 0)) {
+          console.log('Research: Saving current research session before logout:', currentCompany);
+          
+          // Call the save function to persist research data
+          await saveCurrentResearchSession();
+          console.log('Research: Research session saved successfully before logout');
+        }
+      } catch (error) {
+        console.error('Research: Error saving research session before logout:', error);
+        // Even if saving fails, we should still redirect to login
+      }
+      
+      // Force redirect to login after attempting to save
+      window.location.href = '/login';
+    };
+    
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    
+    return () => {
+      window.removeEventListener('sessionExpired', handleSessionExpired);
+    };
+  }, [currentCompany, messages, completedResearch, userProfile]);
+
+  // Save research data when user leaves the page (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      // Only save if there's active research
+      if (currentCompany && (messages.length > 0 || completedResearch.length > 0)) {
+        console.log('Research: Page unload detected, saving research data');
+        
+        // Use synchronous storage as fallback since beforeunload doesn't support async
+        try {
+          const sessionData = {
+            company: currentCompany,
+            messages: messages.length,
+            completedResearch: completedResearch.length,
+            lastActivity: new Date().toISOString(),
+            userRole: userProfile?.role,
+            userCompany: userProfile?.company
+          };
+          
+          // Save to localStorage as backup
+          localStorage.setItem('pending_research_save', JSON.stringify(sessionData));
+          console.log('Research: Research data saved to localStorage before page unload');
+        } catch (error) {
+          console.error('Research: Error saving research data before page unload:', error);
+        }
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [currentCompany, messages, completedResearch, userProfile]);
 
   // Check for company parameter in URL and load company research
   useEffect(() => {
@@ -335,7 +417,18 @@ export default function Research() {
       eventSource.addEventListener('research_findings', (event) => {
         const data = JSON.parse(event.data);
         console.log('💡 Research findings received:', data);
+        console.log('📊 Research findings structure:', {
+          type: data.type,
+          findings: data.findings,
+          findingsKeys: data.findings ? Object.keys(data.findings) : [],
+          sampleData: data.findings ? Object.entries(data.findings).slice(0, 2) : []
+        });
         collectedData = data;
+        
+        // Ensure we have valid findings data
+        if (!data || !data.findings) {
+          console.warn('⚠️ Research findings data is missing or invalid:', data);
+        }
         
         // Complete final step
         setMessages(prev => prev.map(msg =>
@@ -368,22 +461,41 @@ export default function Research() {
 
         setCompletedResearch(prev => [...prev, completedResearchItem]);
 
-        // Update message with real findings
-        setMessages(prev => prev.map(msg =>
-          msg.id === messageId
-            ? {
-                ...msg,
-                isStreaming: false,
-                content: "",
-                researchFindings: { 
-                  ...collectedData, 
-                  researchAreaId: researchAreaId 
-                },
-                sources: collectedData?.sources || [],
-                followUpOptions: collectedData?.followUpOptions || getFollowUpOptions(researchAreaId)
-              }
-            : msg
-        ));
+                // Update message with real findings
+        setMessages(prev => prev.map(msg => {
+          if (msg.id !== messageId) return msg;
+          
+          const updatedMessage = {
+            ...msg,
+            isStreaming: false,
+            content: "",
+            researchFindings: collectedData?.findings ? {
+              id: messageId,
+              title: `${researchAreaId} Research for ${companyName}`,
+              researchArea: researchAreaId,
+              items: [
+                {
+                  title: "Customer Intelligence Analysis",
+                  description: "Real-time research findings from multiple data sources",
+                  details: Object.keys(collectedData.findings).map(source => 
+                    `Data from ${source}: ${Object.keys(collectedData.findings[source]).length} records`
+                  )
+                }
+              ]
+            } : undefined,
+            sources: [], // Sources will be populated from the actual research results, not streaming data
+            followUpOptions: collectedData?.options || getFollowUpOptions(researchAreaId)
+          };
+          
+          console.log('🎯 Updating message with research findings:', {
+            messageId,
+            researchFindings: updatedMessage.researchFindings,
+            sources: updatedMessage.sources,
+            followUpOptions: updatedMessage.followUpOptions
+          });
+          
+          return updatedMessage;
+        }));
         
         setIsTyping(false);
 
@@ -670,11 +782,12 @@ export default function Research() {
       };
 
       console.log('Session data to save:', sessionData);
-      // COMMENTED OUT: Always save/update the company research
-      // await saveCompanyResearch(currentCompany, sessionData);
-      console.log('Research session saving COMMENTED OUT for testing');
       
-      // COMMENTED OUT: Reload research history to include the newly saved session
+      // Save research data to backend
+      await saveCompanyResearch(currentCompany, sessionData);
+      console.log('Research session saved successfully');
+      
+      // Reload research history to include the newly saved session
       // await loadResearchHistory();
     } catch (error) {
       console.error('Failed to save research session:', error);
@@ -694,20 +807,77 @@ export default function Research() {
 
       setMessages([userMessage]);
 
-      // Skip mock company summary and show research areas directly
+      // Add company summary message
       setTimeout(() => {
-        const optionsMessageId = (Date.now() + 2).toString();
-        const researchAreas = getResearchAreas(companyName, userProfile.role, userProfile.company);
-
-        const optionsMessage: Message = {
-          id: optionsMessageId,
-          type: "assistant",
-          content: researchAreas.intro,
-          timestamp: new Date(),
-          options: researchAreas.options,
+        const summaryMessageId = (Date.now() + 1).toString();
+        const companySummary: CompanyData = {
+          name: companyName,
+          industry: "Technology", // This will be populated by the research
+          size: "Enterprise",
+          location: "Global",
+          revenue: "$200B+",
+          businessModel: "Software & Cloud Services",
+          marketPosition: "Market Leader",
+          techStack: ["Azure", ".NET", "TypeScript", "AI/ML", "C#", "React"],
+          founded: "1975",
+          recentNews: "AI integration across Office suite",
+          keyExecutives: [
+            {
+              name: "Satya Nadella",
+              role: "CEO",
+              background: "22-year Microsoft veteran, cloud transformation leader"
+            },
+            {
+              name: "Amy Hood",
+              role: "CFO", 
+              background: "Former McKinsey consultant, 13+ years at Microsoft"
+            }
+          ],
+          recentDevelopments: [
+            {
+              type: "product",
+              title: "Copilot integration across Office suite",
+              date: "Dec 2024",
+              impact: "high"
+            },
+            {
+              type: "partnership",
+              title: "OpenAI strategic partnership expansion", 
+              date: "Nov 2024",
+              impact: "high"
+            }
+          ],
+          businessMetrics: {
+            valuation: "$2.8T market cap",
+            customerCount: "1.4B Office users"
+          }
         };
 
-        setMessages(prev => [...prev, optionsMessage]);
+        const summaryMessage: Message = {
+          id: summaryMessageId,
+          type: "assistant",
+          content: "",
+          timestamp: new Date(),
+          companySummary: companySummary,
+        };
+
+        setMessages(prev => [...prev, summaryMessage]);
+
+        // Show research areas
+        setTimeout(() => {
+          const optionsMessageId = (Date.now() + 2).toString();
+          const researchAreas = getResearchAreas(companyName, userProfile.role, userProfile.company);
+
+          const optionsMessage: Message = {
+            id: optionsMessageId,
+            type: "assistant",
+            content: researchAreas.intro,
+            timestamp: new Date(),
+            options: researchAreas.options,
+          };
+
+          setMessages(prev => [...prev, optionsMessage]);
+        }, 500);
       }, 500);
     }, 200);
   };

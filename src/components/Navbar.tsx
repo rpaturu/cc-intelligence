@@ -237,6 +237,44 @@ export default function Navbar(props: NavbarProps = {}) {
     }
   }, [areasResearched, isDesktopHistoryOpen, isMobileHistoryOpen]);
 
+  // Listen for session expiry events and save research history before signing out
+  useEffect(() => {
+    const handleSessionExpired = async () => {
+      console.log('Navbar: Session expired event received, saving research history before logout');
+      
+      try {
+        // Save current research session if there's active research
+        if (currentCompany && areasResearched > 0) {
+          console.log('Navbar: Saving current research session before logout:', currentCompany);
+          
+          // Get current research data from localStorage or sessionStorage
+          const currentResearchData = {
+            company: currentCompany,
+            areasResearched,
+            totalAreas,
+            lastActivity: new Date().toISOString(),
+            status: 'active'
+          };
+          
+          // Save to localStorage as backup
+          localStorage.setItem('pending_research_save', JSON.stringify(currentResearchData));
+          console.log('Navbar: Research data saved to localStorage as backup');
+          
+          // Try to save via API if possible (this will be handled by the Research page if it's loaded)
+          // The Research page will handle the actual API call when it receives the sessionExpired event
+        }
+      } catch (error) {
+        console.error('Navbar: Error saving research history before logout:', error);
+      }
+    };
+    
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    
+    return () => {
+      window.removeEventListener('sessionExpired', handleSessionExpired);
+    };
+  }, [currentCompany, areasResearched, totalAreas]);
+
   // Reusable history content component
   const HistoryContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className={`history-content ${isMobile ? 'p-0' : ''}`}>

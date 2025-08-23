@@ -34,10 +34,7 @@ export interface ResearchStreamingResponse {
   researchSessionId: string;
   areaId: string;
   companyId: string;
-  userId: string;
-  userEmail: string;
   streaming: {
-    sseEndpoint: string;
     statusEndpoint: string;
     resultEndpoint: string;
     estimatedTimeMinutes: number;
@@ -69,10 +66,13 @@ export class ResearchService {
         throw new Error('No active session found');
       }
 
-      const params = new URLSearchParams({ areaId, companyId });
-      const response = await fetch(`${this.baseUrl}/api/research/stream?${params}`, {
+      const response = await fetch(`${this.baseUrl}/api/research/stream`, {
         method: 'POST',
-        headers: getSessionHeaders(),
+        headers: {
+          ...getSessionHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ areaId, companyId })
       });
 
       if (!response.ok) {
@@ -134,24 +134,6 @@ export class ResearchService {
       console.error('ResearchService: Failed to get research results', error);
       throw error;
     }
-  }
-
-  /**
-   * Create SSE EventSource for real-time research updates
-   * Note: EventSource doesn't support custom headers, so session must be handled via URL params or cookies
-   */
-  createResearchEventSource(researchSessionId: string): EventSource {
-    const sessionId = sessionStorage.getItem('sessionId');
-    if (!sessionId) {
-      throw new Error('No active session found');
-    }
-
-    // Note: EventSource doesn't support custom headers
-    // The backend should handle session validation via cookies or URL parameters
-    const url = `${this.baseUrl}/api/research/stream/${researchSessionId}/events`;
-    const eventSource = new EventSource(url);
-
-    return eventSource;
   }
 }
 

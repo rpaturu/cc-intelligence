@@ -23,6 +23,7 @@ interface AuthContextType {
   confirmSignUp: (username: string, code: string) => Promise<void>
   resendConfirmationCode: (username: string) => Promise<void>
   getIdToken: () => Promise<string | null>
+  clearAuthState: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,6 +35,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('AuthProvider: Initial checkAuthState called')
     checkAuthState()
+    
+        // Listen for session expiration events
+    const handleSessionExpired = async () => {
+      console.log('AuthProvider: Session expired event received, signing out user')
+      
+      try {
+        // Properly sign out from Cognito to clear all tokens
+        await signOut()
+        await sessionService.destroySession()
+        console.log('AuthProvider: Cognito and session service sign out completed')
+      } catch (error) {
+        console.error('AuthProvider: Error during session expiry sign out:', error)
+        // Even if signOut fails, we should still clear the local state
+      }
+      
+      // Clear local user state
+      setUser(null)
+      
+      // Redirect to login page
+      window.location.href = '/login'
+    }
+    
+    window.addEventListener('sessionExpired', handleSessionExpired)
+    
+    // Cleanup event listener on unmount
+    return () => {
+      window.removeEventListener('sessionExpired', handleSessionExpired)
+    }
   }, [])
 
   const checkAuthState = async () => {
@@ -89,6 +118,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSignIn = async (username: string, password: string) => {
     try {
       console.log('Signing in with:', username)
+      
+      // Check if user is already authenticated
+      try {
+        const currentSession = await fetchAuthSession()
+        if (currentSession.tokens) {
+          console.log('User is already authenticated, signing out first...')
+          await signOut()
+          await sessionService.destroySession()
+          console.log('Previous session cleared, proceeding with new sign in')
+        }
+      } catch (sessionCheckError) {
+        console.log('No existing session found, proceeding with sign in')
+      }
+      
       // Since user pool is configured for email aliases, users can sign in with email
       await signIn({ username, password })
       console.log('Sign in successful, checking auth state...')
@@ -97,6 +140,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await checkAuthState()
     } catch (error: any) {
       console.error('Sign in error:', error)
+      
+      // Handle specific case where user is already authenticated
+      if (error.name === 'UserAlreadyAuthenticatedException') {
+        console.log('User already authenticated, attempting to clear session and retry...')
+        try {
+          await signOut()
+          await sessionService.destroySession()
+          console.log('Session cleared, retrying sign in...')
+          
+          // Retry the sign in
+          await signIn({ username, password })
+          await checkAuthState()
+          return
+        } catch (retryError) {
+          console.error('Failed to retry sign in after clearing session:', retryError)
+          throw new Error('Authentication failed. Please refresh the page and try again.')
+        }
+      }
+      
       throw error
     }
   }
@@ -166,6 +228,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }
 
+  const clearAuthState = async (): Promise<void> => {
+    try {
+      console.log('Clearing all authentication state...')
+      
+      // Sign out from Cognito
+      await signOut()
+      
+      // Clear session service
+      await sessionService.destroySession()
+      
+      // Clear local user state
+      setUser(null)
+      
+      // Clear any additional storage
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userData')
+      sessionStorage.clear()
+      
+      console.log('Authentication state cleared successfully')
+    } catch (error) {
+      console.error('Error clearing auth state:', error)
+      // Force clear local state even if signOut fails
+      setUser(null)
+      sessionStorage.clear()
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userData')
+    }
+  }
+
   const value: AuthContextType = {
     user,
     loading,
@@ -175,6 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     confirmSignUp: handleConfirmSignUp,
     resendConfirmationCode: handleResendConfirmationCode,
     getIdToken,
+    clearAuthState,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

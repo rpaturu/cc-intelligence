@@ -29,6 +29,21 @@ export function ProtectedRoute({ children, requireProfileComplete = true }: Prot
     }
   }, [user, authLoading]);
 
+  // Listen for session expiry events
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      console.log('ProtectedRoute: Session expired event received, redirecting to login');
+      // Force redirect to login
+      window.location.href = '/login';
+    };
+    
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    
+    return () => {
+      window.removeEventListener('sessionExpired', handleSessionExpired);
+    };
+  }, []);
+
   // Show loading while checking authentication or during profile check delay (only for authenticated users)
   if (authLoading || (user && (profileLoading || profileCheckDelay))) {
     return (

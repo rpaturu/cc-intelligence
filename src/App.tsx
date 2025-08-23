@@ -1,3 +1,4 @@
+import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ProfileProvider } from './contexts/ProfileContext'
@@ -19,6 +20,21 @@ import ConsentManagementPage from './pages/ConsentManagementPage'
 import Research from './pages/Research'
 
 function App() {
+  // Global session expiry handler as a fallback
+  React.useEffect(() => {
+    const handleSessionExpired = () => {
+      console.log('App: Global session expired event received')
+      // Force redirect to login
+      window.location.href = '/login'
+    }
+    
+    window.addEventListener('sessionExpired', handleSessionExpired)
+    
+    return () => {
+      window.removeEventListener('sessionExpired', handleSessionExpired)
+    }
+  }, [])
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <AuthProvider>
