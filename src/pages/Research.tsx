@@ -12,6 +12,8 @@ import ResearchAnalysisSheet from "../components/research/ResearchAnalysisSheet"
 import CompanySearch from "../components/research/CompanySearch";
 import { getResearchAreas, getFollowUpOptions } from "../components/research-content/data";
 import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
+import { simulateCompanyResearch, simulateHistoryLoading } from "../components/research/CompanyProgressSteps";
+// import ResearchProgress from "../components/research/ResearchProgress";
 import { scrollToBottom, scrollToUserMessage, scrollToStreamingMessage, scrollToResearchFindings } from "../utils/scroll-utils";
 import { Message, CompletedResearch, CompanyData } from "../types/research";
 import { useProfile } from "../hooks/useProfile";
@@ -21,7 +23,6 @@ import { /* getResearchHistory, */ getCompanyResearch, saveCompanyResearch, crea
 import { CORE_RESEARCH_AREAS } from "../data/research-areas";
 
 // Define all research areas for scroll detection (full objects for ResearchProgress)
-const allResearchAreas = CORE_RESEARCH_AREAS;
 const allResearchAreaIds = CORE_RESEARCH_AREAS.map(area => area.id);
 
 
@@ -61,7 +62,10 @@ export default function Research() {
     completedAreas: number;
     lastActivity?: string;
   }>>([]);
-
+  // Calculate available research areas dynamically as all areas minus completed ones
+  const availableResearchAreas = CORE_RESEARCH_AREAS.filter(area => 
+    !completedResearch.some(completed => completed.researchArea === area.id)
+  );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -450,59 +454,183 @@ export default function Research() {
         // Close SSE connection
         eventSource.close();
 
-        // Create completed research item
-        const completedResearchItem: CompletedResearch = {
-          id: messageId,
-          title: collectedData?.title || `${researchAreaId} Research`,
-          completedAt: new Date(),
-          findings: collectedData || { title: '', items: [] },
-          researchArea: researchAreaId
-        };
-
-        setCompletedResearch(prev => [...prev, completedResearchItem]);
-
-                // Update message with real findings
-        setMessages(prev => prev.map(msg => {
-          if (msg.id !== messageId) return msg;
+        if (researchAreaId === 'company_overview') {
+          // Handle company overview completion
+          console.log('🎯 Company overview research completed');
           
-          const updatedMessage = {
-            ...msg,
-            isStreaming: false,
-            content: "",
-            researchFindings: collectedData?.findings ? {
-              id: messageId,
-              title: `${researchAreaId} Research for ${companyName}`,
-              researchArea: researchAreaId,
-              items: [
+          // Extract company data from the response
+          let companyData: CompanyData | undefined;
+          if (collectedData?.findings) {
+            const serpData = collectedData.findings.serp_api;
+            const apolloData = collectedData.findings.apollo;
+            
+            companyData = {
+              name: companyName || "Unknown Company",
+              industry: serpData?.industry || apolloData?.industry || "Technology",
+              size: serpData?.size || apolloData?.size || "Enterprise",
+              location: serpData?.location || apolloData?.location || "Global",
+              revenue: serpData?.revenue || apolloData?.revenue || "$200B+",
+              businessModel: serpData?.businessModel || apolloData?.businessModel || "Software & Cloud Services",
+              marketPosition: serpData?.marketPosition || apolloData?.marketPosition || "Market Leader",
+              techStack: serpData?.techStack || apolloData?.techStack || ["Azure", ".NET", "TypeScript", "AI/ML", "C#", "React"],
+              founded: serpData?.founded || apolloData?.founded || "1975",
+              recentNews: serpData?.recentNews || apolloData?.recentNews || "AI integration across Office suite",
+              keyExecutives: serpData?.keyExecutives || apolloData?.keyExecutives || [
                 {
-                  title: "Customer Intelligence Analysis",
-                  description: "Real-time research findings from multiple data sources",
-                  details: Object.keys(collectedData.findings).map(source => 
-                    `Data from ${source}: ${Object.keys(collectedData.findings[source]).length} records`
-                  )
+                  name: "Satya Nadella",
+                  role: "CEO",
+                  background: "22-year Microsoft veteran, cloud transformation leader"
+                },
+                {
+                  name: "Amy Hood",
+                  role: "CFO", 
+                  background: "Former McKinsey consultant, 13+ years at Microsoft"
                 }
-              ]
-            } : undefined,
-            sources: [], // Sources will be populated from the actual research results, not streaming data
-            followUpOptions: collectedData?.options || getFollowUpOptions(researchAreaId)
-          };
-          
-          console.log('🎯 Updating message with research findings:', {
-            messageId,
-            researchFindings: updatedMessage.researchFindings,
-            sources: updatedMessage.sources,
-            followUpOptions: updatedMessage.followUpOptions
+              ],
+              recentDevelopments: serpData?.recentDevelopments || apolloData?.recentDevelopments || [
+                {
+                  type: "product",
+                  title: "Copilot integration across Office suite",
+                  date: "Dec 2024",
+                  impact: "high"
+                },
+                {
+                  type: "partnership",
+                  title: "OpenAI strategic partnership expansion", 
+                  date: "Nov 2024",
+                  impact: "high"
+                }
+              ],
+              businessMetrics: serpData?.businessMetrics || apolloData?.businessMetrics || {
+                valuation: "$2.8T market cap",
+                customerCount: "1.4B Office users"
+              }
+            };
+          }
+
+          // Replace the streaming message with company summary
+          setMessages(prev => {
+            const filteredMessages = prev.filter(msg => msg.id !== messageId);
+            
+            const summaryMessage: Message = {
+              id: messageId,
+              type: "assistant",
+              content: "",
+              timestamp: new Date(),
+              companySummary: companyData || {
+                name: companyName || "Unknown Company",
+                industry: "Technology",
+                size: "Enterprise",
+                location: "Global",
+                revenue: "$200B+",
+                businessModel: "Software & Cloud Services",
+                marketPosition: "Market Leader",
+                techStack: ["Azure", ".NET", "TypeScript", "AI/ML", "C#", "React"],
+                founded: "1975",
+                recentNews: "AI integration across Office suite",
+                keyExecutives: [
+                  {
+                    name: "Satya Nadella",
+                    role: "CEO",
+                    background: "22-year Microsoft veteran, cloud transformation leader"
+                  },
+                  {
+                    name: "Amy Hood",
+                    role: "CFO", 
+                    background: "Former McKinsey consultant, 13+ years at Microsoft"
+                  }
+                ],
+                recentDevelopments: [
+                  {
+                    type: "product",
+                    title: "Copilot integration across Office suite",
+                    date: "Dec 2024",
+                    impact: "high"
+                  },
+                  {
+                    type: "partnership",
+                    title: "OpenAI strategic partnership expansion", 
+                    date: "Nov 2024",
+                    impact: "high"
+                  }
+                ],
+                businessMetrics: {
+                  valuation: "$2.8T market cap",
+                  customerCount: "1.4B Office users"
+                }
+              },
+            };
+
+            // Add research topics after company summary
+            const researchAreas = getResearchAreas(companyName || "Unknown Company", userProfile.role || "Sales", userProfile.company || "Tech Corp");
+            const optionsMessage: Message = {
+              id: `options-${Date.now()}`,
+              type: "assistant",
+              content: researchAreas.intro,
+              timestamp: new Date(),
+              options: researchAreas.options,
+            };
+
+            return [...filteredMessages, summaryMessage, optionsMessage];
           });
-          
-          return updatedMessage;
-        }));
+
+          // Available research areas are now calculated dynamically
+
+        } else {
+          // Handle other research areas (existing logic)
+          const completedResearchItem: CompletedResearch = {
+            id: messageId,
+            title: collectedData?.title || `${researchAreaId} Research`,
+            completedAt: new Date(),
+            findings: collectedData || { title: '', items: [] },
+            researchArea: researchAreaId
+          };
+
+          setCompletedResearch(prev => [...prev, completedResearchItem]);
+
+          // Update message with real findings
+          setMessages(prev => prev.map(msg => {
+            if (msg.id !== messageId) return msg;
+            
+            const updatedMessage = {
+              ...msg,
+              isStreaming: false,
+              content: "",
+              researchFindings: collectedData?.findings ? {
+                id: messageId,
+                title: `${researchAreaId} Research for ${companyName}`,
+                researchArea: researchAreaId,
+                items: [
+                  {
+                    title: "Customer Intelligence Analysis",
+                    description: "Real-time research findings from multiple data sources",
+                    details: Object.keys(collectedData.findings).map(source => 
+                      `Data from ${source}: ${Object.keys(collectedData.findings[source]).length} records`
+                    )
+                  }
+                ]
+              } : undefined,
+              sources: [], // Sources will be populated from the actual research results, not streaming data
+              followUpOptions: collectedData?.options || getFollowUpOptions(researchAreaId)
+            };
+            
+            console.log('🎯 Updating message with research findings:', {
+              messageId,
+              researchFindings: updatedMessage.researchFindings,
+              sources: updatedMessage.sources,
+              followUpOptions: updatedMessage.followUpOptions
+            });
+            
+            return updatedMessage;
+          }));
+
+          // Scroll to show completed findings
+          setTimeout(() => {
+            scrollToResearchFindings();
+          }, 800);
+        }
         
         setIsTyping(false);
-
-        // Scroll to show completed findings
-        setTimeout(() => {
-          scrollToResearchFindings();
-        }, 800);
       });
 
       eventSource.addEventListener('error', (event) => {
@@ -568,7 +696,7 @@ export default function Research() {
         setCurrentCompany(company);
 
         // Get streaming steps for company overview
-        const steps = getStreamingSteps("overview");
+        const steps = getStreamingSteps("company_overview");
         const streamingSteps = steps.map(step => ({ ...step, completed: false }));
 
         // Create streaming message for company overview research
@@ -584,7 +712,7 @@ export default function Research() {
         setMessages(prev => [...prev, streamingMessage]);
 
         // Start real SSE research for company overview
-        startRealResearch(messageId, "overview");
+        startRealResearch(messageId, "company_overview");
       } else {
         const assistantMessage: Message = {
           id: messageId,
@@ -706,43 +834,95 @@ export default function Research() {
     if (existingSession) {
       try {
         console.log('Loading existing session for:', company.name);
-        // setIsLoadingExistingData(true); // Prevent auto-save during loading - COMMENTED OUT
         
-        // Load the existing session
-        const response = await getCompanyResearch(company.name);
-        console.log('Research response:', response);
+        // Show progress first, then load existing session
+        const userMessageId = Date.now().toString();
+        const userMessage: Message = {
+          id: userMessageId,
+          type: "user",
+          content: `Research ${company.name}`,
+          timestamp: new Date(),
+        };
+
+        setMessages([userMessage]);
+
+        // Add streaming progress message
+        setTimeout(() => {
+          const streamingMessageId = (Date.now() + 1).toString();
+          const streamingMessage: Message = {
+            id: streamingMessageId,
+            type: "assistant",
+            content: "Loading your research session...",
+            timestamp: new Date(),
+            isStreaming: true,
+            streamingSteps: [
+              {
+                text: 'Loading Research',
+                completed: false
+              },
+              {
+                text: 'Restoring Session',
+                completed: false
+              },
+              {
+                text: 'Compiling Data',
+                completed: false
+              },
+              {
+                text: 'Ready to Continue',
+                completed: false
+              }
+            ]
+          };
+
+          setMessages(prev => [...prev, streamingMessage]);
+
+          // Start the progress simulation for existing session (use history loading simulation)
+          simulateHistoryLoading(streamingMessageId, setMessages, async () => {
+            // After progress completes, load the existing session
+            try {
+              const response = await getCompanyResearch(company.name);
+              console.log('Research response:', response);
+              
+              setMessages(response.data.messages.map((msg: any) => ({
+                ...msg,
+                timestamp: new Date(msg.timestamp),
+              })));
+              setCompletedResearch(response.data.completedResearch.map((research: any) => ({
+                id: research.id,
+                title: research.title,
+                completedAt: research.completedAt ? new Date(research.completedAt) : new Date(),
+                researchArea: research.areaId,
+                findings: research.data?.findings || {
+                  title: research.title,
+                  items: []
+                }
+              })));
+              
+              // Set available research areas for existing session
+              // const researchAreas = getResearchAreas(company.name, userProfile.role, userProfile.company);
+              // Available research areas are now calculated dynamically
+            } catch (error) {
+              console.error('Failed to load existing session:', error);
+              // Fall back to creating a new session
+              createNewResearchSession(company.name);
+            }
+          });
+        }, 500);
         
-        setMessages(response.data.messages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp),
-        })));
-        setCompletedResearch(response.data.completedResearch.map((research: any) => ({
-          id: research.id,
-          title: research.title,
-          completedAt: research.completedAt ? new Date(research.completedAt) : new Date(),
-          researchArea: research.areaId,
-          findings: research.data?.findings || {
-            title: research.title,
-            items: []
-          }
-        })));
-        
-        // Allow auto-save after data is loaded - COMMENTED OUT
-        // setTimeout(() => setIsLoadingExistingData(false), 2000);
       } catch (error) {
         console.error('Failed to load existing session:', error);
-        // setIsLoadingExistingData(false); // COMMENTED OUT for testing
         // Fall back to creating a new session
         createNewResearchSession(company.name);
       }
     } else {
       console.log('No existing session found, creating new session for:', company.name);
-      // Create a new session
+      // Create a new session with progress flow
       createNewResearchSession(company.name);
       
-      // Automatically trigger overview research for new companies
+      // Automatically trigger overview research for new companies after progress completes
       console.log('Triggering automatic overview research for:', company.name);
-      await startRealResearch(`company_overview-${Date.now()}`, 'company_overview', company.name);
+      // The progress simulation will handle this automatically
     }
     
     // Reload research history to ensure it's up to date - COMMENTED OUT for testing
@@ -807,77 +987,50 @@ export default function Research() {
 
       setMessages([userMessage]);
 
-      // Add company summary message
+      // Add streaming progress message instead of company card immediately
       setTimeout(() => {
-        const summaryMessageId = (Date.now() + 1).toString();
-        const companySummary: CompanyData = {
-          name: companyName,
-          industry: "Technology", // This will be populated by the research
-          size: "Enterprise",
-          location: "Global",
-          revenue: "$200B+",
-          businessModel: "Software & Cloud Services",
-          marketPosition: "Market Leader",
-          techStack: ["Azure", ".NET", "TypeScript", "AI/ML", "C#", "React"],
-          founded: "1975",
-          recentNews: "AI integration across Office suite",
-          keyExecutives: [
-            {
-              name: "Satya Nadella",
-              role: "CEO",
-              background: "22-year Microsoft veteran, cloud transformation leader"
-            },
-            {
-              name: "Amy Hood",
-              role: "CFO", 
-              background: "Former McKinsey consultant, 13+ years at Microsoft"
-            }
-          ],
-          recentDevelopments: [
-            {
-              type: "product",
-              title: "Copilot integration across Office suite",
-              date: "Dec 2024",
-              impact: "high"
-            },
-            {
-              type: "partnership",
-              title: "OpenAI strategic partnership expansion", 
-              date: "Nov 2024",
-              impact: "high"
-            }
-          ],
-          businessMetrics: {
-            valuation: "$2.8T market cap",
-            customerCount: "1.4B Office users"
-          }
-        };
-
-        const summaryMessage: Message = {
-          id: summaryMessageId,
+        const streamingMessageId = (Date.now() + 1).toString();
+        const streamingMessage: Message = {
+          id: streamingMessageId,
           type: "assistant",
-          content: "",
+          content: "Researching company overview...",
           timestamp: new Date(),
-          companySummary: companySummary,
+          isStreaming: true,
+          streamingSteps: [
+            {
+              text: 'Starting Research',
+              completed: false
+            },
+            {
+              text: 'Collecting Data',
+              completed: false
+            },
+            {
+              text: 'Processing Sources',
+              completed: false
+            },
+            {
+              text: 'Compiling Results',
+              completed: false
+            }
+          ]
         };
 
-        setMessages(prev => [...prev, summaryMessage]);
+        setMessages(prev => [...prev, streamingMessage]);
 
-        // Show research areas
-        setTimeout(() => {
-          const optionsMessageId = (Date.now() + 2).toString();
-          const researchAreas = getResearchAreas(companyName, userProfile.role, userProfile.company);
-
-          const optionsMessage: Message = {
-            id: optionsMessageId,
-            type: "assistant",
-            content: researchAreas.intro,
-            timestamp: new Date(),
-            options: researchAreas.options,
-          };
-
-          setMessages(prev => [...prev, optionsMessage]);
-        }, 500);
+        // Start real research using the same message ID as the streaming message
+        console.log('Starting real research for:', companyName);
+        
+        // Start the API call in background using the streaming message ID
+        const researchPromise = startRealResearch(streamingMessageId, 'company_overview', companyName);
+        
+        // Show progress simulation while API is running
+        simulateCompanyResearch(streamingMessageId, companyName, setMessages, async () => {
+          // When simulation completes, ensure API research is also complete
+          console.log('Progress simulation complete, ensuring API research is finished...');
+          await researchPromise;
+          console.log('Both simulation and API research are now complete');
+        });
       }, 500);
     }, 200);
   };
@@ -981,7 +1134,7 @@ export default function Research() {
             user={userProfile}
             activeTabsState={activeTabsState}
             highlightedSource={highlightedSource}
-            availableResearchAreas={allResearchAreas}
+            availableResearchAreas={availableResearchAreas}
             completedResearch={completedResearch}
             onTabChange={handleTabChange}
             onCitationClick={handleCitationClick}

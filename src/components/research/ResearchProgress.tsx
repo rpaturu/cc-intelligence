@@ -1,12 +1,11 @@
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Progress } from "../ui/progress";
 import { Collapsible, CollapsibleContent } from "../ui/collapsible";
-import { CheckCircle, Clock, ArrowRight, TrendingUp, ChevronDown } from "lucide-react";
-import { Icon } from "../ui/icon";
+import { CheckCircle, Clock, ArrowRight, Zap, TrendingUp, ChevronDown, Users, Target, Swords, Activity, DollarSign, Briefcase, Globe, BarChart3, Shield, Link } from "lucide-react";
 
 interface ResearchOption {
   id: string;
@@ -17,11 +16,9 @@ interface ResearchOption {
 
 interface ResearchArea {
   id: string;
-  text?: string;           // For research-areas-data.ts structure
-  title?: string;          // For CORE_RESEARCH_AREAS structure
-  description?: string;    // For CORE_RESEARCH_AREAS structure
-  icon: React.ReactNode | string; // Can be ReactNode or iconName string
-  category?: string;       // Optional for CORE_RESEARCH_AREAS
+  text: string;
+  icon: React.ReactNode;
+  category: string;
   completed?: boolean;
 }
 
@@ -32,7 +29,30 @@ interface ResearchProgressProps {
   onOptionClick: (optionId: string, optionText: string) => void;
 }
 
+// Complete list of research areas with their icons
+const getAllResearchAreas = (): ResearchArea[] => [
+  { id: "decision_makers", text: "Key contacts and decision makers", icon: <Users className="w-4 h-4" />, category: "research" },
+  { id: "tech_stack", text: "Current technology usage and preferences", icon: <Zap className="w-4 h-4" />, category: "research" },
+  { id: "business_challenges", text: "Pain points and operational challenges", icon: <Target className="w-4 h-4" />, category: "research" },
+  { id: "competitive_positioning", text: "Competitive positioning & value propositions", icon: <Swords className="w-4 h-4" />, category: "research" },
+  { id: "recent_activities", text: "News, hiring, expansion signals", icon: <Activity className="w-4 h-4" />, category: "research" },
+  { id: "budget_indicators", text: "Financial health and spending signals", icon: <DollarSign className="w-4 h-4" />, category: "research" },
+  { id: "buying_signals", text: "Intent data and purchase indicators", icon: <TrendingUp className="w-4 h-4" />, category: "research" },
+  { id: "competitive_usage", text: "Current vendor relationships", icon: <Briefcase className="w-4 h-4" />, category: "research" },
+  { id: "digital_footprint", text: "Online presence and marketing activity", icon: <Globe className="w-4 h-4" />, category: "research" },
+  { id: "growth_signals", text: "Expansion and scaling indicators", icon: <BarChart3 className="w-4 h-4" />, category: "research" },
+  { id: "compliance_requirements", text: "Regulatory and security needs", icon: <Shield className="w-4 h-4" />, category: "research" },
+  { id: "integration_needs", text: "Technical integration requirements", icon: <Link className="w-4 h-4" />, category: "research" }
+];
 
+// Helper function to render icon from string or React component
+const renderOptionIcon = (icon: any) => {
+  if (typeof icon === 'string') {
+    // For now, return a default icon since we don't have the Icon component
+    return <Zap className="w-4 h-4" />;
+  }
+  return icon;
+};
 
 export default function ResearchProgress({
   availableResearchAreas,
@@ -42,7 +62,10 @@ export default function ResearchProgress({
 }: ResearchProgressProps) {
   const [isAllAreasExpanded, setIsAllAreasExpanded] = useState(false);
   
-  const allAreas = availableResearchAreas;
+  // Use availableResearchAreas if provided, otherwise fall back to all areas
+  const allAreas = availableResearchAreas && availableResearchAreas.length > 0 
+    ? availableResearchAreas 
+    : getAllResearchAreas();
   const completionPercentage = (completedResearch.length / allAreas.length) * 100;
 
   // Mark completed areas - enhanced matching logic
@@ -189,15 +212,15 @@ export default function ResearchProgress({
                         size="sm"
                         className="w-full justify-start text-left transition-all duration-200 bg-card/50 border-border/60 hover:bg-accent hover:text-accent-foreground hover:border-primary/50 active:bg-accent/80 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:bg-card/80 dark:border-border dark:hover:bg-accent/80 dark:hover:border-primary/60 dark:hover:text-foreground dark:active:bg-accent/60"
                         onClick={(e) => {
-                          onOptionClick(area.id, area.text || area.title || area.id);
+                          onOptionClick(area.id, area.text);
                           // Immediate visual feedback and focus management
                           e.currentTarget.blur();
                         }}
                       >
                         <span className="mr-2 flex-shrink-0">
-                          {typeof area.icon === 'string' ? <Icon name={area.icon} size="sm" /> : area.icon}
+                          {area.icon}
                         </span>
-                        <span className="flex-1 text-left">{area.text || area.title || area.id}</span>
+                        <span className="flex-1 text-left">{area.text}</span>
                       </Button>
                     ))}
                   </div>
@@ -220,7 +243,7 @@ export default function ResearchProgress({
                         className="flex items-center gap-3 p-2 rounded-md text-sm text-green-600 dark:text-green-400"
                       >
                         <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        <span className="flex-1 line-through decoration-2 opacity-75">{area.text || area.title || area.id}</span>
+                        <span className="flex-1 line-through decoration-2 opacity-75">{area.text}</span>
                       </div>
                     ))}
                   </div>
@@ -250,7 +273,7 @@ export default function ResearchProgress({
                     }}
                   >
                     <div className="flex items-center gap-2 flex-1">
-                      <span><Icon name={option.icon} size="sm" /></span>
+                      <span>{renderOptionIcon(option.icon)}</span>
                       <span className="flex-1">{option.text}</span>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
