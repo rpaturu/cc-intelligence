@@ -12,11 +12,7 @@ import ResearchAnalysisSheet from "../components/research/ResearchAnalysisSheet"
 import CompanySearch from "../components/research/CompanySearch";
 import { getResearchAreas, getFollowUpOptions } from "../components/research-content/data";
 import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
-// OLD: Commented out while testing new progress manager
-// import { simulateCompanyResearch, simulateHistoryLoading } from "../components/research/CompanyProgressSteps";
-// NEW: Import the progress manager (commented out for now)
 import { researchProgressManager } from "../components/research/ResearchProgressManager";
-// import ResearchProgress from "../components/research/ResearchProgress";
 import { scrollToBottom, scrollToUserMessage, scrollToStreamingMessage, scrollToResearchFindings } from "../utils/scroll-utils";
 import { Message, CompletedResearch, CompanyData } from "../types/research";
 import { useProfile } from "../hooks/useProfile";
@@ -175,7 +171,7 @@ export default function Research() {
     }
   }, [userProfile, searchParams]);
 
-  // NEW: Initialize progress manager
+  // Initialize progress manager
   useEffect(() => {
     researchProgressManager.initialize(setMessages);
   }, []);
@@ -385,89 +381,19 @@ export default function Research() {
         targetCompany
       );
 
-      // OLD: Manual progress tracking (commented out - moved to ResearchProgressManager)
-      // let stepIndex = 0;
       let collectedData: any = null;
 
+      // SSE event handlers - using ResearchProgressManager
       eventSource.addEventListener('collection_started', (event) => {
         const data = JSON.parse(event.data);
-        console.log('🔍 Research collection started:', data);
-        
-        // NEW: Use ResearchProgressManager for progress updates
         researchProgressManager.handleCollectionStarted(data, messageId, setMessages);
-        
-        // OLD: Manual progress update (commented out)
-        // setMessages(prev => prev.map(msg =>
-        //   msg.id === messageId && msg.streamingSteps
-        //     ? {
-        //         ...msg,
-        //         streamingSteps: msg.streamingSteps.map((step, i) =>
-        //           i === 0 ? { ...step, completed: true } : step
-        //         )
-        //       }
-        //     : msg
-        // ));
-        // stepIndex = 1;
       });
 
-      // OLD: SSE event handler (commented out - moved to ResearchProgressManager)
-      // eventSource.addEventListener('progress_update', (event) => {
-      //   const data = JSON.parse(event.data);
-      //   console.log('📊 Progress update:', data);
-      //   
-      //   // Update progress step
-      //   if (stepIndex < 3) {
-      //     setMessages(prev => prev.map(msg =>
-      //       msg.id === messageId && msg.streamingSteps
-      //         ? {
-      //             ...msg,
-      //             streamingSteps: msg.streamingSteps.map((step, i) =>
-      //               i === stepIndex ? { ...step, completed: true } : step
-      //             )
-      //           }
-      //         : msg
-      //     ));
-      //     stepIndex++;
-      //   }
-      // });
-
-      // NEW: Use ResearchProgressManager for SSE event handling
       eventSource.addEventListener('progress_update', (event) => {
         const data = JSON.parse(event.data);
         researchProgressManager.handleProgressUpdate(data, messageId, setMessages);
       });
 
-      // OLD: SSE event handler (commented out - moved to ResearchProgressManager)
-      // eventSource.addEventListener('research_findings', (event) => {
-      //   const data = JSON.parse(event.data);
-      //   console.log('💡 Research findings received:', data);
-      //   console.log('📊 Research findings structure:', {
-      //     type: data.type,
-      //     findings: data.findings,
-      //     findingsKeys: data.findings ? Object.keys(data.findings) : [],
-      //     sampleData: data.findings ? Object.entries(data.findings).slice(0, 2) : []
-      //   });
-      //   collectedData = data;
-      //   
-      //   // Ensure we have valid findings data
-      //   if (!data || !data.findings) {
-      //     console.warn('⚠️ Research findings data is missing or invalid:', data);
-      //   }
-      //   
-      //   // Complete final step
-      //   setMessages(prev => prev.map(msg =>
-      //     msg.id === messageId && msg.streamingSteps
-      //       ? {
-      //           ...msg,
-      //           streamingSteps: msg.streamingSteps.map((step, i) =>
-      //             i === 3 ? { ...step, completed: true } : step
-      //           )
-      //         }
-      //       : msg
-      //   ));
-      // });
-
-      // NEW: Use ResearchProgressManager for SSE event handling
       eventSource.addEventListener('research_findings', (event) => {
         const data = JSON.parse(event.data);
         researchProgressManager.handleResearchFindingsEvent(data, messageId, setMessages);
@@ -873,39 +799,6 @@ export default function Research() {
 
         // Add streaming progress message
         setTimeout(() => {
-          // OLD: Manual streaming message creation
-          // const streamingMessageId = (Date.now() + 1).toString();
-          // const streamingMessage: Message = {
-          //   id: streamingMessageId,
-          //   type: "assistant",
-          //   content: "Loading your research session...",
-          //   timestamp: new Date(),
-          //   isStreaming: true,
-          //   streamingSteps: [
-          //     {
-          //       text: 'Loading Research',
-          //       completed: false
-          //     },
-          //     {
-          //       text: 'Restoring Session',
-          //       completed: false
-          //     },
-          //     {
-          //       text: 'Compiling Data',
-          //       completed: false
-          //     },
-          //     {
-          //       text: 'Ready to Continue',
-          //       completed: false
-          //     }
-          //   ]
-          // };
-          // setMessages(prev => [...prev, streamingMessage]);
-
-          // OLD: Start the progress simulation for existing session (use history loading simulation)
-          // simulateHistoryLoading(streamingMessageId, setMessages, async () => {
-
-          // NEW: Use ResearchProgressManager for history loading
           researchProgressManager.startHistoryLoading(async () => {
             // After progress completes, load the existing session
             try {
@@ -1018,55 +911,17 @@ export default function Research() {
 
       // Add streaming progress message instead of company card immediately
       setTimeout(() => {
-        // OLD: Manual streaming message creation
-        // const streamingMessageId = (Date.now() + 1).toString();
-        // const streamingMessage: Message = {
-        //   id: streamingMessageId,
-        //   type: "assistant",
-        //   content: "Researching company overview...",
-        //   timestamp: new Date(),
-        //   isStreaming: true,
-        //   streamingSteps: [
-        //     {
-        //       text: 'Starting Research',
-        //       completed: false
-        //     },
-        //     {
-        //       text: 'Collecting Data',
-        //       completed: false
-        //     },
-        //     {
-        //       text: 'Processing Sources',
-        //       completed: false
-        //     },
-        //     {
-        //       text: 'Compiling Results',
-        //       completed: false
-        //     }
-        //   ]
-        // };
-        // setMessages(prev => [...prev, streamingMessage]);
-
         // Start real research using the same message ID as the streaming message
         console.log('Starting real research for:', companyName);
         
-        // NEW: Use the ResearchProgressManager and get the message ID
         const streamingMessageId = researchProgressManager.startNewResearch(companyName, async () => {
           // When simulation completes, ensure API research is also complete
-          console.log('NEW: Progress simulation complete, ensuring API research is finished...');
-          console.log('NEW: Both simulation and API research are now complete');
+          console.log('Progress simulation complete, ensuring API research is finished...');
+          console.log('Both simulation and API research are now complete');
         });
         
         // Start the API call in background using the streaming message ID
         startRealResearch(streamingMessageId, 'company_overview', companyName);
-        
-        // OLD: Show progress simulation while API is running
-        // simulateCompanyResearch(streamingMessageId, companyName, setMessages, async () => {
-        //   // When simulation completes, ensure API research is also complete
-        //   console.log('Progress simulation complete, ensuring API research is finished...');
-        //   await researchPromise;
-        //   console.log('Both simulation and API research are now complete');
-        // });
       }, 500);
     }, 200);
   };
