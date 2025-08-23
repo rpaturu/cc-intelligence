@@ -12,7 +12,10 @@ import ResearchAnalysisSheet from "../components/research/ResearchAnalysisSheet"
 import CompanySearch from "../components/research/CompanySearch";
 import { getResearchAreas, getFollowUpOptions } from "../components/research-content/data";
 import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
-import { simulateCompanyResearch, simulateHistoryLoading } from "../components/research/CompanyProgressSteps";
+// OLD: Commented out while testing new progress manager
+// import { simulateCompanyResearch, simulateHistoryLoading } from "../components/research/CompanyProgressSteps";
+// NEW: Import the progress manager (commented out for now)
+import { researchProgressManager } from "../components/research/ResearchProgressManager";
 // import ResearchProgress from "../components/research/ResearchProgress";
 import { scrollToBottom, scrollToUserMessage, scrollToStreamingMessage, scrollToResearchFindings } from "../utils/scroll-utils";
 import { Message, CompletedResearch, CompanyData } from "../types/research";
@@ -171,6 +174,11 @@ export default function Research() {
       }
     }
   }, [userProfile, searchParams]);
+
+  // NEW: Initialize progress manager
+  useEffect(() => {
+    researchProgressManager.initialize(setMessages);
+  }, []);
 
   // Load research history from backend (session-based)
   const loadResearchHistory = async () => {
@@ -848,37 +856,40 @@ export default function Research() {
 
         // Add streaming progress message
         setTimeout(() => {
-          const streamingMessageId = (Date.now() + 1).toString();
-          const streamingMessage: Message = {
-            id: streamingMessageId,
-            type: "assistant",
-            content: "Loading your research session...",
-            timestamp: new Date(),
-            isStreaming: true,
-            streamingSteps: [
-              {
-                text: 'Loading Research',
-                completed: false
-              },
-              {
-                text: 'Restoring Session',
-                completed: false
-              },
-              {
-                text: 'Compiling Data',
-                completed: false
-              },
-              {
-                text: 'Ready to Continue',
-                completed: false
-              }
-            ]
-          };
+          // OLD: Manual streaming message creation
+          // const streamingMessageId = (Date.now() + 1).toString();
+          // const streamingMessage: Message = {
+          //   id: streamingMessageId,
+          //   type: "assistant",
+          //   content: "Loading your research session...",
+          //   timestamp: new Date(),
+          //   isStreaming: true,
+          //   streamingSteps: [
+          //     {
+          //       text: 'Loading Research',
+          //       completed: false
+          //     },
+          //     {
+          //       text: 'Restoring Session',
+          //       completed: false
+          //     },
+          //     {
+          //       text: 'Compiling Data',
+          //       completed: false
+          //     },
+          //     {
+          //       text: 'Ready to Continue',
+          //       completed: false
+          //     }
+          //   ]
+          // };
+          // setMessages(prev => [...prev, streamingMessage]);
 
-          setMessages(prev => [...prev, streamingMessage]);
+          // OLD: Start the progress simulation for existing session (use history loading simulation)
+          // simulateHistoryLoading(streamingMessageId, setMessages, async () => {
 
-          // Start the progress simulation for existing session (use history loading simulation)
-          simulateHistoryLoading(streamingMessageId, setMessages, async () => {
+          // NEW: Use ResearchProgressManager for history loading
+          researchProgressManager.startHistoryLoading(async () => {
             // After progress completes, load the existing session
             try {
               const response = await getCompanyResearch(company.name);
@@ -908,6 +919,7 @@ export default function Research() {
               createNewResearchSession(company.name);
             }
           });
+          // });
         }, 500);
         
       } catch (error) {
@@ -989,48 +1001,55 @@ export default function Research() {
 
       // Add streaming progress message instead of company card immediately
       setTimeout(() => {
-        const streamingMessageId = (Date.now() + 1).toString();
-        const streamingMessage: Message = {
-          id: streamingMessageId,
-          type: "assistant",
-          content: "Researching company overview...",
-          timestamp: new Date(),
-          isStreaming: true,
-          streamingSteps: [
-            {
-              text: 'Starting Research',
-              completed: false
-            },
-            {
-              text: 'Collecting Data',
-              completed: false
-            },
-            {
-              text: 'Processing Sources',
-              completed: false
-            },
-            {
-              text: 'Compiling Results',
-              completed: false
-            }
-          ]
-        };
-
-        setMessages(prev => [...prev, streamingMessage]);
+        // OLD: Manual streaming message creation
+        // const streamingMessageId = (Date.now() + 1).toString();
+        // const streamingMessage: Message = {
+        //   id: streamingMessageId,
+        //   type: "assistant",
+        //   content: "Researching company overview...",
+        //   timestamp: new Date(),
+        //   isStreaming: true,
+        //   streamingSteps: [
+        //     {
+        //       text: 'Starting Research',
+        //       completed: false
+        //     },
+        //     {
+        //       text: 'Collecting Data',
+        //       completed: false
+        //     },
+        //     {
+        //       text: 'Processing Sources',
+        //       completed: false
+        //     },
+        //     {
+        //       text: 'Compiling Results',
+        //       completed: false
+        //     }
+        //   ]
+        // };
+        // setMessages(prev => [...prev, streamingMessage]);
 
         // Start real research using the same message ID as the streaming message
         console.log('Starting real research for:', companyName);
         
-        // Start the API call in background using the streaming message ID
-        const researchPromise = startRealResearch(streamingMessageId, 'company_overview', companyName);
-        
-        // Show progress simulation while API is running
-        simulateCompanyResearch(streamingMessageId, companyName, setMessages, async () => {
+        // NEW: Use the ResearchProgressManager and get the message ID
+        const streamingMessageId = researchProgressManager.startNewResearch(companyName, async () => {
           // When simulation completes, ensure API research is also complete
-          console.log('Progress simulation complete, ensuring API research is finished...');
-          await researchPromise;
-          console.log('Both simulation and API research are now complete');
+          console.log('NEW: Progress simulation complete, ensuring API research is finished...');
+          console.log('NEW: Both simulation and API research are now complete');
         });
+        
+        // Start the API call in background using the streaming message ID
+        startRealResearch(streamingMessageId, 'company_overview', companyName);
+        
+        // OLD: Show progress simulation while API is running
+        // simulateCompanyResearch(streamingMessageId, companyName, setMessages, async () => {
+        //   // When simulation completes, ensure API research is also complete
+        //   console.log('Progress simulation complete, ensuring API research is finished...');
+        //   await researchPromise;
+        //   console.log('Both simulation and API research are now complete');
+        // });
       }, 500);
     }, 200);
   };
