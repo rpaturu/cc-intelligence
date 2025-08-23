@@ -385,74 +385,92 @@ export default function Research() {
         targetCompany
       );
 
-      let stepIndex = 0;
+      // OLD: Manual progress tracking (commented out - moved to ResearchProgressManager)
+      // let stepIndex = 0;
       let collectedData: any = null;
 
       eventSource.addEventListener('collection_started', (event) => {
         const data = JSON.parse(event.data);
         console.log('🔍 Research collection started:', data);
         
-        // Update first step
-        setMessages(prev => prev.map(msg =>
-          msg.id === messageId && msg.streamingSteps
-            ? {
-                ...msg,
-                streamingSteps: msg.streamingSteps.map((step, i) =>
-                  i === 0 ? { ...step, completed: true } : step
-                )
-              }
-            : msg
-        ));
-        stepIndex = 1;
+        // NEW: Use ResearchProgressManager for progress updates
+        researchProgressManager.handleCollectionStarted(data, messageId, setMessages);
+        
+        // OLD: Manual progress update (commented out)
+        // setMessages(prev => prev.map(msg =>
+        //   msg.id === messageId && msg.streamingSteps
+        //     ? {
+        //         ...msg,
+        //         streamingSteps: msg.streamingSteps.map((step, i) =>
+        //           i === 0 ? { ...step, completed: true } : step
+        //         )
+        //       }
+        //     : msg
+        // ));
+        // stepIndex = 1;
       });
 
+      // OLD: SSE event handler (commented out - moved to ResearchProgressManager)
+      // eventSource.addEventListener('progress_update', (event) => {
+      //   const data = JSON.parse(event.data);
+      //   console.log('📊 Progress update:', data);
+      //   
+      //   // Update progress step
+      //   if (stepIndex < 3) {
+      //     setMessages(prev => prev.map(msg =>
+      //       msg.id === messageId && msg.streamingSteps
+      //         ? {
+      //             ...msg,
+      //             streamingSteps: msg.streamingSteps.map((step, i) =>
+      //               i === stepIndex ? { ...step, completed: true } : step
+      //             )
+      //           }
+      //         : msg
+      //     ));
+      //     stepIndex++;
+      //   }
+      // });
+
+      // NEW: Use ResearchProgressManager for SSE event handling
       eventSource.addEventListener('progress_update', (event) => {
         const data = JSON.parse(event.data);
-        console.log('📊 Progress update:', data);
-        
-        // Update progress step
-        if (stepIndex < 3) {
-          setMessages(prev => prev.map(msg =>
-            msg.id === messageId && msg.streamingSteps
-              ? {
-                  ...msg,
-                  streamingSteps: msg.streamingSteps.map((step, i) =>
-                    i === stepIndex ? { ...step, completed: true } : step
-                  )
-                }
-              : msg
-          ));
-          stepIndex++;
-        }
+        researchProgressManager.handleProgressUpdate(data, messageId, setMessages);
       });
 
+      // OLD: SSE event handler (commented out - moved to ResearchProgressManager)
+      // eventSource.addEventListener('research_findings', (event) => {
+      //   const data = JSON.parse(event.data);
+      //   console.log('💡 Research findings received:', data);
+      //   console.log('📊 Research findings structure:', {
+      //     type: data.type,
+      //     findings: data.findings,
+      //     findingsKeys: data.findings ? Object.keys(data.findings) : [],
+      //     sampleData: data.findings ? Object.entries(data.findings).slice(0, 2) : []
+      //   });
+      //   collectedData = data;
+      //   
+      //   // Ensure we have valid findings data
+      //   if (!data || !data.findings) {
+      //     console.warn('⚠️ Research findings data is missing or invalid:', data);
+      //   }
+      //   
+      //   // Complete final step
+      //   setMessages(prev => prev.map(msg =>
+      //     msg.id === messageId && msg.streamingSteps
+      //       ? {
+      //           ...msg,
+      //           streamingSteps: msg.streamingSteps.map((step, i) =>
+      //             i === 3 ? { ...step, completed: true } : step
+      //           )
+      //         }
+      //       : msg
+      //   ));
+      // });
+
+      // NEW: Use ResearchProgressManager for SSE event handling
       eventSource.addEventListener('research_findings', (event) => {
         const data = JSON.parse(event.data);
-        console.log('💡 Research findings received:', data);
-        console.log('📊 Research findings structure:', {
-          type: data.type,
-          findings: data.findings,
-          findingsKeys: data.findings ? Object.keys(data.findings) : [],
-          sampleData: data.findings ? Object.entries(data.findings).slice(0, 2) : []
-        });
-        collectedData = data;
-        
-        // Ensure we have valid findings data
-        if (!data || !data.findings) {
-          console.warn('⚠️ Research findings data is missing or invalid:', data);
-        }
-        
-        // Complete final step
-        setMessages(prev => prev.map(msg =>
-          msg.id === messageId && msg.streamingSteps
-            ? {
-                ...msg,
-                streamingSteps: msg.streamingSteps.map((step, i) =>
-                  i === 3 ? { ...step, completed: true } : step
-                )
-              }
-            : msg
-        ));
+        researchProgressManager.handleResearchFindingsEvent(data, messageId, setMessages);
       });
 
       eventSource.addEventListener('research_complete', (event) => {
@@ -461,7 +479,6 @@ export default function Research() {
         
         // Close SSE connection
         eventSource.close();
-
         if (researchAreaId === 'company_overview') {
           // Handle company overview completion
           console.log('🎯 Company overview research completed');
