@@ -14,10 +14,11 @@ import { getResearchAreas } from "../components/research-content/data";
 import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
 import { researchProgressManager } from "../components/research/ResearchProgressManager";
 import { ResearchService } from "../services/ResearchService";
+import { SessionService } from "../services/SessionService";
 import { scrollToBottom, scrollToUserMessage } from "../utils/scroll-utils";
 import { Message, CompletedResearch } from "../types/research";
 import { useProfile } from "../hooks/useProfile";
-import { /* getResearchHistory, */ getCompanyResearch, saveCompanyResearch } from '../lib/api';
+import { /* getResearchHistory, */ getCompanyResearch } from '../lib/api';
 
 // Import centralized research areas for scroll detection
 import { CORE_RESEARCH_AREAS } from "../data/research-areas";
@@ -77,85 +78,64 @@ export default function Research() {
       loadResearchHistory();
       
       // Check for pending research data that might have been saved during session expiry
-      const pendingResearchData = localStorage.getItem('pending_research_save');
-      if (pendingResearchData) {
-        try {
-          const data = JSON.parse(pendingResearchData);
-          console.log('Research: Found pending research data from previous session:', data);
-          
-          // Clear the pending data since we've processed it
-          localStorage.removeItem('pending_research_save');
-          
-          // Optionally, we could restore the research session here
-          // For now, we'll just log it for debugging
-        } catch (error) {
-          console.error('Research: Error parsing pending research data:', error);
-          localStorage.removeItem('pending_research_save');
-        }
-      }
+      const sessionService = new SessionService({
+        setMessages,
+        setCompletedResearch,
+        setCurrentCompany,
+        setShowCompanySearch,
+        setResearchHistory,
+        userProfile,
+        messages,
+        completedResearch,
+        currentCompany
+      });
+      
+      sessionService.processPendingResearchData();
     }
   }, [userProfile]);
 
-  // Listen for session expiry events
+  // Use SessionService for session expiry handling
   useEffect(() => {
+    const sessionService = new SessionService({
+      setMessages,
+      setCompletedResearch,
+      setCurrentCompany,
+      setShowCompanySearch,
+      setResearchHistory,
+      userProfile,
+      messages,
+      completedResearch,
+      currentCompany
+    });
+
     const handleSessionExpired = async () => {
       console.log('Research: Session expired event received, saving research before logout');
       
       try {
-        // Save current research session before signing out
-        if (currentCompany && (messages.length > 0 || completedResearch.length > 0)) {
-          console.log('Research: Saving current research session before logout:', currentCompany);
-          
-          // Call the save function to persist research data
-          await saveCurrentResearchSession();
-          console.log('Research: Research session saved successfully before logout');
-        }
+        await sessionService.handleSessionExpired();
+        console.log('Research: Research session saved successfully before logout');
       } catch (error) {
         console.error('Research: Error saving research session before logout:', error);
-        // Even if saving fails, we should still redirect to login
       }
       
       // Force redirect to login after attempting to save
       window.location.href = '/login';
     };
-    
-    window.addEventListener('sessionExpired', handleSessionExpired);
-    
-    return () => {
-      window.removeEventListener('sessionExpired', handleSessionExpired);
-    };
-  }, [currentCompany, messages, completedResearch, userProfile]);
 
-  // Save research data when user leaves the page (beforeunload)
-  useEffect(() => {
     const handleBeforeUnload = async () => {
-      // Only save if there's active research
       if (currentCompany && (messages.length > 0 || completedResearch.length > 0)) {
         console.log('Research: Page unload detected, saving research data');
-        
-        // Use synchronous storage as fallback since beforeunload doesn't support async
-        try {
-          const sessionData = {
-            company: currentCompany,
-            messages: messages.length,
-            completedResearch: completedResearch.length,
-            lastActivity: new Date().toISOString(),
-            userRole: userProfile?.role,
-            userCompany: userProfile?.company
-          };
-          
-          // Save to localStorage as backup
-          localStorage.setItem('pending_research_save', JSON.stringify(sessionData));
-          console.log('Research: Research data saved to localStorage before page unload');
-        } catch (error) {
-          console.error('Research: Error saving research data before page unload:', error);
-        }
+        await sessionService.handleBeforeUnload();
       }
     };
-    
+
+    // Add event listeners
+    window.addEventListener('sessionExpired', handleSessionExpired);
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
+    // Cleanup
     return () => {
+      window.removeEventListener('sessionExpired', handleSessionExpired);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [currentCompany, messages, completedResearch, userProfile]);
@@ -177,93 +157,36 @@ export default function Research() {
     researchProgressManager.initialize(setMessages);
   }, []);
 
-  // Load research history from backend (session-based)
   const loadResearchHistory = async () => {
-    try {
-      console.log('Loading research history via session...');
-      // COMMENTED OUT for testing: const response = await getResearchHistory();
-      // console.log('Research history response:', response);
-      // setResearchHistory(response.companies || []);
-      console.log('Research history loading COMMENTED OUT for testing');
-      setResearchHistory([]); // Set empty array for testing
-    } catch (error) {
-      console.error('Failed to load research history:', error);
-      setResearchHistory([]);
-    }
+    const sessionService = new SessionService({
+      setMessages,
+      setCompletedResearch,
+      setCurrentCompany,
+      setShowCompanySearch,
+      setResearchHistory,
+      userProfile,
+      messages,
+      completedResearch,
+      currentCompany
+    });
+    
+    await sessionService.loadResearchHistory();
   };
 
-  // Load specific company research data
   const loadCompanyResearch = async (companyName: string) => {
-    try {
-      console.log('Loading company research for:', companyName);
-      // setIsLoadingExistingData(true); // Prevent auto-save during loading - COMMENTED OUT
-      
-      const response = await getCompanyResearch(companyName);
-      console.log('Company research response:', response);
-      
-      // The response structure is {success: true, data: Object}
-      // where data contains the actual research data
-      const researchData = response.data;
-      
-      // Always reset messages and completed research first
-      setMessages([]);
-      setCompletedResearch([]);
-      
-      if (researchData && researchData.messages && researchData.messages.length > 0) {
-        // Convert API messages to frontend Message format
-        const convertedMessages: Message[] = researchData.messages.map((msg: any) => ({
-          id: msg.id || `msg-${Date.now()}-${Math.random()}`,
-          type: msg.type === 'user' ? 'user' : 'assistant',
-          content: msg.content,
-          timestamp: new Date(msg.timestamp),
-          sources: msg.sources || undefined,
-          options: msg.options || undefined,
-          isStreaming: msg.isStreaming || false,
-          streamingSteps: msg.streamingSteps || undefined,
-          companySummary: msg.companySummary || undefined,
-          researchFindings: msg.researchFindings || undefined,
-          followUpOptions: msg.followUpOptions || undefined,
-          vendorProfile: msg.vendorProfile || undefined
-        }));
-        setMessages(convertedMessages);
-      } else {
-        // No existing messages, create a user message for company selection (like Figma design)
-        const userMessage: Message = {
-          id: `user-${Date.now()}`,
-          type: "user",
-          content: `Research ${companyName}`,
-          timestamp: new Date(),
-        };
-        setMessages([userMessage]);
-      }
-      
-      if (researchData && researchData.completedResearch && researchData.completedResearch.length > 0) {
-        // Convert API completed research to frontend format
-        const convertedCompletedResearch: CompletedResearch[] = researchData.completedResearch.map((research: any) => ({
-          id: research.id || `research-${Date.now()}-${Math.random()}`,
-          title: research.title || `${research.researchArea} Research`,
-          completedAt: new Date(research.timestamp),
-          researchArea: research.researchArea,
-          findings: research.findings || { title: '', items: [] }
-        }));
-        setCompletedResearch(convertedCompletedResearch);
-      }
-      
-      // Set the current company
-      setCurrentCompany(companyName);
-      
-      // Hide company search since we have a company selected
-      setShowCompanySearch(false);
-      
-      // Allow auto-save after data is loaded - COMMENTED OUT
-      // setTimeout(() => setIsLoadingExistingData(false), 2000);
-      
-    } catch (error) {
-      console.error('Failed to load company research:', error);
-      // setIsLoadingExistingData(false); // COMMENTED OUT for testing
-      // If loading fails, show company search
-      setShowCompanySearch(true);
-    }
+    const sessionService = new SessionService({
+      setMessages,
+      setCompletedResearch,
+      setCurrentCompany,
+      setShowCompanySearch,
+      setResearchHistory,
+      userProfile,
+      messages,
+      completedResearch,
+      currentCompany
+    });
+    
+    await sessionService.loadCompanyResearch(companyName);
   };
 
   // Auto-save research session whenever messages or completed research change
@@ -589,49 +512,20 @@ export default function Research() {
     // await loadResearchHistory();
   };
 
-  // Auto-save current research session to backend
   const saveCurrentResearchSession = async () => {
-    if (!currentCompany || !userProfile) return;
-
-    try {
-      console.log('Saving research session for:', currentCompany);
-      const sessionData = {
-        messages: messages.map(msg => ({
-          ...msg,
-          timestamp: msg.timestamp instanceof Date && !isNaN(msg.timestamp.getTime()) 
-            ? msg.timestamp.toISOString() 
-            : new Date().toISOString(),
-        })),
-        completedResearch: completedResearch.map(research => ({
-          id: research.id,
-          areaId: research.researchArea || research.id,
-          title: research.title,
-          status: 'completed' as const,
-          completedAt: research.completedAt instanceof Date && !isNaN(research.completedAt.getTime())
-            ? research.completedAt.toISOString()
-            : new Date().toISOString(),
-          data: {
-            findings: research.findings
-          }
-        })),
-        metadata: {
-          userRole: userProfile.role,
-          userCompany: userProfile.company,
-          lastActivity: new Date().toISOString(),
-        },
-      };
-
-      console.log('Session data to save:', sessionData);
-      
-      // Save research data to backend
-      await saveCompanyResearch(currentCompany, sessionData);
-      console.log('Research session saved successfully');
-      
-      // Reload research history to include the newly saved session
-      // await loadResearchHistory();
-    } catch (error) {
-      console.error('Failed to save research session:', error);
-    }
+    const sessionService = new SessionService({
+      setMessages,
+      setCompletedResearch,
+      setCurrentCompany,
+      setShowCompanySearch,
+      setResearchHistory,
+      userProfile,
+      messages,
+      completedResearch,
+      currentCompany
+    });
+    
+    await sessionService.saveCurrentResearchSession();
   };
 
   const createNewResearchSession = (companyName: string) => {
