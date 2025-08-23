@@ -11,23 +11,21 @@ import ExportSheet from "../components/research/ExportSheet";
 import ResearchAnalysisSheet from "../components/research/ResearchAnalysisSheet";
 import CompanySearch from "../components/research/CompanySearch";
 import { getResearchAreas } from "../components/research-content/data";
-import { getStreamingSteps, downloadReport, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
+import { downloadReport } from "../utils/research-utils";
 import { researchProgressManager } from "../components/research/ResearchProgressManager";
 import { ResearchService } from "../services/ResearchService";
 import { SessionService } from "../services/SessionService";
+import { EventHandlerService } from "../services/EventHandlerService";
 import { scrollToBottom, scrollToUserMessage } from "../utils/scroll-utils";
 import { Message, CompletedResearch } from "../types/research";
 import { useProfile } from "../hooks/useProfile";
-import { /* getResearchHistory, */ getCompanyResearch } from '../lib/api';
+import { /* getResearchHistory, */ } from '../lib/api';
 
 // Import centralized research areas for scroll detection
 import { CORE_RESEARCH_AREAS } from "../data/research-areas";
 
 // Define all research areas for scroll detection (full objects for ResearchProgress)
-const allResearchAreaIds = CORE_RESEARCH_AREAS.map(area => area.id);
-
-
-
+// const allResearchAreaIds = CORE_RESEARCH_AREAS.map(area => area.id); // Moved to EventHandlerService
 
 export default function Research() {
   const { profile: userProfile, loading: profileLoading } = useProfile();
@@ -69,8 +67,6 @@ export default function Research() {
   );
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-
 
   // Load research history when user profile is available
   useEffect(() => {
@@ -285,6 +281,8 @@ export default function Research() {
 
   // Note: simulateStreaming function removed - now using startRealResearch for all streaming
 
+  // COMMENTED OUT - Moved to EventHandlerService
+  /*
   const handleSendMessage = (messageContent?: string) => {
     const messageToSend = messageContent || inputValue;
     if (!messageToSend.trim()) return;
@@ -338,7 +336,10 @@ export default function Research() {
       }
     }, 1000);
   };
+  */
 
+  // COMMENTED OUT - Moved to EventHandlerService
+  /*
   const handleOptionClick = (optionId: string, optionText: string, format?: string) => {
     if (optionId === "export_report") {
       if (format) {
@@ -422,14 +423,17 @@ export default function Research() {
       }
     }, 200); // Reduced from 1000ms to 200ms for immediate feedback
   };
+  */
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      eventHandlerService.handleSendMessage();
     }
   };
 
+  // COMMENTED OUT - Moved to EventHandlerService
+  /*
   const handleCompanySelect = async (company: any) => {
     console.log('Company selected:', company.name);
     console.log('Current research history:', researchHistory);
@@ -487,7 +491,7 @@ export default function Research() {
             } catch (error) {
               console.error('Failed to load existing session:', error);
               // Fall back to creating a new session
-              createNewResearchSession(company.name);
+              eventHandlerService.createNewResearchSession(company.name);
             }
           });
           // });
@@ -496,12 +500,12 @@ export default function Research() {
       } catch (error) {
         console.error('Failed to load existing session:', error);
         // Fall back to creating a new session
-        createNewResearchSession(company.name);
+        eventHandlerService.createNewResearchSession(company.name);
       }
     } else {
       console.log('No existing session found, creating new session for:', company.name);
       // Create a new session with progress flow
-      createNewResearchSession(company.name);
+      eventHandlerService.createNewResearchSession(company.name);
       
       // Automatically trigger overview research for new companies after progress completes
       console.log('Triggering automatic overview research for:', company.name);
@@ -511,6 +515,7 @@ export default function Research() {
     // Reload research history to ensure it's up to date - COMMENTED OUT for testing
     // await loadResearchHistory();
   };
+  */
 
   const saveCurrentResearchSession = async () => {
     const sessionService = new SessionService({
@@ -528,6 +533,8 @@ export default function Research() {
     await sessionService.saveCurrentResearchSession();
   };
 
+  // COMMENTED OUT - Moved to EventHandlerService
+  /*
   const createNewResearchSession = (companyName: string) => {
     // Create initial research conversation
     setTimeout(() => {
@@ -557,6 +564,26 @@ export default function Research() {
       }, 500);
     }, 200);
   };
+  */
+
+  // Create EventHandlerService instance after all function declarations
+  const eventHandlerService = new EventHandlerService({
+    setMessages,
+    setInputValue,
+    setIsTyping,
+    setCurrentCompany,
+    setShowCompanySearch,
+    setCompletedResearch,
+    setResearchHistory,
+    inputValue,
+    messages,
+    completedResearch,
+    researchHistory,
+    userProfile,
+    startRealResearch,
+    handleDownloadReport,
+    handleExportResearch
+  });
 
 
 
@@ -618,7 +645,7 @@ export default function Research() {
                 className="mb-6"
               >
                 <CompanySearch
-                  onCompanySelect={handleCompanySelect}
+                  onCompanySelect={(company) => eventHandlerService.handleCompanySelect(company)}
                 />
               </motion.div>
             )}
@@ -661,7 +688,7 @@ export default function Research() {
             completedResearch={completedResearch}
             onTabChange={handleTabChange}
             onCitationClick={handleCitationClick}
-            onOptionClick={handleOptionClick}
+                            onOptionClick={(optionId: string, optionText: string) => eventHandlerService.handleOptionClick(optionId, optionText)}
             onFullAnalysisClick={handleFullAnalysisClick}
           />
 
@@ -749,7 +776,7 @@ export default function Research() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Button onClick={() => handleSendMessage()} disabled={!inputValue.trim() || isTyping}>
+                <Button onClick={() => eventHandlerService.handleSendMessage()} disabled={!inputValue.trim() || isTyping}>
                   <Send className="w-4 h-4" />
                 </Button>
               </motion.div>
@@ -854,7 +881,7 @@ export default function Research() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleSendMessage(text)}
+                    onClick={() => eventHandlerService.handleSendMessage(text)}
                     disabled={isTyping}
                   >
                     {text}
