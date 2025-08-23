@@ -16,7 +16,8 @@ import { researchProgressManager } from "../components/research/ResearchProgress
 import { ResearchService } from "../services/ResearchService";
 import { SessionService } from "../services/SessionService";
 import { EventHandlerService } from "../services/EventHandlerService";
-import { scrollToBottom, scrollToUserMessage } from "../utils/scroll-utils";
+import { MessageService } from "../services/MessageService";
+// import { scrollToBottom, scrollToUserMessage } from "../utils/scroll-utils"; // Moved to MessageService
 import { Message, CompletedResearch } from "../types/research";
 import { useProfile } from "../hooks/useProfile";
 import { /* getResearchHistory, */ } from '../lib/api';
@@ -199,50 +200,6 @@ export default function Research() {
   //   }
   // }, [currentCompany, messages, completedResearch, isLoadingExistingData]);
 
-  // Simplified scroll positioning - avoid conflicts with manual research scrolling
-  useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessage = messages[messages.length - 1];
-
-      // For company summaries, scroll to show the user's question at the top
-      if (lastMessage.type === "assistant" && lastMessage.companySummary) {
-        // Find the corresponding user message (should be second to last)
-        const userMessage = messages[messages.length - 2];
-        if (userMessage && userMessage.type === "user") {
-          setTimeout(() => {
-            scrollToUserMessage(userMessage.id);
-          }, 500); // Longer delay to ensure company card is fully rendered
-        }
-      }
-      // For simple assistant responses (NO research-related scrolling here)
-      else if (lastMessage.type === "assistant" && !lastMessage.companySummary && !lastMessage.options) {
-        setTimeout(() => {
-          scrollToBottom();
-        }, 100);
-      }
-    }
-  }, [messages]);
-
-  const handleCitationClick = (messageId: string, sourceId: number) => {
-    console.log("🔗 Citation clicked! MessageId:", messageId, "SourceId:", sourceId);
-
-    setActiveTabsState(prev => {
-      const newState = {
-        ...prev,
-        [messageId]: "sources"
-      };
-      console.log("📱 Setting active tab state:", newState);
-      return newState;
-    });
-
-    setHighlightedSource(sourceId);
-    console.log("✨ Highlighting source:", sourceId);
-
-    setTimeout(() => {
-      setHighlightedSource(null);
-      console.log("🔄 Removing highlight for source:", sourceId);
-    }, 3000);
-  };
 
   const handleTabChange = (messageId: string, value: string) => {
     console.log("🔄 Tab changed for message:", messageId, "to:", value);
@@ -279,243 +236,12 @@ export default function Research() {
     await researchService.startRealResearch(messageId, researchAreaId, companyName);
   };
 
-  // Note: simulateStreaming function removed - now using startRealResearch for all streaming
-
-  // COMMENTED OUT - Moved to EventHandlerService
-  /*
-  const handleSendMessage = (messageContent?: string) => {
-    const messageToSend = messageContent || inputValue;
-    if (!messageToSend.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: "user",
-      content: messageToSend,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue("");
-    setIsTyping(true);
-
-    setTimeout(() => {
-      const messageId = (Date.now() + 1).toString();
-
-      if (isResearchQuery(messageToSend)) {
-        const company = parseCompanyFromInput(messageToSend);
-        setCurrentCompany(company);
-
-        // Get streaming steps for company overview
-        const steps = getStreamingSteps("company_overview");
-        const streamingSteps = steps.map(step => ({ ...step, completed: false }));
-
-        // Create streaming message for company overview research
-        const streamingMessage: Message = {
-          id: messageId,
-          type: "assistant",
-          content: `🔍 Researching ${company}...`,
-          timestamp: new Date(),
-          isStreaming: true,
-          streamingSteps
-        };
-
-        setMessages(prev => [...prev, streamingMessage]);
-
-        // Start real SSE research for company overview
-        startRealResearch(messageId, "company_overview");
-      } else {
-        const assistantMessage: Message = {
-          id: messageId,
-          type: "assistant",
-          content: "I can help you research companies and prospects. Try asking me to 'Research [Company Name]' to get started with comprehensive discovery across 12 key areas including competitive positioning.",
-          timestamp: new Date(),
-        };
-
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsTyping(false);
-      }
-    }, 1000);
-  };
-  */
-
-  // COMMENTED OUT - Moved to EventHandlerService
-  /*
-  const handleOptionClick = (optionId: string, optionText: string, format?: string) => {
-    if (optionId === "export_report") {
-      if (format) {
-        handleDownloadReport(format as 'pdf' | 'powerpoint' | 'word' | 'excel' | 'json');
-      } else {
-        handleExportResearch();
-      }
-      return;
-    }
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      type: "user",
-      content: optionText,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setIsTyping(true);
-
-    // Check if this is a research area for special handling
-    const isResearchArea = allResearchAreaIds.includes(optionId);
-
-    // Immediate scroll to show user message for quick feedback
-    setTimeout(() => {
-      scrollToBottom("instant");
-    }, 50); // Very quick scroll to show user response
-
-    setTimeout(() => {
-      const messageId = (Date.now() + 1).toString();
-
-      if (isResearchArea) {
-        const streamingMessage: Message = {
-          id: messageId,
-          type: "assistant",
-          content: `🔍 Analyzing ${optionText.toLowerCase()}...`,
-          timestamp: new Date(),
-        };
-
-        setMessages(prev => [...prev, streamingMessage]);
-
-        // Use real SSE streaming instead of mock
-        startRealResearch(messageId, optionId);
-      } else {
-        if (optionId === "research_another") {
-          // Save current session before switching
-          saveCurrentResearchSession();
-          setShowCompanySearch(true);
-          setCurrentCompany("");
-          setMessages([]);
-          setCompletedResearch([]);
-          setIsTyping(false);
-          return;
-        }
-
-        const responses = {
-          "create_outreach": "I'll help you create personalized outreach based on the decision makers we found...",
-          "create_demo": "Let me prepare a technical demo outline based on their tech stack...",
-          "create_pitch": "I'll create a solution pitch addressing their specific challenges...",
-          "create_battlecard": "I'll create a competitive battle card with key talking points and objection handling...",
-          "schedule_meeting": "I'll help you craft a meeting invitation with relevant talking points...",
-          "create_proposal": "Let me draft a pricing proposal based on their budget indicators...",
-          "schedule_demo": "I'll help you schedule a demo with the right stakeholders...",
-          "schedule_followup": "I'll remind you to check for updates in 2 weeks..."
-        };
-
-        const assistantMessage: Message = {
-          id: messageId,
-          type: "assistant",
-          content: responses[optionId as keyof typeof responses] || "Let me help you with that...",
-          timestamp: new Date(),
-          followUpOptions: [
-            { id: "research_another", text: "Research another company", iconName: "Search", category: "explore" },
-            { id: "export_report", text: "View Full Report", iconName: "Eye", category: "action" },
-            { id: "schedule_followup", text: "Schedule follow-up research", iconName: "Calendar", category: "action" }
-          ]
-        };
-
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsTyping(false);
-      }
-    }, 200); // Reduced from 1000ms to 200ms for immediate feedback
-  };
-  */
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       eventHandlerService.handleSendMessage();
     }
   };
-
-  // COMMENTED OUT - Moved to EventHandlerService
-  /*
-  const handleCompanySelect = async (company: any) => {
-    console.log('Company selected:', company.name);
-    console.log('Current research history:', researchHistory);
-    
-    setCurrentCompany(company.name);
-    setShowCompanySearch(false);
-    setMessages([]);
-    setCompletedResearch([]);
-
-    // Check if there's an existing session for this company
-    const existingSession = researchHistory.find(item => item.company === company.name);
-    console.log('Existing session found:', existingSession);
-    
-    if (existingSession) {
-      try {
-        console.log('Loading existing session for:', company.name);
-        
-        // Show progress first, then load existing session
-        const userMessageId = Date.now().toString();
-        const userMessage: Message = {
-          id: userMessageId,
-          type: "user",
-          content: `Research ${company.name}`,
-          timestamp: new Date(),
-        };
-
-        setMessages([userMessage]);
-
-        // Add streaming progress message
-        setTimeout(() => {
-          researchProgressManager.startHistoryLoading(async () => {
-            // After progress completes, load the existing session
-            try {
-              const response = await getCompanyResearch(company.name);
-              console.log('Research response:', response);
-              
-              setMessages(response.data.messages.map((msg: any) => ({
-                ...msg,
-                timestamp: new Date(msg.timestamp),
-              })));
-              setCompletedResearch(response.data.completedResearch.map((research: any) => ({
-                id: research.id,
-                title: research.title,
-                completedAt: research.completedAt ? new Date(research.completedAt) : new Date(),
-                researchArea: research.areaId,
-                findings: research.data?.findings || {
-                  title: research.title,
-                  items: []
-                }
-              })));
-              
-              // Set available research areas for existing session
-              // const researchAreas = getResearchAreas(company.name, userProfile.role, userProfile.company);
-              // Available research areas are now calculated dynamically
-            } catch (error) {
-              console.error('Failed to load existing session:', error);
-              // Fall back to creating a new session
-              eventHandlerService.createNewResearchSession(company.name);
-            }
-          });
-          // });
-        }, 500);
-        
-      } catch (error) {
-        console.error('Failed to load existing session:', error);
-        // Fall back to creating a new session
-        eventHandlerService.createNewResearchSession(company.name);
-      }
-    } else {
-      console.log('No existing session found, creating new session for:', company.name);
-      // Create a new session with progress flow
-      eventHandlerService.createNewResearchSession(company.name);
-      
-      // Automatically trigger overview research for new companies after progress completes
-      console.log('Triggering automatic overview research for:', company.name);
-      // The progress simulation will handle this automatically
-    }
-    
-    // Reload research history to ensure it's up to date - COMMENTED OUT for testing
-    // await loadResearchHistory();
-  };
-  */
 
   const saveCurrentResearchSession = async () => {
     const sessionService = new SessionService({
@@ -532,39 +258,6 @@ export default function Research() {
     
     await sessionService.saveCurrentResearchSession();
   };
-
-  // COMMENTED OUT - Moved to EventHandlerService
-  /*
-  const createNewResearchSession = (companyName: string) => {
-    // Create initial research conversation
-    setTimeout(() => {
-      const userMessageId = Date.now().toString();
-      const userMessage: Message = {
-        id: userMessageId,
-        type: "user",
-        content: `Research ${companyName}`,
-        timestamp: new Date(),
-      };
-
-      setMessages([userMessage]);
-
-      // Add streaming progress message instead of company card immediately
-      setTimeout(() => {
-        // Start real research using the same message ID as the streaming message
-        console.log('Starting real research for:', companyName);
-        
-        const streamingMessageId = researchProgressManager.startNewResearch(companyName, async () => {
-          // When simulation completes, ensure API research is also complete
-          console.log('Progress simulation complete, ensuring API research is finished...');
-          console.log('Both simulation and API research are now complete');
-        });
-        
-        // Start the API call in background using the streaming message ID
-        startRealResearch(streamingMessageId, 'company_overview', companyName);
-      }, 500);
-    }, 200);
-  };
-  */
 
   // Create EventHandlerService instance after all function declarations
   const eventHandlerService = new EventHandlerService({
@@ -585,7 +278,19 @@ export default function Research() {
     handleExportResearch
   });
 
+  // Create MessageService instance for message handling
+  const messageService = new MessageService({
+    setMessages,
+    setActiveTabsState,
+    setHighlightedSource,
+    messages,
+    currentCompany
+  });
 
+  // Use MessageService for message scrolling
+  useEffect(() => {
+    messageService.handleMessageScrolling();
+  }, [messages]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -687,7 +392,7 @@ export default function Research() {
             availableResearchAreas={availableResearchAreas}
             completedResearch={completedResearch}
             onTabChange={handleTabChange}
-            onCitationClick={handleCitationClick}
+            onCitationClick={(messageId: string, sourceId: number) => messageService.handleCitationClick(messageId, sourceId)}
                             onOptionClick={(optionId: string, optionText: string) => eventHandlerService.handleOptionClick(optionId, optionText)}
             onFullAnalysisClick={handleFullAnalysisClick}
           />
@@ -744,7 +449,7 @@ export default function Research() {
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyPress}
                 placeholder={currentCompany ? `Ask me about ${currentCompany}...` : "Ask me to research a company, e.g., 'Research Acme Corp'"}
                 className="flex-1"
                 disabled={isTyping}
