@@ -16,6 +16,7 @@ import { scrollToBottom } from "../utils/scroll-utils";
 import { researchProgressManager } from "../components/research/ResearchProgressManager";
 import { getCompanyResearch } from '../lib/api';
 import { CORE_RESEARCH_AREAS } from "../data/research-areas";
+import { ResearchPollingService } from "./ResearchPollingService";
 
 export interface EventHandlerServiceDependencies {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -43,15 +44,26 @@ export interface EventHandlerServiceDependencies {
   startRealResearch: (messageId: string, researchArea: string, companyName?: string) => void;
   handleDownloadReport: (format: 'pdf' | 'powerpoint' | 'word' | 'excel' | 'json') => void;
   handleExportResearch: () => void;
+  currentCompany: string;
 }
 
 export class EventHandlerService {
   private dependencies: EventHandlerServiceDependencies;
   private allResearchAreaIds: string[];
+  private pollingService: ResearchPollingService;
 
   constructor(dependencies: EventHandlerServiceDependencies) {
     this.dependencies = dependencies;
     this.allResearchAreaIds = CORE_RESEARCH_AREAS.map(area => area.id);
+    
+    // Initialize polling service
+    this.pollingService = new ResearchPollingService({
+      setMessages: dependencies.setMessages,
+      setCompletedResearch: dependencies.setCompletedResearch,
+      setIsTyping: dependencies.setIsTyping,
+      userProfile: dependencies.userProfile,
+      currentCompany: dependencies.currentCompany
+    });
   }
 
   /**
@@ -79,11 +91,10 @@ export class EventHandlerService {
         const company = parseCompanyFromInput(messageToSend);
         this.dependencies.setCurrentCompany(company);
 
-        console.log('🔧 EventHandlerService: Triggering research for:', company);
+        console.log('🔧 EventHandlerService: Triggering polling research for:', company);
 
-        // Let ResearchProgressManager handle the entire message lifecycle
-        // No placeholder message - progress component will create message when stream responds
-        this.dependencies.startRealResearch(messageId, "company_overview", company);
+        // Use polling service instead of SSE
+        this.pollingService.startResearch(messageId, "company_overview", company);
       } else {
         const assistantMessage: Message = {
           id: messageId,
@@ -133,17 +144,8 @@ export class EventHandlerService {
       const messageId = (Date.now() + 1).toString();
 
       if (isResearchArea) {
-        const streamingMessage: Message = {
-          id: messageId,
-          type: "assistant",
-          content: `🔍 Analyzing ${optionText.toLowerCase()}...`,
-          timestamp: new Date(),
-        };
-
-        this.dependencies.setMessages(prev => [...prev, streamingMessage]);
-
-        // Use real SSE streaming instead of mock
-        this.dependencies.startRealResearch(messageId, optionId);
+        // Use polling service instead of SSE
+        this.pollingService.startResearch(messageId, optionId);
       } else {
         if (optionId === "research_another") {
           this.dependencies.setShowCompanySearch(true);
@@ -268,17 +270,16 @@ export class EventHandlerService {
 
       // Add streaming progress message instead of company card immediately
       setTimeout(() => {
-        // Start real research - ResearchService will handle the progress setup
+        // Start real research using polling service
         console.log('Starting real research for:', companyName);
         
         // Create a messageId for the research
         const messageId = (Date.now() + 1).toString();
         
-        console.log('🔧 EventHandlerService: Triggering research for:', companyName);
+        console.log('🔧 EventHandlerService: Triggering polling research for:', companyName);
         
-        // Let ResearchProgressManager handle the entire message lifecycle
-        // No placeholder message - progress component will create message when stream responds
-        this.dependencies.startRealResearch(messageId, 'company_overview', companyName);
+        // Use polling service instead of SSE
+        this.pollingService.startResearch(messageId, 'company_overview', companyName);
       }, 500);
     }, 200);
   }

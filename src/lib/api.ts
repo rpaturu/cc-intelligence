@@ -1088,6 +1088,101 @@ export const customerIntelligence = apiClient.customerIntelligence.bind(apiClien
 export const enrichVendor = apiClient.vendorContext.bind(apiClient);
 export const getCustomerIntelligence = apiClient.customerIntelligence.bind(apiClient);
 
+// Polling-based research methods
+export async function startResearchSession(areaId: string, companyId: string): Promise<{
+  researchSessionId: string;
+  areaId: string;
+  companyId: string;
+  status: string;
+  message: string;
+  timestamp: string;
+  pollingEndpoint: string;
+  estimatedDuration: string;
+}> {
+  try {
+    const headers = await getApiHeaders();
+    
+    const response = await fetch(`${API_CONFIG.baseUrl}/api/research/start`, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        areaId,
+        companyId
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to start research session: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to start research session:', error);
+    throw error;
+  }
+}
+
+export async function pollResearchStatus(researchSessionId: string): Promise<{
+  researchSessionId: string;
+  areaId: string;
+  companyId: string;
+  status: string;
+  currentStep: string;
+  progress: number;
+  message: string;
+  timestamp: string;
+  elapsedTime: number;
+}> {
+  try {
+    const headers = await getApiHeaders();
+    
+    const response = await fetch(`${API_CONFIG.baseUrl}/api/research/status/${researchSessionId}`, {
+      headers: {
+        ...headers,
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to poll research status: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    
+    // Extract the data field from the response
+    return responseData.data || responseData;
+  } catch (error) {
+    console.error('Failed to poll research status:', error);
+    throw error;
+  }
+}
+
+export async function getResearchResults(researchSessionId: string): Promise<any> {
+  try {
+    const headers = await getApiHeaders();
+    
+    const response = await fetch(`${API_CONFIG.baseUrl}/api/research/stream/${researchSessionId}/result`, {
+      headers: {
+        ...headers,
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get research results: ${response.statusText}`);
+    }
+
+    const responseData = await response.json();
+    
+    // Extract the data field from the response
+    return responseData.data || responseData;
+  } catch (error) {
+    console.error('Failed to get research results:', error);
+    throw error;
+  }
+}
+
 // Profile management methods
 export const getProfile = apiClient.getProfile.bind(apiClient);
 export const saveProfile = apiClient.saveProfile.bind(apiClient);

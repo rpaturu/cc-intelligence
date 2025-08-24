@@ -8,6 +8,7 @@ export interface ProgressState {
   messageId: string | null;
   content: string;
   collectedData?: any;
+  isCompleted?: boolean;
 }
 
 export class ResearchProgressManager {
@@ -17,7 +18,8 @@ export class ResearchProgressManager {
     steps: [],
     messageId: null,
     content: "",
-    collectedData: undefined
+    collectedData: undefined,
+    isCompleted: false
   };
 
   private setMessages: ((updater: (prev: Message[]) => Message[]) => void) | null = null;
@@ -39,21 +41,10 @@ export class ResearchProgressManager {
     backendEventIcons?: BackendEventIcons,
     existingMessageId?: string
   ): string {
-    console.log('⏰ TIMING: ResearchProgressManager.startNewResearch called at:', new Date().toISOString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0'), {
-      companyName,
-      hasBackendDescriptions: !!backendEventDescriptions,
-      hasBackendEventTypes: !!backendEventTypes,
-      hasBackendEventIcons: !!backendEventIcons,
-      existingMessageId
-    });
     const messageId = existingMessageId || (Date.now() + 1).toString();
     this.onComplete = onComplete || null;
 
     if (backendEventDescriptions && backendEventTypes && backendEventIcons) {
-      console.log('⏰ TIMING: Creating streaming message with steps at:', new Date().toISOString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0'), {
-        stepsCount: backendEventTypes.length
-      });
-
       // Create all steps using backend data
       const streamingSteps = backendEventTypes.map(eventType => ({
         text: backendEventDescriptions[eventType] || `Processing ${eventType}...`,
@@ -63,7 +54,6 @@ export class ResearchProgressManager {
 
       // CRITICAL: Create streaming message with actual steps (no placeholder to replace)
       if (streamingSteps.length === 0) {
-        console.log('🚫 ResearchProgressManager: No steps to create, skipping streaming message creation');
         return messageId;
       }
 
@@ -77,14 +67,7 @@ export class ResearchProgressManager {
       };
 
       // Create the streaming message (no replacement needed)
-      this.setMessages?.(prev => {
-        console.log('⏰ TIMING: Message creation triggered at:', new Date().toISOString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0'), {
-          messageId,
-          streamingStepsCount: streamingSteps.length,
-          willCreateMessage: true
-        });
-        return [...prev, streamingMessage];
-      });
+      this.setMessages?.(prev => [...prev, streamingMessage]);
 
       this.progressState = {
         isActive: true,
@@ -94,7 +77,6 @@ export class ResearchProgressManager {
         content: "Researching company overview..."
       };
     } else {
-      console.log('🔧 ResearchProgressManager: No backend data available, waiting for SSE events - NO MESSAGE CREATED');
       // Don't create any message - wait for SSE events to provide actual data
       // This prevents empty progress component flash
       this.progressState = {
@@ -142,31 +124,15 @@ export class ResearchProgressManager {
 
   // Handle SSE events and update progress accordingly
   handleSSEEvent(eventType: string, eventData: any, messageId: string, _setMessages: any, backendEventTypes?: string[]) {
-    console.log('🔧 ResearchProgressManager.handleSSEEvent called:', {
-      eventType,
-      messageId,
-      isActive: this.progressState.isActive,
-      currentMessageId: this.progressState.messageId,
-      eventMessage: eventData.message,
-      hasSteps: !!this.progressState.steps,
-      stepsLength: this.progressState.steps?.length || 0,
-      backendEventTypes
-    });
-
     if (!this.progressState.isActive || this.progressState.messageId !== messageId) {
-      console.log('❌ ResearchProgressManager.handleSSEEvent: Conditions not met, returning early');
       return;
     }
 
     // FIXED APPROACH: Only update existing steps, don't create new ones
     const stepIndex = SSEProgressMapper.getStepIndexForEvent(eventType, backendEventTypes);
-    console.log('🎯 ResearchProgressManager.handleSSEEvent: Event mapping:', { eventType, stepIndex });
 
     if (stepIndex !== -1 && this.progressState.steps && stepIndex < this.progressState.steps.length) {
-      console.log('✅ ResearchProgressManager.handleSSEEvent: Updating progress step', stepIndex, 'with SSE message:', eventData.message);
       this.updateProgressStep(stepIndex, true);
-    } else {
-      console.log('❌ ResearchProgressManager.handleSSEEvent: Step not found or out of bounds for event', eventType, 'stepIndex:', stepIndex);
     }
 
     // Store collected data for research completion
@@ -180,13 +146,74 @@ export class ResearchProgressManager {
     }
   }
 
+  // Handle polling updates from backend
+  handlePollingUpdate(
+    currentStep: string,
+    message: string,
+    messageId: string,
+    setMessages: React.Dispatch<React.SetStateAction<Message[]>>
+  ) {
+
+
+    if (!this.progressState.isActive || this.progressState.messageId !== messageId) {
+      return;
+    }
+
+    // Find the step index for the current step
+    const stepIndex = this.progressState.steps.findIndex(step => 
+      step.text.toLowerCase().includes(currentStep.toLowerCase()) ||
+      step.text.toLowerCase().includes('research') && currentStep === 'research_started' ||
+      step.text.toLowerCase().includes('gathering') && currentStep === 'data_gathering' ||
+      step.text.toLowerCase().includes('analyzing') && currentStep === 'analysis_in_progress' ||
+      step.text.toLowerCase().includes('complete') && currentStep === 'synthesis_complete' ||
+      step.text.toLowerCase().includes('completed') && currentStep === 'research_complete'
+    );
+
+    if (stepIndex !== -1) {
+      // Update the current step and all previous steps as completed
+      this.updateProgressStep(stepIndex, true);
+      
+      // Update message content with the new message
+      setMessages(prev => prev.map(msg =>
+        msg.id === messageId
+          ? { ...msg, content: message }
+          : msg
+      ));
+    }
+
+    // Note: Completion is handled by ResearchPollingService, not here
+    // This method only handles progress updates
+  }
+
   // Complete the progress
   completeProgress() {
     if (!this.progressState.isActive || !this.progressState.messageId) {
       return;
     }
 
+    // Prevent double completion
+    if (this.progressState.isCompleted) {
+      return;
+    }
+
+    // Update the message to hide the progress component completely
+    this.setMessages?.(prev => prev.map(msg =>
+      msg.id === this.progressState.messageId
+        ? { 
+            ...msg, 
+            isStreaming: false,
+            streamingSteps: [], // Use empty array instead of undefined to ensure length check fails
+            // Clear any completion messages - let the research results be the final display
+            content: msg.content
+              .replace('🔍 Researching ', '')
+              .replace('...', '')
+              .trim()
+          }
+        : msg
+    ));
+
     this.progressState.isActive = false;
+    this.progressState.isCompleted = true;
     this.onComplete?.();
   }
 
@@ -234,17 +261,12 @@ export class ResearchProgressManager {
     }, steps.length * 1000 + 500);
   }
 
-
-
   private updateProgressStep(stepIndex: number, completed: boolean) {
-    console.log('🔧 updateProgressStep called:', { stepIndex, completed, hasMessageId: !!this.progressState.messageId, hasSetMessages: !!this.setMessages });
 
     if (!this.progressState.messageId || !this.setMessages) {
-      console.log('❌ updateProgressStep: Missing requirements - messageId:', !!this.progressState.messageId, 'setMessages:', !!this.setMessages);
       return;
     }
 
-    console.log('✅ updateProgressStep: Updating messages...');
     this.setMessages(prev => prev.map(msg =>
       msg.id === this.progressState.messageId && msg.streamingSteps
         ? {
@@ -257,7 +279,6 @@ export class ResearchProgressManager {
     ));
 
     this.progressState.currentStep = stepIndex;
-    console.log('✅ updateProgressStep: Step', stepIndex, 'marked as completed');
   }
 }
 

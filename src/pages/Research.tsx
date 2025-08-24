@@ -275,7 +275,8 @@ export default function Research() {
     userProfile,
     startRealResearch,
     handleDownloadReport,
-    handleExportResearch
+    handleExportResearch,
+    currentCompany
   });
 
   // Create MessageService instance for message handling

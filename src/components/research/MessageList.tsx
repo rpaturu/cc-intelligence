@@ -96,34 +96,10 @@ export default function MessageList({
     return () => clearTimeout(timer);
   }, [messages]);
 
-  // Debug: Log all messages being rendered
-  // console.log('🎬 MessageList rendering with messages:', messages.map(msg => ({
-  //   id: msg.id,
-  //   type: msg.type,
-  //   content: msg.content?.substring(0, 50) + '...',
-  //   isStreaming: msg.isStreaming,
-  //   hasStreamingSteps: !!msg.streamingSteps,
-  //   streamingStepsCount: msg.streamingSteps?.length || 0,
-  //   companySummary: !!msg.companySummary,
-  //   researchFindings: !!msg.researchFindings,
-  //   options: !!msg.options,
-  //   followUpOptions: !!msg.followUpOptions
-  // })));
-
   return (
     <div className={`space-y-6 message-list-container ${contentStable ? 'content-stable' : ''}`}>
       <AnimatePresence initial={false}>
         {messages.map((message, index) => {
-          // Debug: Log each message being rendered
-          // console.log(`🎭 Rendering message ${index}:`, {
-          //   id: message.id,
-          //   type: message.type,
-          //   content: message.content?.substring(0, 30) + '...',
-          //   isStreaming: message.isStreaming,
-          //   hasStreamingSteps: !!message.streamingSteps,
-          //   streamingStepsCount: message.streamingSteps?.length || 0
-          // });
-
           return (
             <motion.div
               key={message.id}
@@ -235,17 +211,8 @@ export default function MessageList({
                     </motion.div>
                   )}
 
-                  {(() => {
-                    // Debug: Log content conditions
-                    // console.log(`📝 Message ${message.id} content conditions:`, {
-                    //   hasContent: !!message.content,
-                    //   hasSources: !!(message.sources && message.sources.length > 0),
-                    //   hasResearchFindings: !!message.researchFindings,
-                    //   willShowSourcesPath: !!(message.sources && message.sources.length > 0 && !message.researchFindings)
-                    // });
-                    return null;
-                  })()}
-                  {message.content && (
+
+                  {message.content && message.content.trim() && (
                     <>
                       {message.sources && message.sources.length > 0 && !message.researchFindings ? (
                         // Welcome message with sources - simplified display
@@ -323,30 +290,6 @@ export default function MessageList({
                                 </div>
                               )}
 
-                              {/* Debug: Check streaming conditions */}
-                              {(() => {
-                                console.log(`🔍 STREAMING CHECK for message ${message.id}:`, {
-                                  isStreaming: message.isStreaming,
-                                  hasStreamingSteps: !!message.streamingSteps,
-                                  streamingStepsCount: message.streamingSteps?.length || 0,
-                                  content: message.content?.substring(0, 50),
-                                  conditionMet: message.isStreaming && message.streamingSteps && message.streamingSteps.length > 0
-                                });
-                                return null;
-                              })()}
-                              {message.isStreaming && message.streamingSteps && message.streamingSteps.length > 0 && (
-                                (() => {
-                                  console.log(`⏰ TIMING: Progress component rendered at:`, new Date().toISOString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0'), {
-                                    messageId: message.id,
-                                    streamingStepsCount: message.streamingSteps?.length || 0,
-                                    isStreaming: message.isStreaming,
-                                    hasStreamingSteps: !!message.streamingSteps,
-                                    eventTypes: message.streamingSteps?.map(step => step.text) || [],
-                                    stepStatuses: message.streamingSteps?.map(step => ({ text: step.text.substring(0, 30), completed: step.completed })) || []
-                                  });
-                                  return null;
-                                })()
-                              )}
                               {message.isStreaming && message.streamingSteps && message.streamingSteps.length > 0 && (
                                 <motion.div
                                   className="mt-3 space-y-1.5"
@@ -413,7 +356,7 @@ export default function MessageList({
                                         >
                                           {step.text}
                                           <span className="text-xs text-muted-foreground ml-2">
-                                            {new Date().toISOString().split('T')[1].split('.')[0] + '.' + new Date().getMilliseconds().toString().padStart(3, '0')}
+                                            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                           </span>
                                         </motion.span>
                                       </motion.div>
@@ -523,9 +466,8 @@ export default function MessageList({
                     {/* {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} */}
                     {message.timestamp.toLocaleTimeString([], { 
                       hour: '2-digit', 
-                      minute: '2-digit', 
-                      second: '2-digit'
-                    }) + '.' + message.timestamp.getMilliseconds().toString().padStart(3, '0')}
+                      minute: '2-digit'
+                    })}
                   </motion.div>
                 </motion.div>
               </div>
