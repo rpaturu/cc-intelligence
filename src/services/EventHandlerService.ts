@@ -11,7 +11,7 @@
  */
 
 import { Message, CompletedResearch } from "../types/research";
-import { getStreamingSteps, parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
+import { parseCompanyFromInput, isResearchQuery } from "../utils/research-utils";
 import { scrollToBottom } from "../utils/scroll-utils";
 import { researchProgressManager } from "../components/research/ResearchProgressManager";
 import { getCompanyResearch } from '../lib/api';
@@ -79,24 +79,11 @@ export class EventHandlerService {
         const company = parseCompanyFromInput(messageToSend);
         this.dependencies.setCurrentCompany(company);
 
-        // Get streaming steps for company overview
-        const steps = getStreamingSteps("company_overview");
-        const streamingSteps = steps.map(step => ({ ...step, completed: false }));
+        console.log('🔧 EventHandlerService: Triggering research for:', company);
 
-        // Create streaming message for company overview research
-        const streamingMessage: Message = {
-          id: messageId,
-          type: "assistant",
-          content: `🔍 Researching ${company}...`,
-          timestamp: new Date(),
-          isStreaming: true,
-          streamingSteps
-        };
-
-        this.dependencies.setMessages(prev => [...prev, streamingMessage]);
-
-        // Start real SSE research for company overview
-        this.dependencies.startRealResearch(messageId, "company_overview");
+        // Let ResearchProgressManager handle the entire message lifecycle
+        // No placeholder message - progress component will create message when stream responds
+        this.dependencies.startRealResearch(messageId, "company_overview", company);
       } else {
         const assistantMessage: Message = {
           id: messageId,
@@ -281,17 +268,17 @@ export class EventHandlerService {
 
       // Add streaming progress message instead of company card immediately
       setTimeout(() => {
-        // Start real research using the same message ID as the streaming message
+        // Start real research - ResearchService will handle the progress setup
         console.log('Starting real research for:', companyName);
         
-        const streamingMessageId = researchProgressManager.startNewResearch(companyName, async () => {
-          // When simulation completes, ensure API research is also complete
-          console.log('Progress simulation complete, ensuring API research is finished...');
-          console.log('Both simulation and API research are now complete');
-        });
+        // Create a messageId for the research
+        const messageId = (Date.now() + 1).toString();
         
-        // Start the API call in background using the streaming message ID
-        this.dependencies.startRealResearch(streamingMessageId, 'company_overview', companyName);
+        console.log('🔧 EventHandlerService: Triggering research for:', companyName);
+        
+        // Let ResearchProgressManager handle the entire message lifecycle
+        // No placeholder message - progress component will create message when stream responds
+        this.dependencies.startRealResearch(messageId, 'company_overview', companyName);
       }, 500);
     }, 200);
   }

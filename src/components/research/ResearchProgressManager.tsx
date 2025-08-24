@@ -1,4 +1,5 @@
 import { StreamingStep, Message } from "../../types/research";
+import { SSEProgressMapper, BackendEventDescriptions, BackendEventIcons } from "../../services/progress/SSEProgressMapper";
 
 export interface ProgressState {
   isActive: boolean;
@@ -22,7 +23,7 @@ export class ResearchProgressManager {
   private setMessages: ((updater: (prev: Message[]) => Message[]) => void) | null = null;
   private onComplete: (() => void) | null = null;
 
-  constructor() {}
+  constructor() { }
 
   // Initialize the progress manager with message setter
   initialize(setMessages: (updater: (prev: Message[]) => Message[]) => void) {
@@ -30,34 +31,81 @@ export class ResearchProgressManager {
   }
 
   // Start new research progress
-  startNewResearch(companyName: string, onComplete?: () => void): string {
-    console.log('🔧 NEW ResearchProgressManager.startNewResearch called for:', companyName);
-    const messageId = (Date.now() + 1).toString();
+  startNewResearch(
+    companyName: string,
+    onComplete?: () => void,
+    backendEventDescriptions?: BackendEventDescriptions,
+    backendEventTypes?: string[],
+    backendEventIcons?: BackendEventIcons,
+    existingMessageId?: string
+  ): string {
+    console.log('⏰ TIMING: ResearchProgressManager.startNewResearch called at:', new Date().toISOString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0'), {
+      companyName,
+      hasBackendDescriptions: !!backendEventDescriptions,
+      hasBackendEventTypes: !!backendEventTypes,
+      hasBackendEventIcons: !!backendEventIcons,
+      existingMessageId
+    });
+    const messageId = existingMessageId || (Date.now() + 1).toString();
     this.onComplete = onComplete || null;
 
-    const steps = this.getCompanyResearchSteps(companyName);
-    const streamingSteps = steps.map(step => ({ ...step, completed: false }));
+    if (backendEventDescriptions && backendEventTypes && backendEventIcons) {
+      console.log('⏰ TIMING: Creating streaming message with steps at:', new Date().toISOString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0'), {
+        stepsCount: backendEventTypes.length
+      });
 
-    const streamingMessage: Message = {
-      id: messageId,
-      type: "assistant",
-      content: "Researching company overview...",
-      timestamp: new Date(),
-      isStreaming: true,
-      streamingSteps
-    };
+      // Create all steps using backend data
+      const streamingSteps = backendEventTypes.map(eventType => ({
+        text: backendEventDescriptions[eventType] || `Processing ${eventType}...`,
+        iconName: backendEventIcons[eventType] || 'circle',
+        completed: false
+      }));
 
-    this.setMessages?.(prev => [...prev, streamingMessage]);
+      // CRITICAL: Create streaming message with actual steps (no placeholder to replace)
+      if (streamingSteps.length === 0) {
+        console.log('🚫 ResearchProgressManager: No steps to create, skipping streaming message creation');
+        return messageId;
+      }
 
-    this.progressState = {
-      isActive: true,
-      currentStep: 0,
-      steps: streamingSteps,
-      messageId,
-      content: "Researching company overview..."
-    };
+      const streamingMessage: Message = {
+        id: messageId,
+        type: "assistant",
+        content: `🔍 Researching ${companyName}...`,
+        timestamp: new Date(),
+        isStreaming: true,
+        streamingSteps
+      };
 
-    this.startProgressSimulation(messageId, steps);
+      // Create the streaming message (no replacement needed)
+      this.setMessages?.(prev => {
+        console.log('⏰ TIMING: Message creation triggered at:', new Date().toISOString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0'), {
+          messageId,
+          streamingStepsCount: streamingSteps.length,
+          willCreateMessage: true
+        });
+        return [...prev, streamingMessage];
+      });
+
+      this.progressState = {
+        isActive: true,
+        currentStep: 0,
+        steps: streamingSteps,
+        messageId,
+        content: "Researching company overview..."
+      };
+    } else {
+      console.log('🔧 ResearchProgressManager: No backend data available, waiting for SSE events - NO MESSAGE CREATED');
+      // Don't create any message - wait for SSE events to provide actual data
+      // This prevents empty progress component flash
+      this.progressState = {
+        isActive: true,
+        currentStep: 0,
+        steps: [],
+        messageId,
+        content: "Researching company overview..."
+      };
+    }
+
     return messageId;
   }
 
@@ -92,225 +140,44 @@ export class ResearchProgressManager {
     return messageId;
   }
 
-  // Handle SSE progress updates (for direct SSE event handling)
-  handleSSEProgressUpdate(eventData: any, messageId: string, companyName: string, userProfile: any, setMessages: any, setCompletedResearch: any) {
-    if (!this.progressState.isActive || !this.progressState.messageId) {
+  // Handle SSE events and update progress accordingly
+  handleSSEEvent(eventType: string, eventData: any, messageId: string, _setMessages: any, backendEventTypes?: string[]) {
+    console.log('🔧 ResearchProgressManager.handleSSEEvent called:', {
+      eventType,
+      messageId,
+      isActive: this.progressState.isActive,
+      currentMessageId: this.progressState.messageId,
+      eventMessage: eventData.message,
+      hasSteps: !!this.progressState.steps,
+      stepsLength: this.progressState.steps?.length || 0,
+      backendEventTypes
+    });
+
+    if (!this.progressState.isActive || this.progressState.messageId !== messageId) {
+      console.log('❌ ResearchProgressManager.handleSSEEvent: Conditions not met, returning early');
       return;
     }
 
-    // Update progress based on SSE event type
-    switch (eventData.type) {
-      case 'collection_started':
-        console.log('🔍 Research collection started:', eventData);
-        this.updateProgressStep(0, true);
-        this.updateContent("Starting research collection...");
-        break;
-      case 'progress_update':
-        console.log('📊 Progress update:', eventData);
-        this.updateProgressStep(1, true);
-        this.updateContent(`Progress: ${eventData.progress}% - ${eventData.currentStep}`);
-        break;
-      case 'sources_found':
-        console.log('🔍 Sources found:', eventData);
-        this.updateProgressStep(2, true);
-        this.updateContent("Found relevant data sources...");
-        break;
-      case 'research_findings':
-        console.log('💡 Research findings received:', eventData);
-        this.updateProgressStep(3, true);
-        this.updateContent("Compiling research findings...");
-        this.handleResearchFindings(eventData, messageId, companyName, userProfile, setMessages, setCompletedResearch);
-        break;
-      case 'research_complete':
-        console.log('✅ Research completed:', eventData);
-        this.handleResearchComplete(eventData, messageId, companyName, userProfile, setMessages, setCompletedResearch);
-        break;
-    }
-  }
+    // FIXED APPROACH: Only update existing steps, don't create new ones
+    const stepIndex = SSEProgressMapper.getStepIndexForEvent(eventType, backendEventTypes);
+    console.log('🎯 ResearchProgressManager.handleSSEEvent: Event mapping:', { eventType, stepIndex });
 
-  // Handle individual SSE events (for integration with existing handlers)
-  handleCollectionStarted(eventData: any, _messageId: string, _setMessages: any) {
-    console.log('🔍 Research collection started:', eventData);
-    this.updateProgressStep(0, true);
-    this.updateContent("Starting research collection...");
-  }
-
-  handleProgressUpdate(eventData: any, _messageId: string, _setMessages: any) {
-    console.log('📊 Progress update:', eventData);
-    this.updateProgressStep(1, true);
-    this.updateContent(`Progress: ${eventData.progress}% - ${eventData.currentStep}`);
-  }
-
-  handleResearchFindingsEvent(eventData: any, _messageId: string, _setMessages: any) {
-    console.log('💡 Research findings received:', eventData);
-    this.updateProgressStep(3, true);
-    this.updateContent("Compiling research findings...");
-    this.progressState.collectedData = eventData;
-  }
-
-  handleResearchCompleteEvent(eventData: any, messageId: string, companyName: string, userProfile: any, setMessages: any, setCompletedResearch: any, _researchAreaId: string) {
-    console.log('✅ Research completed:', eventData);
-    this.handleResearchComplete(eventData, messageId, companyName, userProfile, setMessages, setCompletedResearch);
-  }
-
-  // Handle research findings
-  private handleResearchFindings(eventData: any, _messageId: string, _companyName: string, _userProfile: any, _setMessages: any, _setCompletedResearch: any) {
-    // Store the findings data for later use
-    this.progressState.collectedData = eventData;
-  }
-
-  // Handle research completion
-  private handleResearchComplete(eventData: any, messageId: string, companyName: string, userProfile: any, setMessages: any, setCompletedResearch: any) {
-    const collectedData = this.progressState.collectedData;
-    
-    // Handle company overview completion
-    if (eventData.researchAreaId === 'company_overview') {
-      console.log('🎯 Company overview research completed');
-      
-      // Extract company data from the response
-      let companyData: any = undefined;
-      if (collectedData?.findings) {
-        const serpData = collectedData.findings.serp_api;
-        const apolloData = collectedData.findings.apollo;
-        
-        companyData = {
-          name: companyName || "Unknown Company",
-          industry: serpData?.industry || apolloData?.industry || "Technology",
-          size: serpData?.size || apolloData?.size || "Enterprise",
-          location: serpData?.location || apolloData?.location || "Global",
-          revenue: serpData?.revenue || apolloData?.revenue || "$200B+",
-          businessModel: serpData?.businessModel || apolloData?.businessModel || "Software & Cloud Services",
-          marketPosition: serpData?.marketPosition || apolloData?.marketPosition || "Market Leader",
-          techStack: serpData?.techStack || apolloData?.techStack || ["Azure", ".NET", "TypeScript", "AI/ML", "C#", "React"],
-          founded: serpData?.founded || apolloData?.founded || "1975",
-          recentNews: serpData?.recentNews || apolloData?.recentNews || "AI integration across Office suite",
-          keyExecutives: serpData?.keyExecutives || apolloData?.keyExecutives || [
-            {
-              name: "Satya Nadella",
-              role: "CEO",
-              background: "22-year Microsoft veteran, cloud transformation leader"
-            },
-            {
-              name: "Amy Hood",
-              role: "CFO", 
-              background: "Former McKinsey consultant, 13+ years at Microsoft"
-            }
-          ],
-          recentDevelopments: serpData?.recentDevelopments || apolloData?.recentDevelopments || [
-            {
-              type: "product",
-              title: "Copilot integration across Office suite",
-              date: "Dec 2024",
-              impact: "high"
-            },
-            {
-              type: "partnership",
-              title: "OpenAI strategic partnership expansion", 
-              date: "Nov 2024",
-              impact: "high"
-            }
-          ],
-          businessMetrics: serpData?.businessMetrics || apolloData?.businessMetrics || {
-            valuation: "$2.8T market cap",
-            customerCount: "1.4B Office users"
-          }
-        };
-      }
-
-      // Replace the streaming message with company summary
-      setMessages((prev: any[]) => {
-        const filteredMessages = prev.filter((msg: any) => msg.id !== messageId);
-        
-        const summaryMessage = {
-          id: messageId,
-          type: "assistant",
-          content: "",
-          timestamp: new Date(),
-          companySummary: companyData || {
-            name: companyName || "Unknown Company",
-            industry: "Technology",
-            size: "Enterprise",
-            location: "Global",
-            revenue: "$200B+",
-            businessModel: "Software & Cloud Services",
-            marketPosition: "Market Leader",
-            techStack: ["Azure", ".NET", "TypeScript", "AI/ML", "C#", "React"],
-            founded: "1975",
-            recentNews: "AI integration across Office suite",
-            keyExecutives: [
-              {
-                name: "Satya Nadella",
-                role: "CEO",
-                background: "22-year Microsoft veteran, cloud transformation leader"
-              },
-              {
-                name: "Amy Hood",
-                role: "CFO", 
-                background: "Former McKinsey consultant, 13+ years at Microsoft"
-              }
-            ],
-            recentDevelopments: [
-              {
-                type: "product",
-                title: "Copilot integration across Office suite",
-                date: "Dec 2024",
-                impact: "high"
-              },
-              {
-                type: "partnership",
-                title: "OpenAI strategic partnership expansion", 
-                date: "Nov 2024",
-                impact: "high"
-              }
-            ],
-            businessMetrics: {
-              valuation: "$2.8T market cap",
-              customerCount: "1.4B Office users"
-            }
-          },
-        };
-
-        // Add research topics after company summary
-        const { getResearchAreas } = require('../../components/research-content/data');
-        const researchAreas = getResearchAreas(companyName || "Unknown Company", userProfile.role || "Sales", userProfile.company || "Tech Corp");
-        const optionsMessage = {
-          id: `options-${Date.now()}`,
-          type: "assistant",
-          content: researchAreas.intro,
-          timestamp: new Date(),
-          options: researchAreas.options,
-        };
-
-        return [...filteredMessages, summaryMessage, optionsMessage];
-      });
-
+    if (stepIndex !== -1 && this.progressState.steps && stepIndex < this.progressState.steps.length) {
+      console.log('✅ ResearchProgressManager.handleSSEEvent: Updating progress step', stepIndex, 'with SSE message:', eventData.message);
+      this.updateProgressStep(stepIndex, true);
     } else {
-      // Handle other research areas
-      const completedResearchItem = {
-        id: messageId,
-        title: collectedData?.title || `${eventData.researchAreaId} Research`,
-        completedAt: new Date(),
-        findings: collectedData || { title: '', items: [] },
-        researchArea: eventData.researchAreaId
-      };
-
-      setCompletedResearch((prev: any[]) => [...prev, completedResearchItem]);
-
-      // Update message with real findings
-      setMessages((prev: any[]) => prev.map((msg: any) => {
-        if (msg.id === messageId) {
-          return {
-            ...msg,
-            content: collectedData?.title || `Research completed for ${eventData.researchAreaId}`,
-            findings: collectedData
-          };
-        }
-        return msg;
-      }));
+      console.log('❌ ResearchProgressManager.handleSSEEvent: Step not found or out of bounds for event', eventType, 'stepIndex:', stepIndex);
     }
 
-    // Complete the progress
-    this.completeProgress();
+    // Store collected data for research completion
+    if (eventType === 'research_findings') {
+      this.progressState.collectedData = eventData;
+    }
+
+    // Handle completion
+    if (eventType === 'research_complete') {
+      this.completeProgress();
+    }
   }
 
   // Complete the progress
@@ -326,37 +193,6 @@ export class ResearchProgressManager {
   // Get current progress state
   getProgressState(): ProgressState {
     return { ...this.progressState };
-  }
-
-  // Private methods
-  private getCompanyResearchSteps(companyName: string): StreamingStep[] {
-    return [
-      {
-        text: `🎯 Mapping ${companyName} organizational structure`,
-        iconName: "target",
-        completed: false
-      },
-      {
-        text: "🔍 Scanning LinkedIn and company directory",
-        iconName: "search",
-        completed: false
-      },
-      {
-        text: "📊 Analyzing recent leadership changes",
-        iconName: "bar-chart",
-        completed: false
-      },
-      {
-        text: "👥 Identifying key stakeholders",
-        iconName: "users",
-        completed: false
-      },
-      {
-        text: "✅ Company profile complete - found key insights",
-        iconName: "check-square",
-        completed: false
-      }
-    ];
   }
 
   private getHistoryLoadingSteps(): StreamingStep[] {
@@ -398,37 +234,30 @@ export class ResearchProgressManager {
     }, steps.length * 1000 + 500);
   }
 
+
+
   private updateProgressStep(stepIndex: number, completed: boolean) {
+    console.log('🔧 updateProgressStep called:', { stepIndex, completed, hasMessageId: !!this.progressState.messageId, hasSetMessages: !!this.setMessages });
+
     if (!this.progressState.messageId || !this.setMessages) {
+      console.log('❌ updateProgressStep: Missing requirements - messageId:', !!this.progressState.messageId, 'setMessages:', !!this.setMessages);
       return;
     }
 
-    this.setMessages(prev => prev.map(msg => 
+    console.log('✅ updateProgressStep: Updating messages...');
+    this.setMessages(prev => prev.map(msg =>
       msg.id === this.progressState.messageId && msg.streamingSteps
         ? {
-            ...msg,
-            streamingSteps: msg.streamingSteps.map((step: StreamingStep, i: number) => 
-              i === stepIndex ? { ...step, completed } : step
-            )
-          }
+          ...msg,
+          streamingSteps: msg.streamingSteps.map((step: StreamingStep, i: number) =>
+            i === stepIndex ? { ...step, completed } : step
+          )
+        }
         : msg
     ));
 
     this.progressState.currentStep = stepIndex;
-  }
-
-  private updateContent(content: string) {
-    if (!this.progressState.messageId || !this.setMessages) {
-      return;
-    }
-
-    this.setMessages(prev => prev.map(msg => 
-      msg.id === this.progressState.messageId
-        ? { ...msg, content }
-        : msg
-    ));
-
-    this.progressState.content = content;
+    console.log('✅ updateProgressStep: Step', stepIndex, 'marked as completed');
   }
 }
 

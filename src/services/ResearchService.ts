@@ -9,12 +9,11 @@
  */
 
 import { Message, CompletedResearch, CompanyData } from "../types/research";
-import { getStreamingSteps } from "../utils/research-utils";
 import { getResearchAreas } from "../components/research-content/data/research-areas-data";
 import { getFollowUpOptions } from "../components/research-content/data/follow-up-options-data";
 import { createResearchEventSource } from '../lib/api';
 import { researchProgressManager } from "../components/research/ResearchProgressManager";
-import { scrollToStreamingMessage, scrollToResearchFindings } from "../utils/scroll-utils";
+import { scrollToResearchFindings } from "../utils/scroll-utils";
 
 export interface ResearchServiceDependencies {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -31,7 +30,7 @@ export class ResearchService {
     this.dependencies = dependencies;
   }
 
-  async startRealResearch(messageId: string, researchAreaId: string, companyName?: string) {
+  async startRealResearch(_messageId: string, researchAreaId: string, companyName?: string) {
     const { setMessages, userProfile, currentCompany } = this.dependencies;
     const targetCompany = companyName || currentCompany;
     
@@ -40,57 +39,74 @@ export class ResearchService {
       return;
     }
 
-    // Get appropriate streaming steps for this research area
-    const steps = getStreamingSteps(researchAreaId);
-    const streamingSteps = steps.map(step => ({ ...step, completed: false }));
-
-    // Initialize streaming message with proper progress steps
-    setMessages(prev => prev.map(msg =>
-      msg.id === messageId
-        ? { 
-            ...msg, 
-            isStreaming: true, 
-            streamingSteps
-          }
-        : msg
-    ));
-
-    // Scroll to show streaming progress
-    setTimeout(() => {
-      scrollToStreamingMessage();
-    }, 150);
-
+    let messageId: string = '';
     try {
-      // Start SSE connection for real-time research updates using API client
-      const eventSource = await createResearchEventSource(
-        researchAreaId,
-        targetCompany
-      );
+          // Start SSE connection for real-time research updates using API client
+    const { eventSource, streamingData } = await createResearchEventSource(
+      researchAreaId,
+      targetCompany
+    );
 
-      let collectedData: any = null;
+                console.log('⏰ TIMING: API stream response received at:', new Date().toISOString() + '.' + new Date().getMilliseconds().toString().padStart(3, '0'), {
+              hasEventDescriptions: !!streamingData?.eventDescriptions,
+              hasEventTypes: !!streamingData?.eventTypes,
+              hasEventIcons: !!streamingData?.eventIcons,
+              eventTypesCount: streamingData?.eventTypes?.length || 0
+            });
 
-      // SSE event handlers - using ResearchProgressManager
-      eventSource.addEventListener('collection_started', (event) => {
-        const data = JSON.parse(event.data);
-        researchProgressManager.handleCollectionStarted(data, messageId, setMessages);
-      });
+    let collectedData: any = null;
 
-      eventSource.addEventListener('progress_update', (event) => {
-        const data = JSON.parse(event.data);
-        researchProgressManager.handleProgressUpdate(data, messageId, setMessages);
-      });
+    // Initialize the progress manager with setMessages
+    researchProgressManager.initialize(setMessages);
 
-      eventSource.addEventListener('research_findings', (event) => {
-        const data = JSON.parse(event.data);
-        researchProgressManager.handleResearchFindingsEvent(data, messageId, setMessages);
-      });
+    // Start new research - this will only create streaming message if we have backend descriptions
+    const messageId = researchProgressManager.startNewResearch(
+      targetCompany,
+      undefined, // onComplete
+      streamingData?.eventDescriptions,
+      streamingData?.eventTypes,
+      streamingData?.eventIcons,
+      _messageId // Use the existing messageId passed from EventHandlerService
+    );
 
-      eventSource.addEventListener('research_complete', (event) => {
+    // SSE event handlers - using ResearchProgressManager with new user-focused event types
+    eventSource.addEventListener('research_started', (event) => {
+      const data = JSON.parse(event.data);
+      // console.log('🚀 Processing SSE event: research_started', data);
+      researchProgressManager.handleSSEEvent('research_started', data, messageId, setMessages, streamingData?.eventTypes);
+    });
+
+    eventSource.addEventListener('data_gathering', (event) => {
+      const data = JSON.parse(event.data);
+      // console.log('📡 Processing SSE event: data_gathering', data);
+      researchProgressManager.handleSSEEvent('data_gathering', data, messageId, setMessages, streamingData?.eventTypes);
+    });
+
+    eventSource.addEventListener('analysis_in_progress', (event) => {
+      const data = JSON.parse(event.data);
+      // console.log('🧠 Processing SSE event: analysis_in_progress', data);
+      researchProgressManager.handleSSEEvent('analysis_in_progress', data, messageId, setMessages, streamingData?.eventTypes);
+    });
+
+    eventSource.addEventListener('synthesis_complete', (event) => {
+      const data = JSON.parse(event.data);
+      // console.log('✨ Processing SSE event: synthesis_complete', data);
+      researchProgressManager.handleSSEEvent('synthesis_complete', data, messageId, setMessages, streamingData?.eventTypes);
+    });
+
+      eventSource.addEventListener('research_complete', async (event) => {
         const data = JSON.parse(event.data);
         console.log('✅ Research completed:', data);
+        console.log('🔧 Adding 15-second delay to observe progress steps...');
         
-        // Close SSE connection
+        // Update the progress step first
+        researchProgressManager.handleSSEEvent('research_complete', data, messageId, setMessages, streamingData?.eventTypes);
+        
         eventSource.close();
+        
+        // Add longer delay to observe progress steps before completing
+        await new Promise(resolve => setTimeout(resolve, 15000)); // 15-second delay
+        console.log('🔧 Delay complete, now processing research completion...');
         this.handleResearchComplete(data, messageId, researchAreaId, companyName, collectedData);
       });
 
@@ -126,18 +142,20 @@ export class ResearchService {
     // Extract company data from the response
     const companyData = this.extractCompanyData(collectedData, companyName);
 
-    // Replace the streaming message with company summary
+    // Update the streaming message to show completed result
     setMessages(prev => {
-      const filteredMessages = prev.filter(msg => msg.id !== messageId);
+      const updatedMessages = prev.map(msg => 
+        msg.id === messageId 
+          ? {
+              ...msg,
+              isStreaming: false,
+              streamingSteps: undefined,
+              companySummary: companyData,
+              content: ""
+            }
+          : msg
+      );
       
-      const summaryMessage: Message = {
-        id: messageId,
-        type: "assistant",
-        content: "",
-        timestamp: new Date(),
-        companySummary: companyData,
-      };
-
       // Add research topics after company summary
       const researchAreas = getResearchAreas(companyName || "Unknown Company", userProfile?.role || "Sales", userProfile?.company || "Tech Corp");
       const optionsMessage: Message = {
@@ -148,12 +166,13 @@ export class ResearchService {
         options: researchAreas.options,
       };
 
-      return [...filteredMessages, summaryMessage, optionsMessage];
+      return [...updatedMessages, optionsMessage];
     });
   }
 
   private handleOtherResearchComplete(messageId: string, researchAreaId: string, collectedData?: any) {
     const { setMessages, setCompletedResearch } = this.dependencies;
+    
 
     // Handle other research areas
     const completedResearchItem: CompletedResearch = {

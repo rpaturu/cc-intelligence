@@ -177,7 +177,12 @@ export function MessageBubble({
           
           {/* Timestamp */}
           <div className="text-xs text-muted-foreground">
-            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {/* {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} */}
+            {message.timestamp.toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit', 
+              second: '2-digit'
+            }) + '.' + message.timestamp.getMilliseconds().toString().padStart(3, '0')}
           </div>
         </div>
       </div>

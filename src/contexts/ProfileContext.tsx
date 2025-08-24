@@ -104,13 +104,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   // Load profile from API when user is authenticated (only once per user)
   useEffect(() => {
-    console.log('ProfileContext: useEffect triggered', {
-      hasUser: !!user,
-      authLoading,
-      profileLoaded,
-      loading,
-      shouldLoadProfile: user && !authLoading && !profileLoaded && !loading
-    });
+    // console.log('ProfileContext: useEffect triggered', {
+    //   hasUser: !!user,
+    //   authLoading,
+    //   profileLoaded,
+    //   loading,
+    //   shouldLoadProfile: user && !authLoading && !profileLoaded && !loading
+    // });
     
     // Wait for auth to complete, then ensure profile exists
     if (user && !authLoading && !profileLoaded && !loading) {

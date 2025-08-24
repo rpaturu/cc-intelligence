@@ -74,7 +74,7 @@ function createCustomEventSource(response: Response): EventSource {
                 const data = JSON.parse(dataStr);
                 const eventType = data.type || 'message';
                 
-                console.log(`🔍 Processing SSE event: ${eventType}`, data);
+                // console.log(`🔍 Processing SSE event: ${eventType}`, data);
                 
                 // Create a standard MessageEvent-like object
                 const messageEvent = {
@@ -991,7 +991,7 @@ class SalesIntelligenceApiClient {
    * Uses the centralized API configuration for proper URL construction
    * Includes session ID in query parameters since EventSource doesn't support custom headers
    */
-  async createResearchEventSource(areaId: string, companyId: string): Promise<EventSource> {
+  async createResearchEventSource(areaId: string, companyId: string): Promise<{ eventSource: EventSource; streamingData: any }> {
     // Step 1: Initiate research session
     const sessionId = sessionService.getSessionId();
     const initiateUrl = `${this.baseUrl}/api/research/stream`;
@@ -1053,7 +1053,10 @@ class SalesIntelligenceApiClient {
     // Create a custom EventSource-like interface using fetch response
     const eventSource = createCustomEventSource(sseResponse);
     
-    return eventSource;
+    return {
+      eventSource,
+      streamingData: initResponse.data?.streaming
+    };
   }
 }
 

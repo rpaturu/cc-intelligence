@@ -33,18 +33,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    console.log('AuthProvider: Initial checkAuthState called')
+    // console.log('AuthProvider: Initial checkAuthState called')
     checkAuthState()
     
         // Listen for session expiration events
     const handleSessionExpired = async () => {
-      console.log('AuthProvider: Session expired event received, signing out user')
+      // console.log('AuthProvider: Session expired event received, signing out user')
       
       try {
         // Properly sign out from Cognito to clear all tokens
         await signOut()
         await sessionService.destroySession()
-        console.log('AuthProvider: Cognito and session service sign out completed')
+        // console.log('AuthProvider: Cognito and session service sign out completed')
       } catch (error) {
         console.error('AuthProvider: Error during session expiry sign out:', error)
         // Even if signOut fails, we should still clear the local state
@@ -68,15 +68,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuthState = async () => {
     try {
       const session = await fetchAuthSession()
-      console.log('Auth session:', session)
+      // console.log('Auth session:', session)
       
       if (session.tokens) {
         const currentUser = await getCurrentUser()
-        console.log('Current user data:', currentUser)
+        // console.log('Current user data:', currentUser)
         
         // Fetch user attributes to get the actual email address
         const userAttributes = await fetchUserAttributes()
-        console.log('User attributes:', userAttributes)
+        // console.log('User attributes:', userAttributes)
         
         const actualEmail = userAttributes.email || currentUser.signInDetails?.loginId || ''
         
@@ -100,9 +100,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        console.log('Setting user state to:', newUser)
+        // console.log('Setting user state to:', newUser)
         setUser(newUser)
-        console.log('User state set successfully')
+        // console.log('User state set successfully')
       } else {
         console.log('No valid session found, setting user to null')
         setUser(null)
@@ -117,16 +117,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleSignIn = async (username: string, password: string) => {
     try {
-      console.log('Signing in with:', username)
+      // console.log('Signing in with:', username)
       
       // Check if user is already authenticated
       try {
         const currentSession = await fetchAuthSession()
         if (currentSession.tokens) {
-          console.log('User is already authenticated, signing out first...')
+          // console.log('User is already authenticated, signing out first...')
           await signOut()
           await sessionService.destroySession()
-          console.log('Previous session cleared, proceeding with new sign in')
+          // console.log('Previous session cleared, proceeding with new sign in')
         }
       } catch (sessionCheckError) {
         console.log('No existing session found, proceeding with sign in')
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Since user pool is configured for email aliases, users can sign in with email
       await signIn({ username, password })
-      console.log('Sign in successful, checking auth state...')
+      // console.log('Sign in successful, checking auth state...')
       
       // Check auth state immediately without delay
       await checkAuthState()
@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const handleSignUp = async (password: string, email: string): Promise<string> => {
     try {
-      console.log('Signing up user:', email)
+      // console.log('Signing up user:', email)
       // Generate a unique username since the user pool is configured for email aliases
       const uniqueUsername = `user_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
       
@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
         },
       })
-      console.log('Sign up successful')
+      // console.log('Sign up successful')
       return uniqueUsername
     } catch (error) {
       console.error('Sign up error:', error)
@@ -191,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signOut()
       await sessionService.destroySession() // Clean up session
       setUser(null)
-      console.log('Sign out successful')
+      // console.log('Sign out successful')
     } catch (error) {
       console.error('Sign out error:', error)
       throw error
@@ -201,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleConfirmSignUp = async (username: string, code: string) => {
     try {
       await confirmSignUp({ username, confirmationCode: code })
-      console.log('Confirmation successful')
+      // console.log('Confirmation successful')
     } catch (error) {
       console.error('Confirmation error:', error)
       throw error
@@ -211,7 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleResendConfirmationCode = async (username: string) => {
     try {
       await resendSignUpCode({ username })
-      console.log('Confirmation code resent')
+      // console.log('Confirmation code resent')
     } catch (error) {
       console.error('Resend confirmation code error:', error)
       throw error
@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearAuthState = async (): Promise<void> => {
     try {
-      console.log('Clearing all authentication state...')
+      // console.log('Clearing all authentication state...')
       
       // Sign out from Cognito
       await signOut()
@@ -246,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('userData')
       sessionStorage.clear()
       
-      console.log('Authentication state cleared successfully')
+      // console.log('Authentication state cleared successfully')
     } catch (error) {
       console.error('Error clearing auth state:', error)
       // Force clear local state even if signOut fails
