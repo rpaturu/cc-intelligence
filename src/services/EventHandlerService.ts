@@ -23,6 +23,7 @@ export interface EventHandlerServiceDependencies {
   setInputValue: React.Dispatch<React.SetStateAction<string>>;
   setIsTyping: React.Dispatch<React.SetStateAction<boolean>>;
   setCurrentCompany: React.Dispatch<React.SetStateAction<string>>;
+  setCurrentCompanyDomain: React.Dispatch<React.SetStateAction<string>>;
   setShowCompanySearch: React.Dispatch<React.SetStateAction<boolean>>;
   setCompletedResearch: React.Dispatch<React.SetStateAction<CompletedResearch[]>>;
   setResearchHistory: React.Dispatch<React.SetStateAction<Array<{
@@ -45,6 +46,7 @@ export interface EventHandlerServiceDependencies {
   handleDownloadReport: (format: 'pdf' | 'powerpoint' | 'word' | 'excel' | 'json') => void;
   handleExportResearch: () => void;
   currentCompany: string;
+  currentCompanyDomain: string;
 }
 
 export class EventHandlerService {
@@ -62,7 +64,8 @@ export class EventHandlerService {
       setCompletedResearch: dependencies.setCompletedResearch,
       setIsTyping: dependencies.setIsTyping,
       userProfile: dependencies.userProfile,
-      currentCompany: dependencies.currentCompany
+      currentCompany: dependencies.currentCompany,
+      currentCompanyDomain: dependencies.currentCompanyDomain
     });
   }
 
@@ -90,8 +93,6 @@ export class EventHandlerService {
       if (isResearchQuery(messageToSend)) {
         const company = parseCompanyFromInput(messageToSend);
         this.dependencies.setCurrentCompany(company);
-
-        console.log('🔧 EventHandlerService: Triggering polling research for:', company);
 
         // Use polling service instead of SSE
         this.pollingService.startResearch(messageId, "company_overview", company);
@@ -172,21 +173,23 @@ export class EventHandlerService {
    * Handle company selection from search or history
    */
   async handleCompanySelect(company: any): Promise<void> {
-    console.log('Company selected:', company.name);
-    console.log('Current research history:', this.dependencies.researchHistory);
     
-    this.dependencies.setCurrentCompany(company.name);
+    // Use domain for research, but display name to user
+    const researchIdentifier = company.domain || company.name;
+    
+    this.dependencies.setCurrentCompany(company.name); // Keep displaying the name to user
+    
+    this.dependencies.setCurrentCompanyDomain(company.domain || ''); // Store domain for research
+    
     this.dependencies.setShowCompanySearch(false);
     this.dependencies.setMessages([]);
     this.dependencies.setCompletedResearch([]);
 
-    // Check if there's an existing session for this company
-    const existingSession = this.dependencies.researchHistory.find(item => item.company === company.name);
-    console.log('Existing session found:', existingSession);
+    // Check if there's an existing session for this company (use domain for consistency)
+    const existingSession = this.dependencies.researchHistory.find(item => item.company === researchIdentifier);
     
     if (existingSession) {
       try {
-        console.log('Loading existing session for:', company.name);
         
         // Show progress first, then load existing session
         const userMessageId = Date.now().toString();
@@ -205,7 +208,6 @@ export class EventHandlerService {
             // After progress completes, load the existing session
             try {
               const response = await getCompanyResearch(company.name);
-              console.log('Research response:', response);
               
               this.dependencies.setMessages(response.data.messages.map((msg: any) => ({
                 ...msg,
@@ -228,7 +230,7 @@ export class EventHandlerService {
             } catch (error) {
               console.error('Failed to load existing session:', error);
               // Fall back to creating a new session
-              this.createNewResearchSession(company.name);
+              this.createNewResearchSession(company.name, company.domain);
             }
           });
         }, 500);
@@ -236,15 +238,13 @@ export class EventHandlerService {
       } catch (error) {
         console.error('Failed to load existing session:', error);
         // Fall back to creating a new session
-        this.createNewResearchSession(company.name);
+        this.createNewResearchSession(company.name, company.domain);
       }
     } else {
-      console.log('No existing session found, creating new session for:', company.name);
       // Create a new session with progress flow
-      this.createNewResearchSession(company.name);
+      this.createNewResearchSession(company.name, company.domain);
       
       // Automatically trigger overview research for new companies after progress completes
-      console.log('Triggering automatic overview research for:', company.name);
       // The progress simulation will handle this automatically
     }
     
@@ -255,7 +255,10 @@ export class EventHandlerService {
   /**
    * Create a new research session for a company
    */
-  createNewResearchSession(companyName: string): void {
+  createNewResearchSession(companyName: string, companyDomain?: string): void {
+
+    // Use domain if available, otherwise use company name
+    const researchIdentifier = companyDomain || this.dependencies.currentCompanyDomain || companyName;
     // Create initial research conversation
     setTimeout(() => {
       const userMessageId = Date.now().toString();
@@ -271,15 +274,19 @@ export class EventHandlerService {
       // Add streaming progress message instead of company card immediately
       setTimeout(() => {
         // Start real research using polling service
-        console.log('Starting real research for:', companyName);
+        console.log('Starting real research for:', companyName, 'using domain:', researchIdentifier);
         
         // Create a messageId for the research
         const messageId = (Date.now() + 1).toString();
         
-        console.log('🔧 EventHandlerService: Triggering polling research for:', companyName);
+        
+        // Pass the domain explicitly to ensure it's used correctly
+        const domainToUse = companyDomain || this.dependencies.currentCompanyDomain || '';
         
         // Use polling service instead of SSE
-        this.pollingService.startResearch(messageId, 'company_overview', companyName);
+        // Pass companyName as the company identifier, and domain separately
+        // We need to pass the domain directly since state updates are asynchronous
+        this.pollingService.startResearch(messageId, 'company_overview', companyName, domainToUse);
       }, 500);
     }, 200);
   }

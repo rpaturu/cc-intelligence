@@ -49,6 +49,7 @@ export default function Research() {
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [currentCompany, setCurrentCompany] = useState<string>("");
+  const [currentCompanyDomain, setCurrentCompanyDomain] = useState<string>("");
   const [completedResearch, setCompletedResearch] = useState<CompletedResearch[]>([]);
   const [isExportSheetOpen, setIsExportSheetOpen] = useState(false);
   const [isAnalysisSheetOpen, setIsAnalysisSheetOpen] = useState(false);
@@ -265,6 +266,7 @@ export default function Research() {
     setInputValue,
     setIsTyping,
     setCurrentCompany,
+    setCurrentCompanyDomain,
     setShowCompanySearch,
     setCompletedResearch,
     setResearchHistory,
@@ -276,7 +278,8 @@ export default function Research() {
     startRealResearch,
     handleDownloadReport,
     handleExportResearch,
-    currentCompany
+    currentCompany,
+    currentCompanyDomain
   });
 
   // Create MessageService instance for message handling

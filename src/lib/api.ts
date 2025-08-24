@@ -74,8 +74,6 @@ function createCustomEventSource(response: Response): EventSource {
                 const data = JSON.parse(dataStr);
                 const eventType = data.type || 'message';
                 
-                // console.log(`🔍 Processing SSE event: ${eventType}`, data);
-                
                 // Create a standard MessageEvent-like object
                 const messageEvent = {
                   data: dataStr,
@@ -153,8 +151,6 @@ class SalesIntelligenceApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    console.log('API Request:', { url, method: options.method || 'GET' });
-    
     // Use the centralized apiHeaders utility (auto-detects userId and sessionId)
     const baseHeaders = getApiHeaders({
       contentType: 'application/json',
@@ -172,12 +168,9 @@ class SalesIntelligenceApiClient {
       headers,
     });
 
-    console.log('API Response status:', response.status);
-
     if (!response.ok) {
       // Handle session expiration
       if (response.status === 401) {
-        console.log('Session expired, handling logout');
         await sessionService.handleSessionExpiration();
         
         // Create a specific error for session expiration
@@ -204,7 +197,6 @@ class SalesIntelligenceApiClient {
     }
 
     const data = await response.json();
-    console.log('API Response data:', data);
     
     // Parse Date objects
     if (data.generatedAt) {
@@ -995,7 +987,6 @@ class SalesIntelligenceApiClient {
     // Step 1: Initiate research session
     const sessionId = sessionService.getSessionId();
     const initiateUrl = `${this.baseUrl}/api/research/stream`;
-    console.log('Initiating research session:', initiateUrl);
     
     // Make POST request to initiate research session with data in body (not URL params)
     const response = await fetch(initiateUrl, {
@@ -1027,12 +1018,8 @@ class SalesIntelligenceApiClient {
       throw new Error('No SSE token returned in response header');
     }
     
-    console.log('Research session created:', researchSessionId);
-    console.log('SSE token provided in header:', sseToken);
-    
     // Step 2: Create SSE connection using fetch() for secure headers
     const sseUrl = `${this.baseUrl}/api/research/stream/events`; // Fixed endpoint without token
-    console.log('Creating SSE connection to:', sseUrl);
     
     // Use fetch() to support custom headers for security
     const sseResponse = await fetch(sseUrl, {
@@ -1089,10 +1076,11 @@ export const enrichVendor = apiClient.vendorContext.bind(apiClient);
 export const getCustomerIntelligence = apiClient.customerIntelligence.bind(apiClient);
 
 // Polling-based research methods
-export async function startResearchSession(areaId: string, companyId: string): Promise<{
+export async function startResearchSession(areaId: string, companyId: string, companyDomain?: string): Promise<{
   researchSessionId: string;
   areaId: string;
   companyId: string;
+  companyDomain?: string;
   status: string;
   message: string;
   timestamp: string;
@@ -1110,7 +1098,8 @@ export async function startResearchSession(areaId: string, companyId: string): P
       },
       body: JSON.stringify({
         areaId,
-        companyId
+        companyId,
+        companyDomain
       })
     });
 

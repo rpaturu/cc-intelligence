@@ -19,6 +19,7 @@ export interface ResearchPollingServiceDependencies {
   setIsTyping: React.Dispatch<React.SetStateAction<boolean>>;
   userProfile: any;
   currentCompany: string;
+  currentCompanyDomain: string;
 }
 
 interface PollingConfig {
@@ -61,9 +62,10 @@ export class ResearchPollingService {
     };
   }
 
-  async startResearch(_messageId: string, researchAreaId: string, companyName?: string) {
-    const { setMessages, userProfile, currentCompany } = this.dependencies;
-    const targetCompany = companyName || currentCompany;
+  async startResearch(_messageId: string, researchAreaId: string, companyName?: string, companyDomain?: string) {
+    const { setMessages, userProfile, currentCompany, currentCompanyDomain } = this.dependencies;
+    // Use domain if available, otherwise fall back to company name
+    const targetCompany = companyName || currentCompanyDomain || currentCompany;
     
     if (!userProfile || !targetCompany) {
       console.error('Missing user profile or company for research');
@@ -72,7 +74,14 @@ export class ResearchPollingService {
 
     try {
       // Step 1: Start research session via POST
-      const sessionResponse = await this.startResearchSession(researchAreaId, targetCompany);
+      // Get the current values from dependencies (they might have been updated)
+      const { currentCompany: updatedCurrentCompany, currentCompanyDomain: updatedCurrentCompanyDomain } = this.dependencies;
+      
+      // Use the passed companyName as companyId, and use passed domain or fall back to dependencies
+      const requestCompanyId = companyName || updatedCurrentCompany;
+      const requestCompanyDomain = companyDomain || updatedCurrentCompanyDomain || '';
+      
+      const sessionResponse = await this.startResearchSession(researchAreaId, requestCompanyId, requestCompanyDomain);
       
       if (!sessionResponse?.researchSessionId) {
         throw new Error('Failed to start research session');
@@ -110,8 +119,8 @@ export class ResearchPollingService {
     }
   }
 
-  private async startResearchSession(areaId: string, companyId: string): Promise<any> {
-    return await startResearchSession(areaId, companyId);
+  private async startResearchSession(areaId: string, companyId: string, companyDomain?: string): Promise<any> {
+    return await startResearchSession(areaId, companyId, companyDomain);
   }
 
   private async pollResearchStatus(researchSessionId: string): Promise<ResearchSession> {
