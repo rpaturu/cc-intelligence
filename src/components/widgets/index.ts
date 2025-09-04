@@ -1,5 +1,4 @@
 export { VendorProfileCard } from './VendorProfileCard';
-export { CompanyOverviewCard } from './CompanyOverviewCard';
 export { ResearchAreaSelector } from './ResearchAreaSelector';
 export { ResearchProgressTracker } from './ResearchProgressTracker';
 export { ResearchFindingsCard } from './ResearchFindingsCard';

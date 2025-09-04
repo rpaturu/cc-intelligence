@@ -6,7 +6,7 @@ import { CheckCircle, Clock, ArrowRight } from 'lucide-react';
 import { Message } from '../../types/research';
 import { getInitials } from '../../utils';
 import { VendorProfileCard } from './VendorProfileCard';
-import { CompanyOverviewCard } from './CompanyOverviewCard';
+// import { CompanyOverviewCard } from './CompanyOverviewCard'; // Removed - not used in main workflow
 import { ResearchProgressTracker } from './ResearchProgressTracker';
 import { ResearchFindingsCard } from './ResearchFindingsCard';
 
@@ -64,10 +64,10 @@ export function MessageBubble({
             />
           )}
 
-          {/* Company Summary Card */}
-          {message.companySummary && (
+          {/* Company Summary Card - Disabled - not used in main workflow */}
+          {/* {message.companySummary && (
             <CompanyOverviewCard companySummary={message.companySummary} />
-          )}
+          )} */}
 
           {/* Research Findings */}
           {message.researchFindings && (
