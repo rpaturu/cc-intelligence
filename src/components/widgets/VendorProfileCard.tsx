@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Building, Layers, Star } from 'lucide-react';
-import { VendorProfile } from '../../types/research-types';
+import { VendorProfile } from '../../types/research';
 
 interface VendorProfileCardProps {
   vendorProfile: VendorProfile;
@@ -52,7 +52,7 @@ export function VendorProfileCard({ vendorProfile, userName, className = "" }: V
               <div className="bg-background/50 rounded p-3">
                 <p className="text-xs text-muted-foreground mb-2">What You Focus On</p>
               <ul className="text-xs space-y-1">
-                {vendorProfile.persona.keyFocus.map((focus, index) => (
+                {vendorProfile.persona.keyFocus.map((focus: string, index: number) => (
                   <li key={index} className="flex items-start gap-1">
                     <span className="text-primary mt-0.5">•</span>
                     <span>{focus}</span>
@@ -63,7 +63,7 @@ export function VendorProfileCard({ vendorProfile, userName, className = "" }: V
                           <div className="bg-background/50 rounded p-3">
                 <p className="text-xs text-muted-foreground mb-2">How You're Measured</p>
               <ul className="text-xs space-y-1">
-                {vendorProfile.persona.successMetrics.map((metric, index) => (
+                {vendorProfile.persona.successMetrics.map((metric: string, index: number) => (
                   <li key={index} className="flex items-start gap-1">
                     <span className="text-primary mt-0.5">•</span>
                     <span>{metric}</span>
@@ -74,7 +74,7 @@ export function VendorProfileCard({ vendorProfile, userName, className = "" }: V
                           <div className="bg-background/50 rounded p-3">
                 <p className="text-xs text-muted-foreground mb-2">What You're Up Against</p>
               <ul className="text-xs space-y-1">
-                {vendorProfile.persona.commonChallenges.map((challenge, index) => (
+                {vendorProfile.persona.commonChallenges.map((challenge: string, index: number) => (
                   <li key={index} className="flex items-start gap-1">
                     <span className="text-primary mt-0.5">•</span>
                     <span>{challenge}</span>

@@ -123,13 +123,20 @@ export interface Message {
       commonChallenges: string[];
     };
   };
+  researchAreas?: ResearchArea[];
+  researchProgress?: ResearchProgress;
+  isPersonalizedWelcome?: boolean;
 }
 
 export interface ResearchArea {
   id: string;
   text: string;
+  description?: string;
   iconName?: string;
   category?: "research" | "action" | "explore";
+  roleRelevance?: {
+    [key: string]: number;
+  };
 }
 
 export interface FollowUpOption {
@@ -206,4 +213,11 @@ export interface VendorProfile {
     successMetrics: string[];
     commonChallenges: string[];
   };
+}
+
+export interface ResearchProgress {
+  totalAreas: number;
+  completedAreas: number;
+  completedIds: string[];
+  isCollapsed?: boolean;
 }

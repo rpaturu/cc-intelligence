@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
 import { CheckCircle, Clock, Sparkles } from "lucide-react";
-import { ResearchFindingsCard, CompanySummaryCard } from "./components";
+import { ResearchFindingsCard, CompanyOverviewCard } from "./components";
 import { getInitials } from "../../utils/research-utils";
 import { Icon } from "../ui/icon";
 import ResearchProgress from "./ResearchProgress";
@@ -181,7 +181,7 @@ export default function MessageList({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 + index * 0.05, duration: 0.5 }}
                     >
-                      <CompanySummaryCard
+                      <CompanyOverviewCard
                         companySummary={message.companySummary}
                         messageId={message.id}
                         userRole={user?.role}

@@ -1,4 +1,4 @@
-import { VendorProfile } from '../types/research-types';
+import { VendorProfile } from '../types/research';
 
 export const createVendorProfile = (userCompany: string, userRole: string): VendorProfile => {
   // Role-specific data for demonstration
@@ -64,6 +64,18 @@ export const createVendorProfile = (userCompany: string, userRole: string): Vend
     company: userCompany,
     overview: `Leading identity and access management platform trusted by enterprises for zero-trust security.`,
     products: getCompetitiveEdge(userCompany),
+    competitors: [
+      {
+        name: "Competitor A",
+        category: "Direct",
+        strength: "Strong market presence"
+      },
+      {
+        name: "Competitor B", 
+        category: "Indirect",
+        strength: "Growing market share"
+      }
+    ],
     persona: getPersonaByRole(userRole)
   };
 }; 

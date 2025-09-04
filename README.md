@@ -4,7 +4,15 @@ A modern React-based user interface for the Sales Intelligence AI platform. This
 
 ## 🚀 Features
 
-### v1.0.9 Release (Latest)
+### v1.0.10 Release (Latest)
+- **🔒 Ethical Data Collection**: Backend now uses public APIs only, no web scraping
+- **📊 Enhanced Research Pipeline**: Improved data collection and transformation pipeline
+- **🧹 Code Cleanup**: Removed all BrightData integration and test files
+- **📈 Performance Improvements**: Streamlined data collection for better performance
+- **🔐 Security Enhancements**: Improved data handling and cache management
+- **📱 UI Consistency**: Maintained all existing frontend features and improvements
+
+### v1.0.9 Release
 - **🔧 API Response Fixes**: Fixed vendor context and company lookup API response parsing
 - **📋 Guided Onboarding**: Step-by-step onboarding flow for new users
 - **🏢 Company Intelligence Widgets**: Comprehensive company insights with real-time data

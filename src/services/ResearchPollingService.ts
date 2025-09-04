@@ -11,7 +11,7 @@
 import { Message, CompletedResearch } from "../types/research";
 import { researchProgressManager } from "../components/research/ResearchProgressManager";
 import { scrollToResearchFindings } from "../utils/scroll-utils";
-import { startResearchSession, pollResearchStatus, getResearchResults } from "../lib/api";
+import { startResearchSession, getResearchStatus, getResearchResults } from "../lib/api";
 
 export interface ResearchPollingServiceDependencies {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -41,6 +41,7 @@ interface ResearchSession {
   message: string;
   timestamp: string;
   elapsedTime: number;
+  results?: any; // Optional results when research is completed
 }
 
 export class ResearchPollingService {
@@ -123,8 +124,8 @@ export class ResearchPollingService {
     return await startResearchSession(areaId, companyId, companyDomain);
   }
 
-  private async pollResearchStatus(researchSessionId: string): Promise<ResearchSession> {
-    return await pollResearchStatus(researchSessionId);
+  private async getResearchStatus(researchSessionId: string): Promise<ResearchSession> {
+    return await getResearchStatus(researchSessionId);
   }
 
   private startSmartPolling(researchSessionId: string, messageId: string, areaId: string, companyId: string) {
@@ -163,7 +164,7 @@ export class ResearchPollingService {
       }
 
       try {
-        const status = await this.pollResearchStatus(researchSessionId);
+        const status = await this.getResearchStatus(researchSessionId);
         
 
         // Only check for completion - let simulation handle progress updates
@@ -452,14 +453,21 @@ export class ResearchPollingService {
   private formatCompanySummary(researchData: any, companyId: string) {
     // Format research data for CompanySummaryCard component
     return {
-      name: companyId,
+      name: researchData.name || companyId,
       industry: researchData.industry || 'Technology',
       size: researchData.size || 'Enterprise',
       location: researchData.location || 'United States',
       recentNews: researchData.recentNews || 'Company overview completed',
       techStack: researchData.techStack || [],
       founded: researchData.founded || 'Unknown',
-      revenue: researchData.revenue || 'Unknown'
+      revenue: researchData.revenue || 'Unknown',
+      businessModel: researchData.businessModel,
+      marketPosition: researchData.marketPosition,
+      growthStage: researchData.growthStage,
+      keyExecutives: researchData.keyExecutives || [],
+      businessMetrics: researchData.businessMetrics || {},
+      recentDevelopments: researchData.recentDevelopments || [],
+      competitiveContext: researchData.competitiveContext || {}
     };
   }
 }

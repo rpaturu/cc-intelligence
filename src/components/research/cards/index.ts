@@ -1,3 +1,3 @@
 export { VendorProfileCard } from './VendorProfileCard';
-export { CompanySummaryCard } from './CompanySummaryCard';
+export { CompanyOverviewCard } from './CompanyOverviewCard';
 export { ResearchFindingsCard } from './ResearchFindingsCard';

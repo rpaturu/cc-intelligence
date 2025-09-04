@@ -1,22 +1,21 @@
 import { motion } from "motion/react";
-import { Badge } from "../../ui/badge";
-import { Card, CardContent } from "../../ui/card";
-import { BarChart3, MapPin, TrendingUp, Zap } from "lucide-react";
-import { CompanyData } from "../../../types/research";
-import MessageFeedback from "../MessageFeedback";
+import { Badge } from '../ui/badge';
+import { Card, CardContent } from '../ui/card';
+import { BarChart3, MapPin, TrendingUp, Zap } from 'lucide-react';
+import { CompanyData } from "../../types/research";
 
-interface CompanySummaryCardProps {
+interface CompanyOverviewCardProps {
   companySummary: CompanyData;
-  messageId?: string;
-  userRole?: string;
+  className?: string;
 }
 
-export function CompanySummaryCard({ companySummary, messageId, userRole }: CompanySummaryCardProps) {
+export function CompanyOverviewCard({ companySummary, className = "" }: CompanyOverviewCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
+      className={className}
     >
       <Card className="bg-accent/50 border-l-4 border-l-primary card-hover">
         <CardContent className="p-4">
@@ -171,7 +170,7 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
               >
                 <span className="text-sm text-foreground font-medium">Key Leadership:</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-3">
-                  {companySummary.keyExecutives.slice(0, 4).map((exec, index) => (
+                  {companySummary.keyExecutives.slice(0, 4).map((exec: any, index: number) => (
                     <motion.div 
                       key={`exec-${exec.name}-${index}`}
                       className="text-sm bg-background/50 rounded-lg p-3 card-hover"
@@ -201,7 +200,7 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
               >
                 <span className="text-sm text-foreground font-medium">Recent Developments:</span>
                 <div className="space-y-2">
-                  {companySummary.recentDevelopments.slice(0, 3).map((dev, index) => (
+                  {companySummary.recentDevelopments.slice(0, 3).map((dev: any, index: number) => (
                     <motion.div 
                       key={`dev-${dev.title}-${index}`}
                       className="flex flex-wrap items-start gap-2 text-sm"
@@ -247,23 +246,6 @@ export function CompanySummaryCard({ companySummary, messageId, userRole }: Comp
               </motion.div>
             )}
           </div>
-          
-          {/* Add feedback section for company overview */}
-          {messageId && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.4, duration: 0.3 }}
-              className="mt-6 pt-4 border-t border-border/50"
-            >
-              <MessageFeedback
-                messageId={messageId}
-                researchArea="company_overview"
-                companyName={companySummary.name}
-                userRole={userRole}
-              />
-            </motion.div>
-          )}
         </CardContent>
       </Card>
     </motion.div>

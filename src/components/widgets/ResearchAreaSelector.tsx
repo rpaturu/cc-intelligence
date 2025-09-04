@@ -1,5 +1,5 @@
 import { Button } from '../ui/button';
-import { ResearchArea } from '../../types/research-types';
+import { ResearchArea } from '../../types/research';
 
 interface ResearchAreaSelectorProps {
   researchAreas: ResearchArea[];
@@ -27,11 +27,11 @@ export function ResearchAreaSelector({
           variant="outline"
           size="sm"
           className="w-full justify-start text-left"
-          onClick={() => !disabled && onAreaClick(area.id, area.title)}
+          onClick={() => !disabled && onAreaClick(area.id, area.text)}
           disabled={disabled}
         >
-          {area.icon && <span className="mr-2">{area.icon}</span>}
-          {area.description}
+          {area.iconName && <span className="mr-2">{area.iconName}</span>}
+          <span className="text-sm font-medium">{area.text}</span>
         </Button>
       ))}
     </div>

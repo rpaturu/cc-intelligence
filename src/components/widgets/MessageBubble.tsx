@@ -3,14 +3,13 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Button } from '../ui/button';
 import { CheckCircle, Clock, ArrowRight } from 'lucide-react';
-import { Message } from '../../types/research-types';
+import { Message } from '../../types/research';
 import { getInitials } from '../../utils';
 import { VendorProfileCard } from './VendorProfileCard';
-import { CompanySummaryCard } from './CompanySummaryCard';
+import { CompanyOverviewCard } from './CompanyOverviewCard';
 import { ResearchProgressTracker } from './ResearchProgressTracker';
 import { ResearchFindingsCard } from './ResearchFindingsCard';
 
-import { getResearchAreas } from '../../data';
 
 interface MessageBubbleProps {
   message: Message;
@@ -31,7 +30,6 @@ export function MessageBubble({
   message, 
   userFirstName, 
   userLastName,
-  userRole = 'account-executive',
   onResearchAreaClick,
   onFollowUpClick,
   onCitationClick,
@@ -68,7 +66,7 @@ export function MessageBubble({
 
           {/* Company Summary Card */}
           {message.companySummary && (
-            <CompanySummaryCard companySummary={message.companySummary} />
+            <CompanyOverviewCard companySummary={message.companySummary} />
           )}
 
           {/* Research Findings */}
@@ -86,9 +84,8 @@ export function MessageBubble({
 
           {/* Research Progress Tracker */}
           {message.researchProgress && (
-            <ResearchProgressTracker 
+            <ResearchProgressTracker
               progress={message.researchProgress}
-              allResearchAreas={getResearchAreas(userRole)}
               onAreaClick={onResearchAreaClick}
             />
           )}
@@ -129,10 +126,10 @@ export function MessageBubble({
                         key={option.id}
                         variant="outline"
                         size="sm"
-                        className="w-full justify-start text-left"
+                        className="text-xs"
                         onClick={() => onResearchAreaClick(option.id, option.text)}
                       >
-                        {option.icon && <span className="mr-2">{option.icon}</span>}
+                        {option.iconName && <span className="mr-2">{option.iconName}</span>}
                         {option.text}
                       </Button>
                     ))}
@@ -161,7 +158,7 @@ export function MessageBubble({
                     >
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-2">
-                          {option.icon}
+                          {option.iconName}
                           <span>{option.text}</span>
                         </div>
                         <Badge variant="secondary" className="text-xs">

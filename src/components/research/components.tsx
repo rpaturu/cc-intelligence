@@ -1,3 +1,3 @@
-import { VendorProfileCard, CompanySummaryCard, ResearchFindingsCard } from "./cards";
+import { VendorProfileCard, CompanyOverviewCard, ResearchFindingsCard } from "./cards";
 
-export { VendorProfileCard, CompanySummaryCard, ResearchFindingsCard };
+export { VendorProfileCard, CompanyOverviewCard, ResearchFindingsCard };

@@ -3,11 +3,11 @@ import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Progress } from '../ui/progress';
 import { ChevronUp, ChevronDown, Target, CheckCircle } from 'lucide-react';
-import { ResearchProgress, ResearchArea } from '../../types/research-types';
+import { ResearchProgress, ResearchArea } from '../../types/research';
 
 interface ResearchProgressTrackerProps {
   progress: ResearchProgress;
-  allResearchAreas: ResearchArea[];
+  allResearchAreas?: ResearchArea[];
   onToggleCollapse?: () => void;
   onAreaClick?: (areaId: string, areaTitle: string) => void;
   className?: string;
@@ -22,13 +22,13 @@ export function ResearchProgressTracker({
 }: ResearchProgressTrackerProps) {
   const [isExpanded, setIsExpanded] = useState(!progress.isCollapsed);
   
-  const completedAreas = allResearchAreas.filter(area => 
+  const completedAreas = allResearchAreas?.filter(area => 
     progress.completedIds.includes(area.id)
-  );
+  ) || [];
   
-  const remainingAreas = allResearchAreas.filter(area => 
+  const remainingAreas = allResearchAreas?.filter(area => 
     !progress.completedIds.includes(area.id)
-  );
+  ) || [];
 
   const progressPercentage = progress.totalAreas > 0 
     ? (progress.completedAreas / progress.totalAreas) * 100 
@@ -88,10 +88,10 @@ export function ResearchProgressTracker({
                     variant="outline"
                     size="sm"
                     className="w-full justify-start text-left"
-                    onClick={() => onAreaClick?.(area.id, area.title)}
+                    onClick={() => onAreaClick?.(area.id, area.text)}
                   >
-                    {area.icon && <span className="mr-2">{area.icon}</span>}
-                    {area.description}
+                    {area.iconName && <span className="mr-2">{area.iconName}</span>}
+                    <span className="text-sm font-medium">{area.text}</span>
                   </Button>
                 ))}
               </div>
@@ -114,7 +114,7 @@ export function ResearchProgressTracker({
                       className="flex items-center gap-2"
                     >
                       <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                      <span className="text-xs text-muted-foreground line-through">{area.description}</span>
+                      <span className="text-xs text-muted-foreground line-through">{area.text}</span>
                     </div>
                   ))}
                 </div>

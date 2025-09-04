@@ -1114,7 +1114,7 @@ export async function startResearchSession(areaId: string, companyId: string, co
   }
 }
 
-export async function pollResearchStatus(researchSessionId: string): Promise<{
+export async function getResearchStatus(researchSessionId: string): Promise<{
   researchSessionId: string;
   areaId: string;
   companyId: string;
@@ -1124,6 +1124,7 @@ export async function pollResearchStatus(researchSessionId: string): Promise<{
   message: string;
   timestamp: string;
   elapsedTime: number;
+  results?: any; // Optional results when research is completed
 }> {
   try {
     const headers = await getApiHeaders();
@@ -1152,7 +1153,9 @@ export async function getResearchResults(researchSessionId: string): Promise<any
   try {
     const headers = await getApiHeaders();
     
-    const response = await fetch(`${API_CONFIG.baseUrl}/api/research/stream/${researchSessionId}/result`, {
+    // Use the status endpoint instead of the separate result endpoint
+    // The status endpoint now includes results when research is completed
+    const response = await fetch(`${API_CONFIG.baseUrl}/api/research/status/${researchSessionId}`, {
       headers: {
         ...headers,
       }
@@ -1164,8 +1167,8 @@ export async function getResearchResults(researchSessionId: string): Promise<any
 
     const responseData = await response.json();
     
-    // Extract the data field from the response
-    return responseData.data || responseData;
+    // Return the results directly from the status response
+    return responseData.results || {};
   } catch (error) {
     console.error('Failed to get research results:', error);
     throw error;

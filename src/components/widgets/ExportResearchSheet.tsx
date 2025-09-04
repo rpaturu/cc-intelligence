@@ -3,7 +3,7 @@ import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { Download, Building, MapPin, TrendingUp, Zap, CheckCircle, Users, Mail, Phone, Linkedin, Swords, FileText, Presentation, FileSpreadsheet, Code2 } from "lucide-react";
-import { Message } from "../../types/research-types";
+import { Message } from "../../types/research";
 
 interface ExportResearchSheetProps {
   isOpen: boolean;
@@ -128,7 +128,7 @@ export function ExportResearchSheet({
                           <Zap className="w-4 h-4 text-muted-foreground mt-0.5" />
                           <div className="flex flex-wrap gap-1">
                             <span className="text-muted-foreground">Tech:</span>
-                            {companySummary.techStack.map((tech, index) => (
+                            {companySummary.techStack.map((tech: string, index: number) => (
                               <Badge key={index} variant="outline" className="text-xs">
                                 {tech}
                               </Badge>
