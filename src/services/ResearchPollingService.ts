@@ -12,6 +12,8 @@ import { Message, CompletedResearch } from "../types/research";
 import { researchProgressManager } from "../components/research/ResearchProgressManager";
 import { scrollToResearchFindings } from "../utils/scroll-utils";
 import { startResearchSession, getResearchStatus, getResearchResults } from "../lib/api";
+import { getResearchAreas } from "../components/research-content/data/research-areas-data";
+import { getFollowUpOptions } from "../components/research-content/data/follow-up-options-data";
 
 export interface ResearchPollingServiceDependencies {
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
@@ -327,7 +329,7 @@ export class ResearchPollingService {
         }
         return message;
       }));
-      
+
       // Add to completed research
       setCompletedResearch((prev: CompletedResearch[]) => [...prev, {
         id: researchSessionId,
@@ -341,10 +343,41 @@ export class ResearchPollingService {
         userProfile: this.dependencies.userProfile
       }]);
 
-      // Scroll to findings
+      // Scroll to research findings FIRST (before adding follow-up messages)
       setTimeout(() => {
         scrollToResearchFindings();
       }, 500);
+
+      // Add appropriate follow-up message based on research area type (after scrolling)
+      setTimeout(() => {
+        if (areaId === 'company_overview') {
+          // For company_overview, add initial research areas message
+          const researchAreas = getResearchAreas(companyId, this.dependencies.userProfile?.role || "Account Manager", this.dependencies.userProfile?.company);
+          
+          const researchAreasMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            type: "assistant",
+            content: researchAreas.intro,
+            timestamp: new Date(),
+            options: researchAreas.options
+          };
+
+          setMessages((prev: Message[]) => [...prev, researchAreasMessage]);
+        } else {
+          // For other research areas, add follow-up options message
+          const followUpOptions = getFollowUpOptions(areaId);
+          
+          const followUpMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            type: "assistant",
+            content: "What would you like to do next?",
+            timestamp: new Date(),
+            followUpOptions: followUpOptions
+          };
+
+          setMessages((prev: Message[]) => [...prev, followUpMessage]);
+        }
+      }, 1000); // Delay follow-up messages to allow scroll to complete
 
       setIsTyping(() => false);
 
