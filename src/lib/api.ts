@@ -267,8 +267,13 @@ class SalesIntelligenceApiClient {
     const startTime = Date.now();
     const pollInterval = 2000; // 2 seconds
 
+    console.log(`Polling ${endpointType} endpoint for requestId: ${requestId}, timeout: ${timeoutMs}ms`);
+
     while (Date.now() - startTime < timeoutMs) {
       try {
+        const endpoint = `/${endpointType}/${requestId}/status`;
+        console.log(`Making request to: ${endpoint}`);
+        
         const result = await this.makeRequest<{
           requestId: string;
           status: string;
@@ -276,10 +281,21 @@ class SalesIntelligenceApiClient {
           error?: string;
           output?: string;
           cause?: string;
-        }>(`/${endpointType}/${requestId}/status`);
+          data?: { // Updated type definition for unified response
+            status?: string;
+            analysis?: any;
+            cached?: boolean;
+            generatedAt?: string;
+            metrics?: any;
+          };
+        }>(endpoint);
+        
+        console.log(`Polling response for ${requestId}:`, result);
 
         // Check for Step Functions workflow completion
-        if (result.status === 'SUCCEEDED' || result.status === 'completed') {
+        // Handle both direct status and nested data.status
+        const status = result.status || result.data?.status;
+        if (status === 'SUCCEEDED' || status === 'completed') {
           // For Step Functions, the result might be in the output field
           if (result.output) {
             try {
@@ -289,18 +305,22 @@ class SalesIntelligenceApiClient {
               return result.output as T;
             }
           }
-          // If no output, return the entire result
+          // Check for analysis in data field (unified response structure)
+          if (result.data?.analysis) {
+            return result.data as T;
+          }
+          // If no specific result, return the entire result
           return result as T;
         }
 
         // Check for Step Functions workflow failure
-        if (result.status === 'FAILED' || result.status === 'failed') {
+        if (status === 'FAILED' || status === 'failed') {
           throw new Error(result.error || result.cause || 'Workflow failed');
         }
 
         // Check for Step Functions workflow termination
-        if (result.status === 'ABORTED' || result.status === 'TIMED_OUT') {
-          throw new Error(`Workflow ${result.status.toLowerCase()}`);
+        if (status === 'ABORTED' || status === 'TIMED_OUT') {
+          throw new Error(`Workflow ${status.toLowerCase()}`);
         }
 
         // Still processing, wait before next poll
@@ -640,7 +660,11 @@ class SalesIntelligenceApiClient {
     }
 
     // Handle async processing response (202)
-    if (response.statusEndpoint && response.workflow) {
+    if (response.data?.statusEndpoint && response.data?.workflow) {
+      console.log('VendorContext API: Starting async polling for requestId:', response.requestId);
+      console.log('VendorContext API: Status endpoint:', response.data.statusEndpoint);
+      console.log('VendorContext API: Workflow type:', response.data.workflow?.type);
+      
       // Use workflows endpoint for Step Functions-based async operations
       const polledResult = await this.pollForAsyncResult<{
         status: string;
@@ -651,6 +675,8 @@ class SalesIntelligenceApiClient {
         requestId: string;
         metrics?: any;
       }>(response.requestId, 180000, 'workflows'); // 3 minute timeout, use workflows endpoint
+      
+      console.log('VendorContext API: Polling completed with result:', polledResult);
 
       // Process the polled result same as immediate response
       const analysis = polledResult.data?.analysis || polledResult.analysis || {};
@@ -786,7 +812,7 @@ class SalesIntelligenceApiClient {
     }
 
     // Handle async processing response (202) - use workflows endpoint for Step Functions
-    if (response.statusEndpoint && response.workflow) {
+    if (response.data?.statusEndpoint && response.data?.workflow) {
       const polledResult = await this.pollForAsyncResult<{
         status: string;
         data?: any;

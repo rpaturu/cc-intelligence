@@ -147,6 +147,7 @@ export function CompanyIntelligenceWidget({
   const [companyIntelligence, setCompanyIntelligence] = useState<CompanyIntelligenceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   const activeSections = { ...DEFAULT_SECTIONS, ...sections };
 
@@ -160,9 +161,12 @@ export function CompanyIntelligenceWidget({
 
       setLoading(true);
       setError(null);
+      setDebugInfo(`Fetching vendor context for: ${companyName}`);
 
       try {
+        console.log('VendorIntelligenceWidget: Starting vendor context fetch for:', companyName);
         const vendorData = await vendorContext(companyName);
+        console.log('VendorIntelligenceWidget: Received vendor data:', vendorData);
 
         if (vendorData.success) {
           const roleConfig = getAIConfigForRole(userRole || "account-executive");
@@ -193,10 +197,14 @@ export function CompanyIntelligenceWidget({
             }
           });
         } else {
-          throw new Error('Vendor context API returned unsuccessful response');
+          const errorMsg = `Vendor context API returned unsuccessful response: ${JSON.stringify(vendorData)}`;
+          setDebugInfo(errorMsg);
+          throw new Error(errorMsg);
         }
       } catch (err) {
-        setError('Failed to fetch company intelligence.');
+        const errorMsg = `Failed to fetch company intelligence: ${err instanceof Error ? err.message : String(err)}`;
+        setError(errorMsg);
+        setDebugInfo(errorMsg);
         console.error('Company intelligence error:', err);
       } finally {
         setLoading(false);
@@ -223,9 +231,18 @@ export function CompanyIntelligenceWidget({
     return (
       <Card className={`bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950/30 dark:to-gray-950/30 border-slate-200 dark:border-slate-800 ${className}`}>
         <CardContent className="p-6">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-            <span className="text-sm text-slate-700 dark:text-slate-300">{error}</span>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              <span className="text-sm text-slate-700 dark:text-slate-300">{error}</span>
+            </div>
+            {debugInfo && (
+              <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <p className="text-xs text-yellow-800 dark:text-yellow-200 font-mono">
+                  Debug: {debugInfo}
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
