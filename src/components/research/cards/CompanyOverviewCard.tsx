@@ -235,12 +235,16 @@ export function CompanyOverviewCard({ companySummary, messageId, userRole }: Com
                 <div className="space-y-2">
                   <div className="text-xs text-muted-foreground">
                     <span className="text-foreground font-medium">Main Competitors:</span> 
-                    <span className="break-words ml-1">{companySummary.competitiveContext.mainCompetitors.join(", ")}</span>
+                    <span className="break-words ml-1">
+                      {companySummary.competitiveContext.mainCompetitors?.join(", ") || "Not available"}
+                    </span>
                   </div>
-                  {companySummary.competitiveContext.differentiators.length > 0 && (
+                  {companySummary.competitiveContext.differentiators?.length > 0 && (
                     <div className="text-xs text-muted-foreground">
                       <span className="text-foreground font-medium">Key Differentiators:</span> 
-                      <span className="break-words ml-1">{companySummary.competitiveContext.differentiators.join(", ")}</span>
+                      <span className="break-words ml-1">
+                        {companySummary.competitiveContext.differentiators?.join(", ") || "Not available"}
+                      </span>
                     </div>
                   )}
                 </div>
