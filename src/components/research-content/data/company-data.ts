@@ -26,7 +26,7 @@ export const getCompanyData = (companyName: string): CompanyData => {
       ],
       businessMetrics: {
         valuation: "$200M (Series B)",
-        employeeGrowth: "+150% YoY",
+        revenueGrowth: "+150% YoY",
         customerCount: "2,500+ SMBs",
         marketShare: "0.8% of embedded finance market"
       },
@@ -67,7 +67,7 @@ export const getCompanyData = (companyName: string): CompanyData => {
       ],
       businessMetrics: {
         valuation: "$200M (Series B)",
-        employeeGrowth: "+150% YoY",
+        revenueGrowth: "+150% YoY",
         customerCount: "2,500+ SMBs",
         marketShare: "0.8% of embedded finance market"
       },
@@ -103,7 +103,7 @@ export const getCompanyData = (companyName: string): CompanyData => {
       ],
       businessMetrics: {
         valuation: "$800B market cap",
-        employeeGrowth: "+29% YoY",
+        revenueGrowth: "+29% YoY",
         customerCount: "6M+ vehicles delivered",
         marketShare: "20% global EV market"
       },
@@ -138,7 +138,7 @@ export const getCompanyData = (companyName: string): CompanyData => {
       ],
       businessMetrics: {
         valuation: "$65B market cap",
-        employeeGrowth: "+15% YoY",
+        revenueGrowth: "+15% YoY",
         customerCount: "5.6M merchants",
         marketShare: "10% of US e-commerce market"
       },
@@ -173,7 +173,7 @@ export const getCompanyData = (companyName: string): CompanyData => {
       ],
       businessMetrics: {
         valuation: "$2.8T market cap",
-        employeeGrowth: "+8% YoY",
+        revenueGrowth: "+8% YoY",
         customerCount: "1.4B Office users",
         marketShare: "21% cloud infrastructure market"
       },

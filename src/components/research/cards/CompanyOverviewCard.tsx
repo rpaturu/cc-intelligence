@@ -37,7 +37,7 @@ export function CompanyOverviewCard({ companySummary, messageId, userRole }: Com
                 <BarChart3 className="w-5 h-5 text-primary" />
               </motion.div>
               <span className="text-foreground font-medium min-w-0 flex-1">{companySummary.name}</span>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Badge variant="secondary">{companySummary.industry}</Badge>
                 <span className="text-muted-foreground hidden sm:inline">|</span>
                 <span className="text-muted-foreground text-sm">{companySummary.size}</span>
@@ -45,7 +45,7 @@ export function CompanyOverviewCard({ companySummary, messageId, userRole }: Com
             </motion.div>
 
             {/* Business Context */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-4 sm:space-y-6">
               <motion.div 
                 className="space-y-3"
                 initial={{ opacity: 0, y: 15 }}
@@ -103,16 +103,16 @@ export function CompanyOverviewCard({ companySummary, messageId, userRole }: Com
                   <span className="text-muted-foreground ml-1 break-words">{companySummary.recentNews}</span>
                 </div>
 
-                {/* Key Metrics */}
-                {companySummary.businessMetrics && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3 text-sm">
-                    {companySummary.businessMetrics.employeeGrowth && (
+                {/* Growth and Customers - Two Column Layout */}
+                {(companySummary.businessMetrics?.revenueGrowth || companySummary.businessMetrics?.customerCount) && (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {companySummary.businessMetrics?.revenueGrowth && (
                       <div className="flex items-center gap-1">
                         <span className="text-foreground font-medium">Growth:</span>
-                        <span className="text-green-600">{companySummary.businessMetrics.employeeGrowth}</span>
+                        <span className="text-green-600">{companySummary.businessMetrics.revenueGrowth}</span>
                       </div>
                     )}
-                    {companySummary.businessMetrics.customerCount && (
+                    {companySummary.businessMetrics?.customerCount && (
                       <div className="flex items-center gap-1">
                         <span className="text-foreground font-medium">Customers:</span>
                         <span className="text-muted-foreground">{companySummary.businessMetrics.customerCount}</span>

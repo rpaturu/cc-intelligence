@@ -177,7 +177,7 @@ export interface CompanyData {
   }>;
   businessMetrics?: {
     valuation?: string;
-    employeeGrowth?: string;
+    revenueGrowth?: string;
     customerCount?: string;
     marketShare?: string;
   };
