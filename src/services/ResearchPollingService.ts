@@ -173,6 +173,14 @@ export class ResearchPollingService {
         if (status.status === 'completed' || 
             (status.message && status.message.includes('✅ Research completed successfully'))) {
           
+          console.log('🎯 Research completion detected, stopping polling:', {
+            researchSessionId,
+            status: status.status,
+            message: status.message,
+            isStatusCompleted: status.status === 'completed',
+            isMessageCompleted: status.message && status.message.includes('✅ Research completed successfully')
+          });
+          
           // Tell simulation to complete the final step
           this.completeSimulation(researchSessionId, messageId);
           
@@ -291,6 +299,7 @@ export class ResearchPollingService {
   }
 
   private async handleResearchComplete(researchSessionId: string, areaId: string, companyId: string) {
+    console.log('🎯 handleResearchComplete called:', { researchSessionId, areaId, companyId });
     const { setCompletedResearch, setIsTyping, setMessages } = this.dependencies;
 
 
